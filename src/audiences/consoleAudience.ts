@@ -3,10 +3,19 @@ import type { AudienceMember } from "../storyteller";
 export function consoleAudience(): AudienceMember {
   return {
     name: "console",
-    hear: (e) => {
-      if (e.level === "oops") console.error(e);
-      else if (e.level === "warn") console.warn(e);
-      else console.log(e);
+    hear: (event) => {
+      const label = `Storyteller: ${event.level.toUpperCase()} — ${event.title}`;
+
+      const style =
+        event.level === "tell"
+          ? "color:#16a34a;font-weight:600"
+          : event.level === "warn"
+          ? "color:#f59e0b;font-weight:600"
+          : "color:#dc2626;font-weight:600";
+
+      console.groupCollapsed(`%c${label}`, style);
+      console.log(event);
+      console.groupEnd();
     },
   };
 }

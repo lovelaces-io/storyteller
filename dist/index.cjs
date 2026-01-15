@@ -27,6 +27,20 @@ __export(index_exports, {
 });
 module.exports = __toCommonJS(index_exports);
 
+// src/audiences/consoleAudience.ts
+function consoleAudience() {
+  return {
+    name: "console",
+    hear: (event) => {
+      const label = `Storyteller: ${event.level.toUpperCase()} \u2014 ${event.title}`;
+      const style = event.level === "tell" ? "color:#16a34a;font-weight:600" : event.level === "warn" ? "color:#f59e0b;font-weight:600" : "color:#dc2626;font-weight:600";
+      console.groupCollapsed(`%c${label}`, style);
+      console.log(event);
+      console.groupEnd();
+    }
+  };
+}
+
 // src/storyteller.ts
 var AudienceRegistry = class {
   map = /* @__PURE__ */ new Map();
@@ -51,14 +65,7 @@ var Storyteller = class {
   notes = [];
   constructor(opts) {
     this.origin = opts?.origin;
-    this.audience.add({
-      name: "console",
-      hear: (e) => {
-        if (e.level === "oops") console.error(e);
-        else if (e.level === "warn") console.warn(e);
-        else console.log(e);
-      }
-    });
+    this.audience.add(consoleAudience());
     opts?.audiences?.forEach((a) => this.audience.add(a));
   }
   note(text, data = {}) {
@@ -171,18 +178,6 @@ function summarizeNotes(notes) {
     who: whoUsed ? merged.who : void 0,
     what: whatUsed ? merged.what : void 0,
     where: whereUsed ? merged.where : void 0
-  };
-}
-
-// src/audiences/consoleAudience.ts
-function consoleAudience() {
-  return {
-    name: "console",
-    hear: (e) => {
-      if (e.level === "oops") console.error(e);
-      else if (e.level === "warn") console.warn(e);
-      else console.log(e);
-    }
   };
 }
 

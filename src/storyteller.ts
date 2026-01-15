@@ -1,3 +1,5 @@
+import { consoleAudience } from "./audiences/consoleAudience";
+
 export type StoryLevel = "tell" | "warn" | "oops";
 
 export type StoryNote = {
@@ -75,14 +77,7 @@ export class Storyteller {
     this.origin = opts?.origin;
 
     // default console audience (all levels)
-    this.audience.add({
-      name: "console",
-      hear: (e) => {
-        if (e.level === "oops") console.error(e);
-        else if (e.level === "warn") console.warn(e);
-        else console.log(e);
-      },
-    });
+    this.audience.add(consoleAudience());
 
     opts?.audiences?.forEach((a) => this.audience.add(a));
   }
