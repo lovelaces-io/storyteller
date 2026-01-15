@@ -4,10 +4,7 @@ export function consoleAudience(): AudienceMember {
   return {
     name: "console",
     hear: (event) => {
-      const isTell = event.level === "tell";
-      const label = isTell
-        ? "Storyteller:"
-        : `Storyteller: ${event.level.toUpperCase()} — ${event.title}`;
+      const label = "Storyteller:";
 
       const style =
         event.level === "tell"
@@ -16,15 +13,7 @@ export function consoleAudience(): AudienceMember {
           ? "color:#f59e0b;font-weight:600"
           : "color:#dc2626;font-weight:600";
 
-      if (isTell) {
-        console.groupCollapsed(
-          `%c${label}%c ${event.title}`,
-          style,
-          ""
-        );
-      } else {
-        console.groupCollapsed(`%c${label}`, style);
-      }
+      console.groupCollapsed(`%c${label}%c ${event.title}`, style, "");
       console.log(event);
       console.groupEnd();
     },
