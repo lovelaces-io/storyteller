@@ -14,7 +14,14 @@ export function consoleAudience(): AudienceMember {
           : "color:#dc2626;font-weight:600";
 
       console.groupCollapsed(`%c${label}%c ${event.title}`, style, "");
-      console.log(event);
+
+      if (event.level === "tell") {
+        console.log(event);
+      } else if (event.level == "warn") {
+        console.warn(event);
+      } else {
+        console.error(event);
+      }
       console.groupEnd();
     },
   };
