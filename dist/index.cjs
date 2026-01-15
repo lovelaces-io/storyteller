@@ -32,15 +32,16 @@ function consoleAudience() {
   return {
     name: "console",
     hear: (event) => {
-      const label = "Storyteller:";
+      const label = "Storyteller";
       const style = event.level === "tell" ? "color:#16a34a;font-weight:600" : event.level === "warn" ? "color:#f59e0b;font-weight:600" : "color:#dc2626;font-weight:600";
-      console.groupCollapsed(`%c${label}%c ${event.title}`, style, "");
+      const header = `${label}: ${event.title}`;
+      console.groupCollapsed(`%c${header}`, style);
       if (event.level === "tell") {
-        console.log(event);
-      } else if (event.level == "warn") {
-        console.warn(event);
+        console.log(header, event);
+      } else if (event.level === "warn") {
+        console.warn(header, event);
       } else {
-        console.error(event);
+        console.error(header, event);
       }
       console.groupEnd();
     }
