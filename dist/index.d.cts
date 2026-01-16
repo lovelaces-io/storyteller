@@ -110,6 +110,12 @@ declare class Storyteller {
 }
 declare function summarizeStory(story: StoryEventBase, opts?: StorySummaryOptions): StorySummary;
 
+type StorytellerSharedOptions = {
+    origin?: StoryEventBase["origin"];
+    reset?: boolean;
+};
+declare function useStoryteller(opts?: StorytellerSharedOptions): Storyteller;
+
 declare function consoleAudience(): AudienceMember;
 
 declare function dbAudience(insert: (event: StoryEvent) => Promise<void> | void): AudienceMember;
@@ -124,4 +130,4 @@ type StoryReportOptions = {
 };
 declare function writeStoryReport(stories: StoryEventBase[], opts?: StoryReportOptions): string;
 
-export { type AudienceMember, type StoryContextValue, type StoryEvent, type StoryEventBase, type StoryLevel, type StoryNote, type StoryPreviewOptions, type StoryReportOptions, type StorySummary, type StorySummaryData, type StorySummaryNote, type StorySummaryOptions, Storyteller, consoleAudience, dbAudience, summarizeStory, writeStoryReport };
+export { type AudienceMember, type StoryContextValue, type StoryEvent, type StoryEventBase, type StoryLevel, type StoryNote, type StoryPreviewOptions, type StoryReportOptions, type StorySummary, type StorySummaryData, type StorySummaryNote, type StorySummaryOptions, Storyteller, consoleAudience, dbAudience, summarizeStory, useStoryteller, writeStoryReport };

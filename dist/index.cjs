@@ -24,6 +24,7 @@ __export(index_exports, {
   consoleAudience: () => consoleAudience,
   dbAudience: () => dbAudience,
   summarizeStory: () => summarizeStory,
+  useStoryteller: () => useStoryteller,
   writeStoryReport: () => writeStoryReport
 });
 module.exports = __toCommonJS(index_exports);
@@ -349,6 +350,16 @@ function formatNote(note, verbosity) {
   return extras.length ? `${note.note} (${extras.join(" ")})` : note.note;
 }
 
+// src/useStoryteller.ts
+var shared;
+function useStoryteller(opts = {}) {
+  if (!shared || opts.reset) {
+    shared = new Storyteller({ origin: opts.origin });
+    return shared;
+  }
+  return shared;
+}
+
 // src/audiences/dbAudience.ts
 function dbAudience(insert) {
   return {
@@ -509,6 +520,7 @@ function countBrackets2(line) {
   consoleAudience,
   dbAudience,
   summarizeStory,
+  useStoryteller,
   writeStoryReport
 });
 //# sourceMappingURL=index.cjs.map

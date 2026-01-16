@@ -14,10 +14,14 @@ npm install
 ## Quick Usage
 
 ```ts
-import { Storyteller } from "@lovelaces-io/storyteller";
+import { Storyteller, useStoryteller } from "@lovelaces-io/storyteller";
 
 const story = new Storyteller({
   origin: { where: { app: "admin", page: "Dashboard" } },
+});
+
+const shared = useStoryteller({
+  origin: { where: { app: "admin" } },
 });
 
 story.note("User opened page");
@@ -27,6 +31,8 @@ story.tell("Dashboard loaded");
 story.warn("Something looks wrong");
 story.oops("Something failed", new Error("timeout"));
 ```
+
+`useStoryteller()` returns a shared singleton instance for cross‑component or cross‑service usage. Pass `reset: true` to reinitialize it.
 
 Use `story.reset()` to clear notes without emitting a story.
 

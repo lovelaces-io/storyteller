@@ -319,6 +319,16 @@ function formatNote(note, verbosity) {
   return extras.length ? `${note.note} (${extras.join(" ")})` : note.note;
 }
 
+// src/useStoryteller.ts
+var shared;
+function useStoryteller(opts = {}) {
+  if (!shared || opts.reset) {
+    shared = new Storyteller({ origin: opts.origin });
+    return shared;
+  }
+  return shared;
+}
+
 // src/audiences/dbAudience.ts
 function dbAudience(insert) {
   return {
@@ -478,6 +488,7 @@ export {
   consoleAudience,
   dbAudience,
   summarizeStory,
+  useStoryteller,
   writeStoryReport
 };
 //# sourceMappingURL=index.js.map
