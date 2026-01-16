@@ -45,6 +45,12 @@ export type StorySummaryOptions = {
   colorize?: boolean;
 };
 
+export type StoryPreviewOptions = StorySummaryOptions & {
+  title?: string;
+  level?: StoryLevel;
+  error?: unknown;
+};
+
 export type StorySummaryNote = {
   ts: string;
   when: string;
@@ -138,6 +144,25 @@ export class Storyteller {
   reset() {
     this.notes = [];
     return this;
+  }
+
+  summarize(opts: StoryPreviewOptions = {}) {
+    const {
+      title = "Story preview",
+      level = "tell",
+      error,
+      ...summaryOpts
+    } = opts;
+    const event: StoryEventBase = {
+      ts: new Date().toISOString(),
+      level,
+      title,
+      ...(this.origin ? { origin: this.origin } : {}),
+      notes: [...this.notes],
+      ...(error ? { error: normalizeError(error) } : {}),
+    };
+
+    return summarizeStory(event, summaryOpts);
   }
 
   tell(title: string) {

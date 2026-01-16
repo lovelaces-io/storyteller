@@ -63,6 +63,23 @@ var Storyteller = class {
     this.notes = [];
     return this;
   }
+  summarize(opts = {}) {
+    const {
+      title = "Story preview",
+      level = "tell",
+      error,
+      ...summaryOpts
+    } = opts;
+    const event = {
+      ts: (/* @__PURE__ */ new Date()).toISOString(),
+      level,
+      title,
+      ...this.origin ? { origin: this.origin } : {},
+      notes: [...this.notes],
+      ...error ? { error: normalizeError(error) } : {}
+    };
+    return summarizeStory(event, summaryOpts);
+  }
   tell(title) {
     return this.createDelivery("tell", title);
   }

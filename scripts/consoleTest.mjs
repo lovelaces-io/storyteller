@@ -1,4 +1,4 @@
-import { Storyteller, summarizeStory } from "../dist/index.js";
+import { Storyteller } from "../dist/index.js";
 
 const ANSI = {
   reset: "\x1b[0m",
@@ -84,38 +84,13 @@ class ConsoleTestRunner {
 
 
 
-  static buildEventSnapshot(story, level, title, err) {
-    const origin = story.origin;
-    const notes = Array.isArray(story.notes) ? [...story.notes] : [];
-    return {
-      ts: new Date().toISOString(),
-      level,
-      title,
-      ...(origin ? { origin } : {}),
-      notes,
-      ...(err ? { error: ConsoleTestRunner.normalizeError(err) } : {})
-    };
-  }
-
-  static normalizeError(err) {
-    if (err instanceof Error) {
-      return {
-        name: err.name,
-        message: err.message,
-        stack: err.stack
-      };
-    }
-    return { message: String(err) };
-  }
-
   static printSummary(story, level, title, err) {
-    const event = ConsoleTestRunner.buildEventSnapshot(
-      story,
-      level,
+    const summary = story.summarize({
       title,
-      err
-    );
-    const summary = summarizeStory(event, { verbosity: "full" });
+      level,
+      error: err,
+      verbosity: "full",
+    });
     console.log(summary.text);
     const levelColor = getLevelColor(level);
     console.log(`${levelColor}Data${ANSI.reset}:`);

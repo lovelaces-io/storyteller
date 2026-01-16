@@ -34,6 +34,11 @@ type StorySummaryOptions = {
     showData?: boolean;
     colorize?: boolean;
 };
+type StoryPreviewOptions = StorySummaryOptions & {
+    title?: string;
+    level?: StoryLevel;
+    error?: unknown;
+};
 type StorySummaryNote = {
     ts: string;
     when: string;
@@ -89,6 +94,7 @@ declare class Storyteller {
     });
     note(text: string, data?: NoteData): this;
     reset(): this;
+    summarize(opts?: StoryPreviewOptions): StorySummary;
     tell(title: string): {
         to: (...names: string[]) => void;
     };
@@ -118,4 +124,4 @@ type StoryReportOptions = {
 };
 declare function writeStoryReport(stories: StoryEventBase[], opts?: StoryReportOptions): string;
 
-export { type AudienceMember, type StoryContextValue, type StoryEvent, type StoryEventBase, type StoryLevel, type StoryNote, type StoryReportOptions, type StorySummary, type StorySummaryData, type StorySummaryNote, type StorySummaryOptions, Storyteller, consoleAudience, dbAudience, summarizeStory, writeStoryReport };
+export { type AudienceMember, type StoryContextValue, type StoryEvent, type StoryEventBase, type StoryLevel, type StoryNote, type StoryPreviewOptions, type StoryReportOptions, type StorySummary, type StorySummaryData, type StorySummaryNote, type StorySummaryOptions, Storyteller, consoleAudience, dbAudience, summarizeStory, writeStoryReport };

@@ -1,12 +1,6 @@
 # Storyteller
 
-Storyteller is a lightweight TypeScript logging library that treats logs as **stories** instead of isolated events.
-
-A *story* is a grouped, structured log made up of time-ordered notes that explain **what happened and why**, emitted as a single record when the story is told.
-
-The goal is fewer log records, richer context, and logs that are useful to both humans and machines.
-
----
+Storyteller is a lightweight TypeScript logging library that treats logs as stories: grouped notes emitted as a single structured event.
 
 ## Local Setup (GitHub Packages)
 
@@ -17,121 +11,62 @@ export NODE_AUTH_TOKEN=ghp_xxx
 npm install
 ```
 
-## Core Concepts
-
-- **Storyteller**: a long-lived logger created at an app, page, or service level
-- **Notes**: small breadcrumbs captured over time (`note()`)
-- **Story**: the collection of notes leading up to an outcome
-- **Tell / Warn / Oops**: emit the story as one structured log
-- **Audiences**: destinations that hear stories (console, database today; email/Discord later)
-
-When a story is told, its notes are cleared and the next activity begins a new story.
-
----
-
-## Basic Usage
+## Quick Usage
 
 ```ts
-import { Storyteller, dbAudience } from "@lovelaces/storyteller";
+import { Storyteller } from "@lovelaces-io/storyteller";
 
 const story = new Storyteller({
   origin: { where: { app: "admin", page: "Dashboard" } },
 });
 
-story.audience.add(
-  dbAudience(async (event) => {
-    // persist event to database or telemetry endpoint
-  })
-);
-
 story.note("User opened page");
 story.note("Fetching data", { what: { resource: "challenges" } });
 
 story.tell("Dashboard loaded");
+story.warn("Something looks wrong");
+story.oops("Something failed", new Error("timeout"));
 ```
 
-This emits **one log record** containing both notes.
+Use `story.reset()` to clear notes without emitting a story.
 
----
+## Notes + Context
 
-## Logging Methods
-
-```ts
-story.tell("Something completed");   // informational
-story.warn("Something looks wrong");  // warning
-story.oops("Something failed", err);  // error
-```
-
-- All methods emit a single structured story
-- Notes are automatically cleared after emission
-
----
-
-## Notes
-
-Notes are lightweight breadcrumbs captured before telling a story.
+`who`, `what`, and `where` can be strings or objects, and notes can carry errors.
 
 ```ts
-story.note("User changed form field", {
-  what: { field: "email" },
-  where: { component: "SignupForm" },
+story.note("Write failed", {
+  where: "primary-db",
+  error: new Error("db timeout"),
 });
 ```
 
-Each note may optionally include `who`, `what`, and `where`.
+## Summaries
 
----
+Summaries are on-demand and do not clear notes.
+
+```ts
+const summary = story.summarize({
+  title: "Dashboard loaded",
+  level: "tell",
+  verbosity: "full",
+});
+console.log(summary.text);
+console.log(summary.data);
+```
+
+For many stories, use `writeStoryReport(stories, opts)`.
 
 ## Audiences
 
-Audiences receive emitted stories.
-
-- **Console**: built-in, receives all stories
-- **Database**: optional, defaults to `warn` and `oops` only
-
-```ts
-story.audience.add({
-  name: "db",
-  accepts: (e) => e.level !== "tell",
-  hear: async (event) => saveToDb(event),
-});
-```
-
-By default, stories are sent to **all registered audiences**.
-
-You can target specific audiences per story:
+The default console audience groups and colors logs. You can add audiences and target them per story:
 
 ```ts
 story.oops("Critical failure", err).to("console", "db");
 ```
 
----
+## Dev
 
-## Why Storyteller
-
-Traditional logging produces many disconnected records.
-
-Storyteller:
-- Groups related activity into one event
-- Preserves timelines without log spam
-- Produces JSON suitable for databases, analytics, and reports
-- Remains readable in console output
-
----
-
-## Status
-
-Storyteller is early-stage and evolving.
-
-Current audiences:
-- Console
-- Database / telemetry endpoint
-
-Planned:
-- Email
-- Discord / chat alerts
-- Story reports and summaries
-
----
+- `npm run test:console` for a colored console demo
 
 MIT License
