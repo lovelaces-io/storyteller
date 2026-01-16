@@ -23,6 +23,7 @@ __export(index_exports, {
   Storyteller: () => Storyteller,
   consoleAudience: () => consoleAudience,
   dbAudience: () => dbAudience,
+  summarizeStory: () => summarizeStory,
   writeStoryReport: () => writeStoryReport
 });
 module.exports = __toCommonJS(index_exports);
@@ -36,12 +37,14 @@ function consoleAudience() {
       const style = event.level === "tell" ? "color:#16a34a;font-weight:600" : event.level === "warn" ? "color:#f59e0b;font-weight:600" : "color:#dc2626;font-weight:600";
       const header = `${label}: ${event.title}`;
       console.groupCollapsed(`%c${header}`, style);
+      const payload = JSON.stringify(event, null, 2);
+      const coloredPayload = event.level === "oops" ? `\x1B[38;2;250;128;114m${payload}\x1B[0m` : payload;
       if (event.level === "tell") {
-        console.log(header, event);
+        console.log(header, payload);
       } else if (event.level === "warn") {
-        console.warn(header, event);
+        console.warn(header, payload);
       } else {
-        console.error(header, event);
+        console.error(header, coloredPayload);
       }
       console.groupEnd();
     }
@@ -81,8 +84,13 @@ var Storyteller = class {
       note: text,
       ...data.who ? { who: data.who } : {},
       ...data.what ? { what: data.what } : {},
-      ...data.where ? { where: data.where } : {}
+      ...data.where ? { where: data.where } : {},
+      ...data.error ? { error: normalizeError(data.error) } : {}
     });
+    return this;
+  }
+  reset() {
+    this.notes = [];
     return this;
   }
   tell(title) {
@@ -116,25 +124,20 @@ var Storyteller = class {
     const now = (/* @__PURE__ */ new Date()).toISOString();
     const notes = [...this.notes];
     this.notes = [];
-    const summary = summarizeNotes(notes);
     const event = {
       ts: now,
       level,
       title,
       ...this.origin ? { origin: this.origin } : {},
-      summary: {
-        noteCount: notes.length,
-        ...summary.durationMs != null ? { durationMs: summary.durationMs } : {},
-        ...summary.who ? { who: summary.who } : {},
-        ...summary.what ? { what: summary.what } : {},
-        ...summary.where ? { where: summary.where } : {}
-      },
-      notes
+      notes,
+      ...err ? { error: normalizeError(err) } : {}
     };
-    if (err) {
-      event.error = normalizeError(err);
-    }
-    return event;
+    const eventWithSummary = event;
+    Object.defineProperty(eventWithSummary, "summarize", {
+      value: (opts) => summarizeStory(event, opts),
+      enumerable: false
+    });
+    return eventWithSummary;
   }
   async deliver(event, opts) {
     const members = opts?.only?.length ? this.audience.getOnly(opts.only) : this.audience.getAll();
@@ -161,31 +164,172 @@ function normalizeError(err) {
   return { message: String(err) };
 }
 function summarizeNotes(notes) {
-  if (notes.length <= 1) return { durationMs: void 0, who: void 0, what: void 0, where: void 0 };
+  if (notes.length <= 1) {
+    return {
+      durationMs: void 0
+    };
+  }
   const start = Date.parse(notes[0].ts);
   const end = Date.parse(notes[notes.length - 1].ts);
-  const merged = { who: {}, what: {}, where: {} };
-  let whoUsed = false, whatUsed = false, whereUsed = false;
-  for (const n of notes) {
-    if (n.who) {
-      Object.assign(merged.who, n.who);
-      whoUsed = true;
+  return {
+    durationMs: Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : void 0
+  };
+}
+function summarizeStory(story, opts = {}) {
+  const {
+    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
+    locale = "en-US",
+    verbosity = "normal",
+    maxNotes = 50,
+    showData = true,
+    colorize = true
+  } = opts;
+  const dateTimeFmt = new Intl.DateTimeFormat(locale, {
+    timeZone: timezone,
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+  const timeFmt = new Intl.DateTimeFormat(locale, {
+    timeZone: timezone,
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+  const orderedNotes = [...story.notes].sort(
+    (a, b) => Date.parse(a.ts) - Date.parse(b.ts)
+  );
+  const summary = summarizeNotes(orderedNotes);
+  const originLabel = formatOrigin(story.origin);
+  const duration = summary.durationMs != null ? formatDuration(summary.durationMs) : void 0;
+  const slicedNotes = orderedNotes.slice(0, maxNotes);
+  const notes = slicedNotes.map((note) => ({
+    ts: note.ts,
+    when: timeFmt.format(new Date(note.ts)),
+    note: note.note,
+    text: formatNote(note, verbosity),
+    ...note.who ? { who: note.who } : {},
+    ...note.what ? { what: note.what } : {},
+    ...note.where ? { where: note.where } : {},
+    ...note.error ? { error: note.error } : {}
+  }));
+  const data = {
+    title: story.title,
+    level: story.level,
+    when: dateTimeFmt.format(new Date(story.ts)),
+    ...summary.durationMs != null ? { durationMs: summary.durationMs } : {},
+    ...duration ? { duration } : {},
+    ...story.origin ? { origin: story.origin } : {},
+    notes,
+    ...story.error ? { error: story.error } : {}
+  };
+  const levelColor = getLevelColor(story.level);
+  const label = (text) => colorize ? `${levelColor}${text}${ANSI.reset}` : text;
+  const lines = [];
+  lines.push(`${label("StorytellerSummary")}: ${story.title}`);
+  lines.push(`${label("Time")}: ${data.when}${duration ? ` (${duration})` : ""}`);
+  if (originLabel) {
+    lines.push(`${label("Origin")}: ${originLabel}`);
+  }
+  if (story.error) {
+    const errLine = [story.error.name, story.error.message].filter(Boolean).join(": ");
+    if (errLine) lines.push(`${label("?")}: ${errLine}`);
+  }
+  if (verbosity !== "brief" && notes.length) {
+    lines.push(`${label("Notes")}:`);
+    for (const note of notes) {
+      lines.push(`- ${note.when} - ${note.text}`);
     }
-    if (n.what) {
-      Object.assign(merged.what, n.what);
-      whatUsed = true;
-    }
-    if (n.where) {
-      Object.assign(merged.where, n.where);
-      whereUsed = true;
+    if (orderedNotes.length > notes.length) {
+      lines.push(`\u2026 (${orderedNotes.length - notes.length} more)`);
     }
   }
-  return {
-    durationMs: Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : void 0,
-    who: whoUsed ? merged.who : void 0,
-    what: whatUsed ? merged.what : void 0,
-    where: whereUsed ? merged.where : void 0
-  };
+  if (showData) {
+    lines.push(`${label("Story")}:`);
+    const json = JSON.stringify(data, null, 2);
+    if (colorize) {
+      const colored = colorizeJsonSections(json, {
+        base: ANSI.grayLight,
+        notes: ANSI.grayDark,
+        reset: ANSI.reset
+      });
+      lines.push(...colored);
+    } else {
+      lines.push(...json.split("\n"));
+    }
+  }
+  return { text: lines.join("\n"), data };
+}
+function formatDuration(ms) {
+  if (ms < 1e3) return `${ms}ms`;
+  const s = ms / 1e3;
+  if (s < 60) return `${s.toFixed(1)}s`;
+  const m = Math.floor(s / 60);
+  const r = Math.round(s % 60).toString().padStart(2, "0");
+  return `${m}:${r}m`;
+}
+var ANSI = {
+  reset: "\x1B[0m",
+  green: "\x1B[32m",
+  yellow: "\x1B[33m",
+  red: "\x1B[38;2;250;128;114m",
+  grayLight: "\x1B[37m",
+  grayDark: "\x1B[37m"
+};
+function getLevelColor(level) {
+  if (level === "tell") return ANSI.green;
+  if (level === "warn") return ANSI.yellow;
+  return ANSI.red;
+}
+function colorizeJsonSections(json, colors) {
+  const lines = json.split("\n");
+  let inNotes = false;
+  let notesDepth = 0;
+  return lines.map((line) => {
+    if (!inNotes && line.includes('"notes": [')) {
+      inNotes = true;
+      notesDepth = countBrackets(line);
+      return `${colors.notes}${line}${colors.reset}`;
+    }
+    if (inNotes) {
+      const colored = `${colors.notes}${line}${colors.reset}`;
+      notesDepth += countBrackets(line);
+      if (notesDepth <= 0) inNotes = false;
+      return colored;
+    }
+    return `${colors.base}${line}${colors.reset}`;
+  });
+}
+function countBrackets(line) {
+  const open = (line.match(/\[/g) || []).length;
+  const close = (line.match(/\]/g) || []).length;
+  return open - close;
+}
+function formatOrigin(origin) {
+  if (!origin?.where) return;
+  if (typeof origin.where === "string") return origin.where;
+  const w = origin.where;
+  const parts = [w.app, w.service, w.page, w.component].filter(Boolean).map(String);
+  return parts.length ? parts.join(" / ") : void 0;
+}
+function formatNote(note, verbosity) {
+  if (verbosity !== "full") return note.note;
+  const extras = [];
+  const what = note.what;
+  const where = note.where;
+  if (typeof what === "string") extras.push(`what=${what}`);
+  if (what?.field) extras.push(`field=${what.field}`);
+  if (what?.status) extras.push(`status=${what.status}`);
+  if (typeof where === "string") extras.push(`where=${where}`);
+  if (where?.component) extras.push(`component=${where.component}`);
+  if (note.error) {
+    const errLine = [note.error.name, note.error.message].filter(Boolean).join(": ");
+    if (errLine) extras.push(`error=${errLine}`);
+  }
+  return extras.length ? `${note.note} (${extras.join(" ")})` : note.note;
 }
 
 // src/audiences/dbAudience.ts
@@ -205,7 +349,9 @@ function writeStoryReport(stories, opts = {}) {
     timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
     locale = "en-US",
     verbosity = "normal",
-    maxNotesPerStory = 50
+    maxNotesPerStory = 50,
+    showData = true,
+    colorize = true
   } = opts;
   if (!stories.length) {
     return "Storyteller Report\n\n(no stories)\n";
@@ -218,12 +364,6 @@ function writeStoryReport(stories, opts = {}) {
     year: "numeric",
     month: "short",
     day: "2-digit"
-  });
-  const timeFmt = new Intl.DateTimeFormat(locale, {
-    timeZone: timezone,
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit"
   });
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
@@ -248,38 +388,53 @@ function writeStoryReport(stories, opts = {}) {
   for (const [day, dayStories] of byDay) {
     lines.push(day);
     for (const story of dayStories) {
-      const when = timeFmt.format(new Date(story.ts));
-      const duration = story.summary.durationMs != null ? ` (${formatDuration(story.summary.durationMs)})` : "";
-      lines.push(
-        `- [${story.level.toUpperCase()}] ${story.title}`
-      );
-      lines.push(`  Time: ${when}${duration}`);
-      const origin = formatOrigin(story.origin);
-      if (origin) {
-        lines.push(`  Origin: ${origin}`);
+      const summary = summarizeStory(story, {
+        timezone,
+        locale,
+        verbosity,
+        maxNotes: maxNotesPerStory,
+        colorize
+      });
+      const { data } = summary;
+      const originLabel = formatOrigin2(story.origin);
+      const levelColor = getLevelColor2(story.level);
+      const label = (text) => colorize ? `${levelColor}${text}${ANSI2.reset}` : text;
+      const duration = data.duration ? ` (${data.duration})` : "";
+      lines.push(`${label("StorytellerSummary")}: ${story.title}`);
+      lines.push(`${label("Time")}: ${data.when}${duration}`);
+      if (originLabel) {
+        lines.push(`${label("Origin")}: ${originLabel}`);
       }
-      const summary = formatSummary(story.summary);
-      if (summary) {
-        lines.push(`  Summary: ${summary}`);
-      }
-      if (story.level === "oops" && story.error) {
+      if (data.error) {
         const errLine = [
-          story.error.name,
-          story.error.message
+          data.error.name,
+          data.error.message
         ].filter(Boolean).join(": ");
-        lines.push(`  Error: ${errLine}`);
+        if (errLine) lines.push(`${label("?")}: ${errLine}`);
       }
-      if (verbosity !== "brief" && story.notes.length) {
-        lines.push(`  Notes:`);
-        const notes = story.notes.slice(0, maxNotesPerStory);
-        for (const n of notes) {
-          const t = timeFmt.format(new Date(n.ts));
-          lines.push(`    ${t} - ${formatNote(n, verbosity)}`);
+      if (verbosity !== "brief" && data.notes.length) {
+        lines.push(`  ${label("Notes")}:`);
+        for (const n of data.notes) {
+          lines.push(`    ${n.when} - ${n.text}`);
         }
-        if (story.notes.length > notes.length) {
+        if (story.notes.length > data.notes.length) {
           lines.push(
-            `    \u2026 (${story.notes.length - notes.length} more)`
+            `    \u2026 (${story.notes.length - data.notes.length} more)`
           );
+        }
+      }
+      if (showData) {
+        lines.push(`${label("Story")}:`);
+        const json = JSON.stringify(data, null, 2);
+        if (colorize) {
+          const colored = colorizeJsonSections2(json, {
+            base: ANSI2.grayLight,
+            notes: ANSI2.grayDark,
+            reset: ANSI2.reset
+          });
+          lines.push(...colored);
+        } else {
+          lines.push(...json.split("\n"));
         }
       }
       lines.push("");
@@ -287,50 +442,56 @@ function writeStoryReport(stories, opts = {}) {
   }
   return lines.join("\n").trim() + "\n";
 }
-function formatDuration(ms) {
-  if (ms < 1e3) return `${ms}ms`;
-  const s = ms / 1e3;
-  if (s < 60) return `${s.toFixed(1)}s`;
-  const m = Math.floor(s / 60);
-  const r = Math.round(s % 60).toString().padStart(2, "0");
-  return `${m}:${r}m`;
-}
-function formatOrigin(origin) {
+function formatOrigin2(origin) {
   if (!origin?.where) return;
+  if (typeof origin.where === "string") return origin.where;
   const w = origin.where;
-  const parts = [
-    w.app,
-    w.service,
-    w.page,
-    w.component
-  ].filter(Boolean).map(String);
+  const parts = [w.app, w.service, w.page, w.component].filter(Boolean).map(String);
   return parts.length ? parts.join(" / ") : void 0;
 }
-function formatSummary(summary) {
-  const parts = [];
-  const what = summary.what;
-  const where = summary.where;
-  if (what?.op) parts.push(`op=${what.op}`);
-  if (what?.status) parts.push(`status=${what.status}`);
-  if (where?.route) parts.push(`route=${where.route}`);
-  if (summary.noteCount) parts.push(`notes=${summary.noteCount}`);
-  return parts.length ? parts.join(" ") : void 0;
+var ANSI2 = {
+  reset: "\x1B[0m",
+  green: "\x1B[32m",
+  yellow: "\x1B[33m",
+  red: "\x1B[38;2;250;128;114m",
+  grayLight: "\x1B[37m",
+  grayDark: "\x1B[37m"
+};
+function getLevelColor2(level) {
+  if (level === "tell") return ANSI2.green;
+  if (level === "warn") return ANSI2.yellow;
+  return ANSI2.red;
 }
-function formatNote(note, verbosity) {
-  if (verbosity !== "full") return note.note;
-  const extras = [];
-  const what = note.what;
-  const where = note.where;
-  if (what?.field) extras.push(`field=${what.field}`);
-  if (what?.status) extras.push(`status=${what.status}`);
-  if (where?.component) extras.push(`component=${where.component}`);
-  return extras.length ? `${note.note} (${extras.join(" ")})` : note.note;
+function colorizeJsonSections2(json, colors) {
+  const lines = json.split("\n");
+  let inNotes = false;
+  let notesDepth = 0;
+  return lines.map((line) => {
+    if (!inNotes && line.includes('"notes": [')) {
+      inNotes = true;
+      notesDepth = countBrackets2(line);
+      return `${colors.notes}${line}${colors.reset}`;
+    }
+    if (inNotes) {
+      const colored = `${colors.notes}${line}${colors.reset}`;
+      notesDepth += countBrackets2(line);
+      if (notesDepth <= 0) inNotes = false;
+      return colored;
+    }
+    return `${colors.base}${line}${colors.reset}`;
+  });
+}
+function countBrackets2(line) {
+  const open = (line.match(/\[/g) || []).length;
+  const close = (line.match(/\]/g) || []).length;
+  return open - close;
 }
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
   Storyteller,
   consoleAudience,
   dbAudience,
+  summarizeStory,
   writeStoryReport
 });
 //# sourceMappingURL=index.cjs.map

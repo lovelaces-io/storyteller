@@ -1,34 +1,65 @@
 type StoryLevel = "tell" | "warn" | "oops";
+type StoryContextValue = Record<string, unknown> | string;
+type StoryError = {
+    name?: string;
+    message?: string;
+    stack?: string;
+    cause?: unknown;
+};
 type StoryNote = {
     ts: string;
     note: string;
-    who?: Record<string, unknown>;
-    what?: Record<string, unknown>;
-    where?: Record<string, unknown>;
+    who?: StoryContextValue;
+    what?: StoryContextValue;
+    where?: StoryContextValue;
+    error?: StoryError;
 };
-type StoryEvent = {
+type StoryEventBase = {
     ts: string;
     level: StoryLevel;
     title: string;
     origin?: {
-        who?: Record<string, unknown>;
-        what?: Record<string, unknown>;
-        where?: Record<string, unknown>;
-    };
-    summary: {
-        noteCount: number;
-        durationMs?: number;
-        who?: Record<string, unknown>;
-        what?: Record<string, unknown>;
-        where?: Record<string, unknown>;
+        who?: StoryContextValue;
+        what?: StoryContextValue;
+        where?: StoryContextValue;
     };
     notes: StoryNote[];
-    error?: {
-        name?: string;
-        message?: string;
-        stack?: string;
-        cause?: unknown;
-    };
+    error?: StoryError;
+};
+type StorySummaryOptions = {
+    timezone?: string;
+    locale?: string;
+    verbosity?: "brief" | "normal" | "full";
+    maxNotes?: number;
+    showData?: boolean;
+    colorize?: boolean;
+};
+type StorySummaryNote = {
+    ts: string;
+    when: string;
+    note: string;
+    text: string;
+    who?: StoryContextValue;
+    what?: StoryContextValue;
+    where?: StoryContextValue;
+    error?: StoryError;
+};
+type StorySummaryData = {
+    title: string;
+    level: StoryLevel;
+    when: string;
+    durationMs?: number;
+    duration?: string;
+    origin?: StoryEventBase["origin"];
+    notes: StorySummaryNote[];
+    error?: StoryError;
+};
+type StorySummary = {
+    text: string;
+    data: StorySummaryData;
+};
+type StoryEvent = StoryEventBase & {
+    summarize: (opts?: StorySummaryOptions) => StorySummary;
 };
 type AudienceMember = {
     name: string;
@@ -36,9 +67,10 @@ type AudienceMember = {
     hear: (event: StoryEvent) => void | Promise<void>;
 };
 type NoteData = {
-    who?: Record<string, unknown>;
-    what?: Record<string, unknown>;
-    where?: Record<string, unknown>;
+    who?: StoryContextValue;
+    what?: StoryContextValue;
+    where?: StoryContextValue;
+    error?: unknown;
 };
 declare class AudienceRegistry {
     private map;
@@ -52,10 +84,11 @@ declare class Storyteller {
     private readonly origin?;
     private notes;
     constructor(opts?: {
-        origin?: StoryEvent["origin"];
+        origin?: StoryEventBase["origin"];
         audiences?: AudienceMember[];
     });
     note(text: string, data?: NoteData): this;
+    reset(): this;
     tell(title: string): {
         to: (...names: string[]) => void;
     };
@@ -69,6 +102,7 @@ declare class Storyteller {
     private buildEvent;
     private deliver;
 }
+declare function summarizeStory(story: StoryEventBase, opts?: StorySummaryOptions): StorySummary;
 
 declare function consoleAudience(): AudienceMember;
 
@@ -79,7 +113,9 @@ type StoryReportOptions = {
     locale?: string;
     verbosity?: "brief" | "normal" | "full";
     maxNotesPerStory?: number;
+    showData?: boolean;
+    colorize?: boolean;
 };
-declare function writeStoryReport(stories: StoryEvent[], opts?: StoryReportOptions): string;
+declare function writeStoryReport(stories: StoryEventBase[], opts?: StoryReportOptions): string;
 
-export { type AudienceMember, type StoryEvent, type StoryLevel, type StoryNote, type StoryReportOptions, Storyteller, consoleAudience, dbAudience, writeStoryReport };
+export { type AudienceMember, type StoryContextValue, type StoryEvent, type StoryEventBase, type StoryLevel, type StoryNote, type StoryReportOptions, type StorySummary, type StorySummaryData, type StorySummaryNote, type StorySummaryOptions, Storyteller, consoleAudience, dbAudience, summarizeStory, writeStoryReport };

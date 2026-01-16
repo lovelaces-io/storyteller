@@ -17,12 +17,16 @@ export function consoleAudience(): AudienceMember {
 
       console.groupCollapsed(`%c${header}`, style);
 
+      const payload = JSON.stringify(event, null, 2);
+      const coloredPayload =
+        event.level === "oops" ? `\x1b[38;2;250;128;114m${payload}\x1b[0m` : payload;
+
       if (event.level === "tell") {
-        console.log(header, event);
+        console.log(header, payload);
       } else if (event.level === "warn") {
-        console.warn(header, event);
+        console.warn(header, payload);
       } else {
-        console.error(header, event); // ✅ string first, object second
+        console.error(header, coloredPayload);
       }
 
       console.groupEnd();

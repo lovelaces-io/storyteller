@@ -2,39 +2,79 @@ import { consoleAudience } from "./audiences/consoleAudience";
 
 export type StoryLevel = "tell" | "warn" | "oops";
 
+export type StoryContextValue = Record<string, unknown> | string;
+
+type StoryError = {
+  name?: string;
+  message?: string;
+  stack?: string;
+  cause?: unknown;
+};
+
 export type StoryNote = {
   ts: string;
   note: string;
-  who?: Record<string, unknown>;
-  what?: Record<string, unknown>;
-  where?: Record<string, unknown>;
+  who?: StoryContextValue;
+  what?: StoryContextValue;
+  where?: StoryContextValue;
+  error?: StoryError;
 };
 
-export type StoryEvent = {
+export type StoryEventBase = {
   ts: string;
   level: StoryLevel;
   title: string;
 
   origin?: {
-    who?: Record<string, unknown>;
-    what?: Record<string, unknown>;
-    where?: Record<string, unknown>;
-  };
-
-  summary: {
-    noteCount: number;
-    durationMs?: number;
-    who?: Record<string, unknown>;
-    what?: Record<string, unknown>;
-    where?: Record<string, unknown>;
+    who?: StoryContextValue;
+    what?: StoryContextValue;
+    where?: StoryContextValue;
   };
 
   notes: StoryNote[];
 
-  error?: { name?: string; message?: string; stack?: string; cause?: unknown };
+  error?: StoryError;
 };
 
-type StoryError = NonNullable<StoryEvent["error"]>;
+export type StorySummaryOptions = {
+  timezone?: string;
+  locale?: string;
+  verbosity?: "brief" | "normal" | "full";
+  maxNotes?: number;
+  showData?: boolean;
+  colorize?: boolean;
+};
+
+export type StorySummaryNote = {
+  ts: string;
+  when: string;
+  note: string;
+  text: string;
+  who?: StoryContextValue;
+  what?: StoryContextValue;
+  where?: StoryContextValue;
+  error?: StoryError;
+};
+
+export type StorySummaryData = {
+  title: string;
+  level: StoryLevel;
+  when: string;
+  durationMs?: number;
+  duration?: string;
+  origin?: StoryEventBase["origin"];
+  notes: StorySummaryNote[];
+  error?: StoryError;
+};
+
+export type StorySummary = {
+  text: string;
+  data: StorySummaryData;
+};
+
+export type StoryEvent = StoryEventBase & {
+  summarize: (opts?: StorySummaryOptions) => StorySummary;
+};
 
 export type AudienceMember = {
   name: string;
@@ -43,9 +83,10 @@ export type AudienceMember = {
 };
 
 type NoteData = {
-  who?: Record<string, unknown>;
-  what?: Record<string, unknown>;
-  where?: Record<string, unknown>;
+  who?: StoryContextValue;
+  what?: StoryContextValue;
+  where?: StoryContextValue;
+  error?: unknown;
 };
 
 class AudienceRegistry {
@@ -70,10 +111,10 @@ class AudienceRegistry {
 export class Storyteller {
   public readonly audience = new AudienceRegistry();
 
-  private readonly origin?: StoryEvent["origin"];
+  private readonly origin?: StoryEventBase["origin"];
   private notes: StoryNote[] = [];
 
-  constructor(opts?: { origin?: StoryEvent["origin"]; audiences?: AudienceMember[] }) {
+  constructor(opts?: { origin?: StoryEventBase["origin"]; audiences?: AudienceMember[] }) {
     this.origin = opts?.origin;
 
     // default console audience (all levels)
@@ -89,7 +130,13 @@ export class Storyteller {
       ...(data.who ? { who: data.who } : {}),
       ...(data.what ? { what: data.what } : {}),
       ...(data.where ? { where: data.where } : {}),
+      ...(data.error ? { error: normalizeError(data.error) } : {}),
     });
+    return this;
+  }
+
+  reset() {
+    this.notes = [];
     return this;
   }
 
@@ -133,28 +180,22 @@ export class Storyteller {
     // clear notes after telling the story (your desired behavior)
     this.notes = [];
 
-    const summary = summarizeNotes(notes);
-
-    const event: StoryEvent = {
+    const event: StoryEventBase = {
       ts: now,
       level,
       title,
       ...(this.origin ? { origin: this.origin } : {}),
-      summary: {
-        noteCount: notes.length,
-        ...(summary.durationMs != null ? { durationMs: summary.durationMs } : {}),
-        ...(summary.who ? { who: summary.who } : {}),
-        ...(summary.what ? { what: summary.what } : {}),
-        ...(summary.where ? { where: summary.where } : {}),
-      },
       notes,
+      ...(err ? { error: normalizeError(err) } : {}),
     };
 
-    if (err) {
-      event.error = normalizeError(err);
-    }
+    const eventWithSummary = event as StoryEvent;
+    Object.defineProperty(eventWithSummary, "summarize", {
+      value: (opts?: StorySummaryOptions) => summarizeStory(event, opts),
+      enumerable: false,
+    });
 
-    return event;
+    return eventWithSummary;
   }
 
   private async deliver(event: StoryEvent, opts?: { only?: string[] }) {
@@ -191,24 +232,219 @@ function normalizeError(err: unknown): StoryError {
 }
 
 function summarizeNotes(notes: StoryNote[]) {
-  if (notes.length <= 1) return { durationMs: undefined as number | undefined, who: undefined, what: undefined, where: undefined };
+  if (notes.length <= 1) {
+    return {
+      durationMs: undefined as number | undefined,
+    };
+  }
 
   const start = Date.parse(notes[0]!.ts);
   const end = Date.parse(notes[notes.length - 1]!.ts);
 
-  const merged = { who: {} as Record<string, unknown>, what: {} as Record<string, unknown>, where: {} as Record<string, unknown> };
-  let whoUsed = false, whatUsed = false, whereUsed = false;
-
-  for (const n of notes) {
-    if (n.who) { Object.assign(merged.who, n.who); whoUsed = true; }
-    if (n.what) { Object.assign(merged.what, n.what); whatUsed = true; }
-    if (n.where) { Object.assign(merged.where, n.where); whereUsed = true; }
-  }
-
   return {
     durationMs: Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : undefined,
-    who: whoUsed ? merged.who : undefined,
-    what: whatUsed ? merged.what : undefined,
-    where: whereUsed ? merged.where : undefined,
   };
+}
+
+export function summarizeStory(
+  story: StoryEventBase,
+  opts: StorySummaryOptions = {}
+): StorySummary {
+  const {
+    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
+    locale = "en-US",
+    verbosity = "normal",
+    maxNotes = 50,
+    showData = true,
+    colorize = true,
+  } = opts;
+
+  const dateTimeFmt = new Intl.DateTimeFormat(locale, {
+    timeZone: timezone,
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  const timeFmt = new Intl.DateTimeFormat(locale, {
+    timeZone: timezone,
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+
+  const orderedNotes = [...story.notes].sort(
+    (a, b) => Date.parse(a.ts) - Date.parse(b.ts)
+  );
+  const summary = summarizeNotes(orderedNotes);
+  const originLabel = formatOrigin(story.origin);
+  const duration =
+    summary.durationMs != null ? formatDuration(summary.durationMs) : undefined;
+
+  const slicedNotes = orderedNotes.slice(0, maxNotes);
+  const notes: StorySummaryNote[] = slicedNotes.map((note) => ({
+    ts: note.ts,
+    when: timeFmt.format(new Date(note.ts)),
+    note: note.note,
+    text: formatNote(note, verbosity),
+    ...(note.who ? { who: note.who } : {}),
+    ...(note.what ? { what: note.what } : {}),
+    ...(note.where ? { where: note.where } : {}),
+    ...(note.error ? { error: note.error } : {}),
+  }));
+
+  const data: StorySummaryData = {
+    title: story.title,
+    level: story.level,
+    when: dateTimeFmt.format(new Date(story.ts)),
+    ...(summary.durationMs != null ? { durationMs: summary.durationMs } : {}),
+    ...(duration ? { duration } : {}),
+    ...(story.origin ? { origin: story.origin } : {}),
+    notes,
+    ...(story.error ? { error: story.error } : {}),
+  };
+
+  const levelColor = getLevelColor(story.level);
+  const label = (text: string) =>
+    colorize ? `${levelColor}${text}${ANSI.reset}` : text;
+
+  const lines: string[] = [];
+  lines.push(`${label("StorytellerSummary")}: ${story.title}`);
+  lines.push(`${label("Time")}: ${data.when}${duration ? ` (${duration})` : ""}`);
+
+  if (originLabel) {
+    lines.push(`${label("Origin")}: ${originLabel}`);
+  }
+
+  if (story.error) {
+    const errLine = [story.error.name, story.error.message]
+      .filter(Boolean)
+      .join(": ");
+    if (errLine) lines.push(`${label("?")}: ${errLine}`);
+  }
+
+  if (verbosity !== "brief" && notes.length) {
+    lines.push(`${label("Notes")}:`);
+    for (const note of notes) {
+      lines.push(`- ${note.when} - ${note.text}`);
+    }
+    if (orderedNotes.length > notes.length) {
+      lines.push(`… (${orderedNotes.length - notes.length} more)`);
+    }
+  }
+
+  if (showData) {
+    lines.push(`${label("Story")}:`);
+    const json = JSON.stringify(data, null, 2);
+    if (colorize) {
+      const colored = colorizeJsonSections(json, {
+        base: ANSI.grayLight,
+        notes: ANSI.grayDark,
+        reset: ANSI.reset,
+      });
+      lines.push(...colored);
+    } else {
+      lines.push(...json.split("\n"));
+    }
+  }
+
+  return { text: lines.join("\n"), data };
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const s = ms / 1000;
+  if (s < 60) return `${s.toFixed(1)}s`;
+  const m = Math.floor(s / 60);
+  const r = Math.round(s % 60)
+    .toString()
+    .padStart(2, "0");
+  return `${m}:${r}m`;
+}
+
+const ANSI = {
+  reset: "\x1b[0m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  red: "\x1b[38;2;250;128;114m",
+  grayLight: "\x1b[37m",
+  grayDark: "\x1b[37m",
+};
+
+function getLevelColor(level: StoryLevel): string {
+  if (level === "tell") return ANSI.green;
+  if (level === "warn") return ANSI.yellow;
+  return ANSI.red;
+}
+
+function colorizeJsonSections(
+  json: string,
+  colors: { base: string; notes: string; reset: string }
+): string[] {
+  const lines = json.split("\n");
+  let inNotes = false;
+  let notesDepth = 0;
+
+  return lines.map((line) => {
+    if (!inNotes && line.includes('"notes": [')) {
+      inNotes = true;
+      notesDepth = countBrackets(line);
+      return `${colors.notes}${line}${colors.reset}`;
+    }
+
+    if (inNotes) {
+      const colored = `${colors.notes}${line}${colors.reset}`;
+      notesDepth += countBrackets(line);
+      if (notesDepth <= 0) inNotes = false;
+      return colored;
+    }
+
+    return `${colors.base}${line}${colors.reset}`;
+  });
+}
+
+function countBrackets(line: string): number {
+  const open = (line.match(/\[/g) || []).length;
+  const close = (line.match(/\]/g) || []).length;
+  return open - close;
+}
+
+function formatOrigin(origin?: StoryEventBase["origin"]): string | undefined {
+  if (!origin?.where) return;
+  if (typeof origin.where === "string") return origin.where;
+  const w = origin.where as Record<string, unknown>;
+  const parts = [w.app, w.service, w.page, w.component]
+    .filter(Boolean)
+    .map(String);
+  return parts.length ? parts.join(" / ") : undefined;
+}
+
+function formatNote(
+  note: StoryNote,
+  verbosity: "brief" | "normal" | "full"
+): string {
+  if (verbosity !== "full") return note.note;
+
+  const extras: string[] = [];
+  const what = note.what as any;
+  const where = note.where as any;
+
+  if (typeof what === "string") extras.push(`what=${what}`);
+  if (what?.field) extras.push(`field=${what.field}`);
+  if (what?.status) extras.push(`status=${what.status}`);
+  if (typeof where === "string") extras.push(`where=${where}`);
+  if (where?.component) extras.push(`component=${where.component}`);
+  if (note.error) {
+    const errLine = [note.error.name, note.error.message]
+      .filter(Boolean)
+      .join(": ");
+    if (errLine) extras.push(`error=${errLine}`);
+  }
+
+  return extras.length
+    ? `${note.note} (${extras.join(" ")})`
+    : note.note;
 }

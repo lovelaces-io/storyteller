@@ -23,6 +23,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
+    "test:console": "npm run build && node ./scripts/consoleTest.mjs",
     "test": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
