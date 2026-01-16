@@ -75,4 +75,3 @@ story.oops("Critical failure", err).to("console", "db");
 
 - `npm run test:console` for a colored console demo
 
-MIT License
