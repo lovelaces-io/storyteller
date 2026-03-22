@@ -7,7 +7,7 @@ type StoryError = {
     cause?: unknown;
 };
 type StoryNote = {
-    ts: string;
+    timestamp: string;
     note: string;
     who?: StoryContextValue;
     what?: StoryContextValue;
@@ -15,7 +15,7 @@ type StoryNote = {
     error?: StoryError;
 };
 type StoryEventBase = {
-    ts: string;
+    timestamp: string;
     level: StoryLevel;
     title: string;
     origin?: {
@@ -40,7 +40,7 @@ type StoryPreviewOptions = StorySummaryOptions & {
     error?: unknown;
 };
 type StorySummaryNote = {
-    ts: string;
+    timestamp: string;
     when: string;
     note: string;
     text: string;
@@ -64,7 +64,7 @@ type StorySummary = {
     data: StorySummaryData;
 };
 type StoryEvent = StoryEventBase & {
-    summarize: (opts?: StorySummaryOptions) => StorySummary;
+    summarize: (options?: StorySummaryOptions) => StorySummary;
 };
 type AudienceMember = {
     name: string;
@@ -77,47 +77,66 @@ type NoteData = {
     where?: StoryContextValue;
     error?: unknown;
 };
+/** Manages the set of audience members that receive story events */
 declare class AudienceRegistry {
-    private map;
+    private members;
+    /** Register an audience member, replacing any existing member with the same name */
     add(member: AudienceMember): this;
+    /** Remove an audience member by name */
     remove(name: string): this;
+    /** Return all registered audience members */
     getAll(): AudienceMember[];
+    /** Return only the audience members matching the given names */
     getOnly(names: string[]): AudienceMember[];
 }
+/** Core logging class that collects timestamped notes and emits them as structured story events */
 declare class Storyteller {
     readonly audience: AudienceRegistry;
     private readonly origin?;
     private notes;
-    constructor(opts?: {
+    constructor(options?: {
         origin?: StoryEventBase["origin"];
         audiences?: AudienceMember[];
     });
+    /** Add a timestamped note with optional context (who, what, where, error) */
     note(text: string, data?: NoteData): this;
+    /** Clear all accumulated notes without emitting a story */
     reset(): this;
-    summarize(opts?: StoryPreviewOptions): StorySummary;
+    /** Generate a formatted summary of current notes without emitting or clearing them */
+    summarize(options?: StoryPreviewOptions): StorySummary;
+    /** Emit a story at the "tell" level (success / informational) */
     tell(title: string): {
         to: (...names: string[]) => void;
     };
+    /** Emit a story at the "warn" level (something was off) */
     warn(title: string): {
         to: (...names: string[]) => void;
     };
-    oops(title: string, err?: unknown): {
+    /** Emit a story at the "oops" level (something broke) with an optional error */
+    oops(title: string, error?: unknown): {
         to: (...names: string[]) => void;
     };
+    /** Build a story event and schedule delivery, returning a handle to override the audience list */
     private createDelivery;
+    /** Assemble the story event from current notes and clear notes for the next story */
     private buildEvent;
+    /** Deliver a story event to matching audience members */
     private deliver;
 }
-declare function summarizeStory(story: StoryEventBase, opts?: StorySummaryOptions): StorySummary;
+/** Generate a formatted, human-readable summary from a story event */
+declare function summarizeStory(story: StoryEventBase, options?: StorySummaryOptions): StorySummary;
 
 type StorytellerSharedOptions = {
     origin?: StoryEventBase["origin"];
     reset?: boolean;
 };
-declare function useStoryteller(opts?: StorytellerSharedOptions): Storyteller;
+/** Return a shared singleton Storyteller instance for cross-component or cross-service logging */
+declare function useStoryteller(options?: StorytellerSharedOptions): Storyteller;
 
+/** Create an audience that logs stories to the browser console with color-coded grouped output */
 declare function consoleAudience(): AudienceMember;
 
+/** Create an audience that persists warn and oops stories to a database via the provided insert function */
 declare function dbAudience(insert: (event: StoryEvent) => Promise<void> | void): AudienceMember;
 
 type StoryReportOptions = {
@@ -128,7 +147,8 @@ type StoryReportOptions = {
     showData?: boolean;
     colorize?: boolean;
 };
-declare function writeStoryReport(stories: StoryEventBase[], opts?: StoryReportOptions): string;
+/** Generate a formatted report from an array of story events, grouped by day */
+declare function writeStoryReport(stories: StoryEventBase[], options?: StoryReportOptions): string;
 
 /** ANSI escape codes for terminal colorization */
 declare const ANSI: {
@@ -139,17 +159,17 @@ declare const ANSI: {
     grayLight: string;
     grayDark: string;
 };
-/** Maps a story level to its ANSI terminal color */
+/** Map a story level to its corresponding ANSI terminal color */
 declare function getLevelColor(level: StoryLevel): string;
-/** Formats an origin context into a human-readable path string */
+/** Format an origin context into a human-readable path like "app / page / component" */
 declare function formatOrigin(origin?: StoryEventBase["origin"]): string | undefined;
-/** Colorizes JSON output, dimming the notes section for readability */
+/** Colorize JSON output, dimming the notes section for visual hierarchy */
 declare function colorizeJsonSections(json: string, colors: {
     base: string;
     notes: string;
     reset: string;
 }): string[];
-/** Counts net bracket depth change in a line (opens minus closes) */
+/** Count the net bracket depth change in a line (opening brackets minus closing brackets) */
 declare function countBrackets(line: string): number;
 
-export { ANSI, type AudienceMember, type StoryContextValue, type StoryEvent, type StoryEventBase, type StoryLevel, type StoryNote, type StoryPreviewOptions, type StoryReportOptions, type StorySummary, type StorySummaryData, type StorySummaryNote, type StorySummaryOptions, Storyteller, colorizeJsonSections, consoleAudience, countBrackets, dbAudience, formatOrigin, getLevelColor, summarizeStory, useStoryteller, writeStoryReport };
+export { ANSI, type AudienceMember, type StoryContextValue, type StoryError, type StoryEvent, type StoryEventBase, type StoryLevel, type StoryNote, type StoryPreviewOptions, type StoryReportOptions, type StorySummary, type StorySummaryData, type StorySummaryNote, type StorySummaryOptions, Storyteller, colorizeJsonSections, consoleAudience, countBrackets, dbAudience, formatOrigin, getLevelColor, summarizeStory, useStoryteller, writeStoryReport };
