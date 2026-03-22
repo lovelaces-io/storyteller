@@ -1,91 +1,139 @@
 # Storyteller
 
-Storyteller is a lightweight TypeScript logging library that treats logs as stories: grouped notes emitted as a single structured event.
+Lightweight TypeScript logging library that treats logs as **stories** — grouped notes emitted as a single structured event.
 
-## Local Setup (GitHub Packages)
+Zero dependencies. ~24 kB packed. TypeScript-first.
 
-Storyteller is published to GitHub Packages. Create a GitHub Personal Access Token (classic) with `read:packages` (and `repo` if you need private access), then export it as `NODE_AUTH_TOKEN` before installing.
+## Install
 
 ```sh
-export NODE_AUTH_TOKEN=ghp_xxx
 npm install @lovelaces-io/storyteller
 ```
 
-## Quick Usage
+## Usage
 
 ```ts
-import { Storyteller, useStoryteller } from "@lovelaces-io/storyteller";
+import { Storyteller } from "@lovelaces-io/storyteller";
 
 const story = new Storyteller({
-  origin: { where: { app: "admin", page: "Dashboard" } },
+  origin: { where: { app: "checkout", page: "Payment" } },
 });
 
-// Shared singleton for cross-component or cross-service usage
-const shared = useStoryteller({
-  origin: { where: { app: "admin" } },
+// Collect notes as things happen
+story.note("User submitted payment", {
+  who: { id: "user:413" },
+  what: { amount: 49.99, currency: "USD" },
 });
 
-story.note("User opened page");
-story.note("Fetching data", { what: { resource: "challenges" } });
+story.note("Charging card", {
+  what: "stripe:charge",
+  where: { service: "payments" },
+});
 
-story.tell("Dashboard loaded");
-story.warn("Something looks wrong");
-story.oops("Something failed", new Error("timeout"));
+// Tell the story when it's done
+story.tell("Payment completed");
 ```
 
-Pass `reset: true` to `useStoryteller()` to reinitialize the shared instance.
+Notes are bundled into one structured event, delivered to your audiences, and cleared for the next story.
 
-Use `story.reset()` to clear notes without emitting a story.
+## Three Levels
 
-## Notes + Context
+```ts
+story.tell("Payment completed");              // success
+story.warn("Payment slow but succeeded");     // something was off
+story.oops("Payment failed", new Error());    // something broke
+```
 
-`who`, `what`, and `where` can be strings or objects, and notes can carry errors.
+## Context on Every Note
+
+Every note can carry `who`, `what`, `where`, and `error`:
 
 ```ts
 story.note("Write failed", {
+  who: { id: "user:99" },
+  what: { field: "email" },
   where: "primary-db",
   error: new Error("db timeout"),
 });
 ```
 
-## Summaries
-
-Summaries are on-demand and do not clear notes.
-
-```ts
-const summary = story.summarize({
-  title: "Dashboard loaded",
-  level: "tell",
-  verbosity: "full",
-});
-console.log(summary.text);
-console.log(summary.data);
-```
-
-For batch reports across many stories, use `writeStoryReport(stories, options)`.
-
 ## Audiences
 
-The default console audience groups and colors logs. You can add custom audiences and target them per story:
+Stories are delivered to **audiences**. Console is included by default. Add your own:
 
 ```ts
 import { dbAudience } from "@lovelaces-io/storyteller";
 
-story.audience.add(dbAudience(async (event) => db.insert(event)));
+// Persist warn and oops events to your database
+story.audience.add(
+  dbAudience(async (event) => await db.insert("logs", event))
+);
 
+// Target specific audiences per story
 story.oops("Critical failure", error).to("console", "db");
 ```
 
-## Dev
+## Summaries
 
-```sh
-npm run build        # Build ESM + CJS via tsup
-npm run dev          # Watch mode
-npm run test         # Run tests via vitest
-npm run typecheck    # Type-check without emitting
-npm run lint         # ESLint
-npm run test:console # Colored console demo (builds first)
+Generate a formatted summary without emitting:
+
+```ts
+const summary = story.summarize({
+  title: "Dashboard status",
+  level: "tell",
+  verbosity: "full",
+});
+
+console.log(summary.text);
 ```
+
+```
+Story: Dashboard status
+Level: tell
+Time: Mar 22, 2026, 3:42:18 PM (12ms)
+Origin: checkout / Payment
+Notes:
+  3:42:18 PM — User submitted payment
+  3:42:18 PM — Charging card
+```
+
+## Shared Instance
+
+Use `useStoryteller()` for cross-component logging into the same story:
+
+```ts
+import { useStoryteller } from "@lovelaces-io/storyteller";
+
+// Same instance everywhere
+const story = useStoryteller({ origin: { where: { app: "admin" } } });
+```
+
+## Structured Output
+
+Every story is a typed, serializable JSON object — designed for humans and machines:
+
+```json
+{
+  "timestamp": "2026-03-22T14:15:03.421Z",
+  "level": "oops",
+  "title": "Payment failed",
+  "origin": { "where": { "app": "checkout", "page": "Payment" } },
+  "notes": [
+    {
+      "timestamp": "2026-03-22T14:15:02.218Z",
+      "note": "User submitted payment",
+      "who": { "id": "user:413" }
+    }
+  ],
+  "error": { "name": "Error", "message": "gateway timeout" }
+}
+```
+
+## Docs
+
+- [API Reference](docs/API.md) — full signatures and examples
+- [How It Works](docs/HOW-IT-WORKS.md) — narrative guide with real-world scenarios
+- [Changelog](CHANGELOG.md)
 
 ## License
 
