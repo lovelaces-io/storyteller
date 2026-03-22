@@ -1,6 +1,7 @@
 {
   "name": "@lovelaces-io/storyteller",
-  "version": "0.0.11",
+  "version": "0.1.0",
+  "description": "Lightweight TypeScript logging library that treats logs as stories: grouped notes emitted as a single structured event.",
   "license": "MIT",
   "private": false,
   "type": "module",
@@ -9,8 +10,26 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lovelaces-io/storyteller.git"
+  },
+  "homepage": "https://github.com/lovelaces-io/storyteller#readme",
+  "bugs": {
+    "url": "https://github.com/lovelaces-io/storyteller/issues"
+  },
+  "keywords": [
+    "logging",
+    "logger",
+    "structured-logging",
+    "storyteller",
+    "events",
+    "observability",
+    "typescript"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
