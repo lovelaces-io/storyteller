@@ -4,11 +4,11 @@ Storyteller is a lightweight TypeScript logging library that treats logs as stor
 
 ## Local Setup (GitHub Packages)
 
-Storyteller is published to GitHub Packages. Create a GitHub Personal Access Token (classic) with `read:packages` (and `repo` if you need private access), then export it as `NODE_AUTH_TOKEN` (preferred) or `GITHUB_TOKEN` before installing. `NODE_AUTH_TOKEN` is read by npm for GitHub Packages auth.
+Storyteller is published to GitHub Packages. Create a GitHub Personal Access Token (classic) with `read:packages` (and `repo` if you need private access), then export it as `NODE_AUTH_TOKEN` before installing.
 
 ```sh
 export NODE_AUTH_TOKEN=ghp_xxx
-npm install
+npm install @lovelaces-io/storyteller
 ```
 
 ## Quick Usage
@@ -20,6 +20,7 @@ const story = new Storyteller({
   origin: { where: { app: "admin", page: "Dashboard" } },
 });
 
+// Shared singleton for cross-component or cross-service usage
 const shared = useStoryteller({
   origin: { where: { app: "admin" } },
 });
@@ -32,7 +33,7 @@ story.warn("Something looks wrong");
 story.oops("Something failed", new Error("timeout"));
 ```
 
-`useStoryteller()` returns a shared singleton instance for cross‑component or cross‑service usage. Pass `reset: true` to reinitialize it.
+Pass `reset: true` to `useStoryteller()` to reinitialize the shared instance.
 
 Use `story.reset()` to clear notes without emitting a story.
 
@@ -61,17 +62,31 @@ console.log(summary.text);
 console.log(summary.data);
 ```
 
-For many stories, use `writeStoryReport(stories, opts)`.
+For batch reports across many stories, use `writeStoryReport(stories, opts)`.
 
 ## Audiences
 
-The default console audience groups and colors logs. You can add audiences and target them per story:
+The default console audience groups and colors logs. You can add custom audiences and target them per story:
 
 ```ts
+import { dbAudience } from "@lovelaces-io/storyteller";
+
+story.audience.add(dbAudience(async (event) => db.insert(event)));
+
 story.oops("Critical failure", err).to("console", "db");
 ```
 
 ## Dev
 
-- `npm run test:console` for a colored console demo
+```sh
+npm run build        # Build ESM + CJS via tsup
+npm run dev          # Watch mode
+npm run test         # Run tests via vitest
+npm run typecheck    # Type-check without emitting
+npm run lint         # ESLint
+npm run test:console # Colored console demo (builds first)
+```
 
+## License
+
+MIT

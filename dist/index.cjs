@@ -20,9 +20,14 @@ var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: tru
 // src/index.ts
 var index_exports = {};
 __export(index_exports, {
+  ANSI: () => ANSI,
   Storyteller: () => Storyteller,
+  colorizeJsonSections: () => colorizeJsonSections,
   consoleAudience: () => consoleAudience,
+  countBrackets: () => countBrackets,
   dbAudience: () => dbAudience,
+  formatOrigin: () => formatOrigin,
+  getLevelColor: () => getLevelColor,
   summarizeStory: () => summarizeStory,
   useStoryteller: () => useStoryteller,
   writeStoryReport: () => writeStoryReport
@@ -50,6 +55,52 @@ function consoleAudience() {
       console.groupEnd();
     }
   };
+}
+
+// src/utils.ts
+var ANSI = {
+  reset: "\x1B[0m",
+  green: "\x1B[32m",
+  yellow: "\x1B[33m",
+  red: "\x1B[38;2;250;128;114m",
+  grayLight: "\x1B[37m",
+  grayDark: "\x1B[37m"
+};
+function getLevelColor(level) {
+  if (level === "tell") return ANSI.green;
+  if (level === "warn") return ANSI.yellow;
+  return ANSI.red;
+}
+function formatOrigin(origin) {
+  if (!origin?.where) return;
+  if (typeof origin.where === "string") return origin.where;
+  const w = origin.where;
+  const parts = [w.app, w.service, w.page, w.component].filter(Boolean).map(String);
+  return parts.length ? parts.join(" / ") : void 0;
+}
+function colorizeJsonSections(json, colors) {
+  const lines = json.split("\n");
+  let inNotes = false;
+  let notesDepth = 0;
+  return lines.map((line) => {
+    if (!inNotes && line.includes('"notes": [')) {
+      inNotes = true;
+      notesDepth = countBrackets(line);
+      return `${colors.notes}${line}${colors.reset}`;
+    }
+    if (inNotes) {
+      const colored = `${colors.notes}${line}${colors.reset}`;
+      notesDepth += countBrackets(line);
+      if (notesDepth <= 0) inNotes = false;
+      return colored;
+    }
+    return `${colors.base}${line}${colors.reset}`;
+  });
+}
+function countBrackets(line) {
+  const open = (line.match(/\[/g) || []).length;
+  const close = (line.match(/\]/g) || []).length;
+  return open - close;
 }
 
 // src/storyteller.ts
@@ -289,60 +340,22 @@ function formatDuration(ms) {
   const r = Math.round(s % 60).toString().padStart(2, "0");
   return `${m}:${r}m`;
 }
-var ANSI = {
-  reset: "\x1B[0m",
-  green: "\x1B[32m",
-  yellow: "\x1B[33m",
-  red: "\x1B[38;2;250;128;114m",
-  grayLight: "\x1B[37m",
-  grayDark: "\x1B[37m"
-};
-function getLevelColor(level) {
-  if (level === "tell") return ANSI.green;
-  if (level === "warn") return ANSI.yellow;
-  return ANSI.red;
-}
-function colorizeJsonSections(json, colors) {
-  const lines = json.split("\n");
-  let inNotes = false;
-  let notesDepth = 0;
-  return lines.map((line) => {
-    if (!inNotes && line.includes('"notes": [')) {
-      inNotes = true;
-      notesDepth = countBrackets(line);
-      return `${colors.notes}${line}${colors.reset}`;
-    }
-    if (inNotes) {
-      const colored = `${colors.notes}${line}${colors.reset}`;
-      notesDepth += countBrackets(line);
-      if (notesDepth <= 0) inNotes = false;
-      return colored;
-    }
-    return `${colors.base}${line}${colors.reset}`;
-  });
-}
-function countBrackets(line) {
-  const open = (line.match(/\[/g) || []).length;
-  const close = (line.match(/\]/g) || []).length;
-  return open - close;
-}
-function formatOrigin(origin) {
-  if (!origin?.where) return;
-  if (typeof origin.where === "string") return origin.where;
-  const w = origin.where;
-  const parts = [w.app, w.service, w.page, w.component].filter(Boolean).map(String);
-  return parts.length ? parts.join(" / ") : void 0;
-}
 function formatNote(note, verbosity) {
   if (verbosity !== "full") return note.note;
   const extras = [];
   const what = note.what;
   const where = note.where;
-  if (typeof what === "string") extras.push(`what=${what}`);
-  if (what?.field) extras.push(`field=${what.field}`);
-  if (what?.status) extras.push(`status=${what.status}`);
-  if (typeof where === "string") extras.push(`where=${where}`);
-  if (where?.component) extras.push(`component=${where.component}`);
+  if (typeof what === "string") {
+    extras.push(`what=${what}`);
+  } else if (what) {
+    if (what.field) extras.push(`field=${String(what.field)}`);
+    if (what.status) extras.push(`status=${String(what.status)}`);
+  }
+  if (typeof where === "string") {
+    extras.push(`where=${where}`);
+  } else if (where) {
+    if (where.component) extras.push(`component=${String(where.component)}`);
+  }
   if (note.error) {
     const errLine = [note.error.name, note.error.message].filter(Boolean).join(": ");
     if (errLine) extras.push(`error=${errLine}`);
@@ -424,9 +437,9 @@ function writeStoryReport(stories, opts = {}) {
         colorize
       });
       const { data } = summary;
-      const originLabel = formatOrigin2(story.origin);
-      const levelColor = getLevelColor2(story.level);
-      const label = (text) => colorize ? `${levelColor}${text}${ANSI2.reset}` : text;
+      const originLabel = formatOrigin(story.origin);
+      const levelColor = getLevelColor(story.level);
+      const label = (text) => colorize ? `${levelColor}${text}${ANSI.reset}` : text;
       const duration = data.duration ? ` (${data.duration})` : "";
       lines.push(`${label("StorytellerSummary")}: ${story.title}`);
       lines.push(`${label("Time")}: ${data.when}${duration}`);
@@ -455,10 +468,10 @@ function writeStoryReport(stories, opts = {}) {
         lines.push(`${label("Story")}:`);
         const json = JSON.stringify(data, null, 2);
         if (colorize) {
-          const colored = colorizeJsonSections2(json, {
-            base: ANSI2.grayLight,
-            notes: ANSI2.grayDark,
-            reset: ANSI2.reset
+          const colored = colorizeJsonSections(json, {
+            base: ANSI.grayLight,
+            notes: ANSI.grayDark,
+            reset: ANSI.reset
           });
           lines.push(...colored);
         } else {
@@ -470,55 +483,16 @@ function writeStoryReport(stories, opts = {}) {
   }
   return lines.join("\n").trim() + "\n";
 }
-function formatOrigin2(origin) {
-  if (!origin?.where) return;
-  if (typeof origin.where === "string") return origin.where;
-  const w = origin.where;
-  const parts = [w.app, w.service, w.page, w.component].filter(Boolean).map(String);
-  return parts.length ? parts.join(" / ") : void 0;
-}
-var ANSI2 = {
-  reset: "\x1B[0m",
-  green: "\x1B[32m",
-  yellow: "\x1B[33m",
-  red: "\x1B[38;2;250;128;114m",
-  grayLight: "\x1B[37m",
-  grayDark: "\x1B[37m"
-};
-function getLevelColor2(level) {
-  if (level === "tell") return ANSI2.green;
-  if (level === "warn") return ANSI2.yellow;
-  return ANSI2.red;
-}
-function colorizeJsonSections2(json, colors) {
-  const lines = json.split("\n");
-  let inNotes = false;
-  let notesDepth = 0;
-  return lines.map((line) => {
-    if (!inNotes && line.includes('"notes": [')) {
-      inNotes = true;
-      notesDepth = countBrackets2(line);
-      return `${colors.notes}${line}${colors.reset}`;
-    }
-    if (inNotes) {
-      const colored = `${colors.notes}${line}${colors.reset}`;
-      notesDepth += countBrackets2(line);
-      if (notesDepth <= 0) inNotes = false;
-      return colored;
-    }
-    return `${colors.base}${line}${colors.reset}`;
-  });
-}
-function countBrackets2(line) {
-  const open = (line.match(/\[/g) || []).length;
-  const close = (line.match(/\]/g) || []).length;
-  return open - close;
-}
 // Annotate the CommonJS export names for ESM import in node:
 0 && (module.exports = {
+  ANSI,
   Storyteller,
+  colorizeJsonSections,
   consoleAudience,
+  countBrackets,
   dbAudience,
+  formatOrigin,
+  getLevelColor,
   summarizeStory,
   useStoryteller,
   writeStoryReport

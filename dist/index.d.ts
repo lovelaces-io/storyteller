@@ -130,4 +130,26 @@ type StoryReportOptions = {
 };
 declare function writeStoryReport(stories: StoryEventBase[], opts?: StoryReportOptions): string;
 
-export { type AudienceMember, type StoryContextValue, type StoryEvent, type StoryEventBase, type StoryLevel, type StoryNote, type StoryPreviewOptions, type StoryReportOptions, type StorySummary, type StorySummaryData, type StorySummaryNote, type StorySummaryOptions, Storyteller, consoleAudience, dbAudience, summarizeStory, useStoryteller, writeStoryReport };
+/** ANSI escape codes for terminal colorization */
+declare const ANSI: {
+    reset: string;
+    green: string;
+    yellow: string;
+    red: string;
+    grayLight: string;
+    grayDark: string;
+};
+/** Maps a story level to its ANSI terminal color */
+declare function getLevelColor(level: StoryLevel): string;
+/** Formats an origin context into a human-readable path string */
+declare function formatOrigin(origin?: StoryEventBase["origin"]): string | undefined;
+/** Colorizes JSON output, dimming the notes section for readability */
+declare function colorizeJsonSections(json: string, colors: {
+    base: string;
+    notes: string;
+    reset: string;
+}): string[];
+/** Counts net bracket depth change in a line (opens minus closes) */
+declare function countBrackets(line: string): number;
+
+export { ANSI, type AudienceMember, type StoryContextValue, type StoryEvent, type StoryEventBase, type StoryLevel, type StoryNote, type StoryPreviewOptions, type StoryReportOptions, type StorySummary, type StorySummaryData, type StorySummaryNote, type StorySummaryOptions, Storyteller, colorizeJsonSections, consoleAudience, countBrackets, dbAudience, formatOrigin, getLevelColor, summarizeStory, useStoryteller, writeStoryReport };
