@@ -62,7 +62,7 @@ console.log(summary.text);
 console.log(summary.data);
 ```
 
-For batch reports across many stories, use `writeStoryReport(stories, opts)`.
+For batch reports across many stories, use `writeStoryReport(stories, options)`.
 
 ## Audiences
 
@@ -73,7 +73,7 @@ import { dbAudience } from "@lovelaces-io/storyteller";
 
 story.audience.add(dbAudience(async (event) => db.insert(event)));
 
-story.oops("Critical failure", err).to("console", "db");
+story.oops("Critical failure", error).to("console", "db");
 ```
 
 ## Dev

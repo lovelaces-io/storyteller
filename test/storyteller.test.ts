@@ -5,28 +5,27 @@ import { dbAudience } from "../src/audiences/dbAudience";
 
 describe("Storyteller", () => {
   it("clears notes after telling a story", async () => {
-    const saved: StoryEvent[] = [];
-    const s = new Storyteller();
-    s.audience.add(
-      dbAudience(async (e) => {
-        saved.push(e);
+    const savedEvents: StoryEvent[] = [];
+    const story = new Storyteller();
+    story.audience.add(
+      dbAudience(async (event) => {
+        savedEvents.push(event);
       })
     );
 
-    s.note("one").note("two");
-    s.warn("hello"); // should persist to db (warn)
+    story.note("one").note("two");
+    story.warn("hello");
 
-    // delivery is microtask-scheduled; wait one tick
-    await new Promise((r) => setTimeout(r, 0));
+    // Delivery is microtask-scheduled, so wait one tick
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(saved.length).toBe(1);
-    expect(saved[0]!.notes.length).toBe(2);
+    expect(savedEvents.length).toBe(1);
+    expect(savedEvents[0]!.notes.length).toBe(2);
 
-    s.tell("second"); // tell should NOT persist to db
-    await new Promise((r) => setTimeout(r, 0));
-    expect(saved.length).toBe(1);
+    story.tell("second");
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-    // notes should have cleared after warn, so this story has 0 notes
-    // (since we didn't add notes again before tell)
+    // "tell" events are filtered out by dbAudience, so count stays at 1
+    expect(savedEvents.length).toBe(1);
   });
 });

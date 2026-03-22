@@ -10,44 +10,44 @@ export const ANSI = {
   grayDark: "\x1b[37m",
 };
 
-/** Maps a story level to its ANSI terminal color */
+/** Map a story level to its corresponding ANSI terminal color */
 export function getLevelColor(level: StoryLevel): string {
   if (level === "tell") return ANSI.green;
   if (level === "warn") return ANSI.yellow;
   return ANSI.red;
 }
 
-/** Formats an origin context into a human-readable path string */
+/** Format an origin context into a human-readable path like "app / page / component" */
 export function formatOrigin(origin?: StoryEventBase["origin"]): string | undefined {
   if (!origin?.where) return;
   if (typeof origin.where === "string") return origin.where;
-  const w = origin.where as Record<string, unknown>;
-  const parts = [w.app, w.service, w.page, w.component]
+  const whereRecord = origin.where as Record<string, unknown>;
+  const parts = [whereRecord.app, whereRecord.service, whereRecord.page, whereRecord.component]
     .filter(Boolean)
     .map(String);
   return parts.length ? parts.join(" / ") : undefined;
 }
 
-/** Colorizes JSON output, dimming the notes section for readability */
+/** Colorize JSON output, dimming the notes section for visual hierarchy */
 export function colorizeJsonSections(
   json: string,
   colors: { base: string; notes: string; reset: string }
 ): string[] {
   const lines = json.split("\n");
-  let inNotes = false;
-  let notesDepth = 0;
+  let insideNotes = false;
+  let bracketDepth = 0;
 
   return lines.map((line) => {
-    if (!inNotes && line.includes('"notes": [')) {
-      inNotes = true;
-      notesDepth = countBrackets(line);
+    if (!insideNotes && line.includes('"notes": [')) {
+      insideNotes = true;
+      bracketDepth = countBrackets(line);
       return `${colors.notes}${line}${colors.reset}`;
     }
 
-    if (inNotes) {
+    if (insideNotes) {
       const colored = `${colors.notes}${line}${colors.reset}`;
-      notesDepth += countBrackets(line);
-      if (notesDepth <= 0) inNotes = false;
+      bracketDepth += countBrackets(line);
+      if (bracketDepth <= 0) insideNotes = false;
       return colored;
     }
 
@@ -55,9 +55,9 @@ export function colorizeJsonSections(
   });
 }
 
-/** Counts net bracket depth change in a line (opens minus closes) */
+/** Count the net bracket depth change in a line (opening brackets minus closing brackets) */
 export function countBrackets(line: string): number {
-  const open = (line.match(/\[/g) || []).length;
-  const close = (line.match(/\]/g) || []).length;
-  return open - close;
+  const openCount = (line.match(/\[/g) || []).length;
+  const closeCount = (line.match(/\]/g) || []).length;
+  return openCount - closeCount;
 }

@@ -30,20 +30,21 @@ Storyteller treats a sequence of events as a single **story** — not a pile of 
 One story. One structured event. Full context.
 
 ```
-Storyteller: Payment failed
+Story: Payment failed
+Level: oops
 Time: Mar 22, 2026, 10:15:03 AM (1.2s)
 Origin: checkout / Payment
 
 Notes:
-- 10:15:02 AM - User submitted payment
-- 10:15:02 AM - Charging card via Stripe
-- 10:15:03 AM - Gateway timed out after 5000ms
-- 10:15:03 AM - Write failed (error=Error: gateway timeout)
+  10:15:02 AM — User submitted payment
+  10:15:02 AM — Charging card via Stripe
+  10:15:03 AM — Gateway timed out after 5000ms
+  10:15:03 AM — Write failed (error=Error: gateway timeout)
 
 Error: gateway timeout
 ```
 
-Every note timestamped. Every note connected to the same story. Origin context tells you exactly where in the app this happened.
+Every note timestamped. Every note connected to the same story. Origin context tells you exactly where in the app this happened. Clear labels that both humans and machines can parse without guessing.
 
 ---
 
@@ -151,7 +152,7 @@ The console audience is included by default. The db audience only listens to `wa
 story.tell("Page loaded");
 
 // Only goes to console and db
-story.oops("Critical failure", err).to("console", "db");
+story.oops("Critical failure", error).to("console", "db");
 
 // Only goes to db (skip console noise)
 story.warn("Background job slow").to("db");
@@ -192,13 +193,14 @@ const summary = story.summarize({
 });
 
 console.log(summary.text);
-// Storyteller: Dashboard loaded
+// Story: Dashboard loaded
+// Level: tell
 // Time: Mar 22, 2026, 3:42:18 PM (12ms)
 // Origin: admin / Dashboard
 // Notes:
-// - 3:42:18 PM - User opened dashboard
-// - 3:42:18 PM - Loaded 6 widgets
-// - 3:42:18 PM - Dashboard ready
+//   3:42:18 PM — User opened dashboard
+//   3:42:18 PM — Loaded 6 widgets
+//   3:42:18 PM — Dashboard ready
 
 console.log(summary.data);
 // { title, level, when, durationMs, origin, notes, ... }
@@ -238,7 +240,7 @@ Have a collection of stored events? Generate a full report grouped by day:
 ```ts
 import { writeStoryReport } from "@lovelaces-io/storyteller";
 
-const events = await db.query("SELECT * FROM logs WHERE ts > ?", [weekAgo]);
+const events = await db.query("SELECT * FROM logs WHERE timestamp > ?", [weekAgo]);
 const report = writeStoryReport(events, {
   timezone: "America/New_York",
   verbosity: "brief",
@@ -251,14 +253,16 @@ Storyteller Report (America/New_York)
 Range: Mar 15, 2026 – Mar 22, 2026
 
 Mar 15, 2026
-StorytellerSummary: User signed up
+Story: User signed up
+Level: tell
 Time: Mar 15, 2026, 2:18:44 PM
 
 Mar 22, 2026
-StorytellerSummary: Payment failed
+Story: Payment failed
+Level: oops
 Time: Mar 22, 2026, 10:15:03 AM (1.2s)
 Origin: checkout / Payment
-?: Error: gateway timeout
+Error: gateway timeout
 ```
 
 ---
@@ -291,18 +295,52 @@ story.note("Validation passed", { what: "email format check" });
 try {
   await db.update("users", { email: "new@example.com" });
   story.tell("Profile updated");
-} catch (err) {
+} catch (error) {
   story.note("Write failed", {
     where: "primary-db",
-    error: err,
+    error,
   });
-  story.oops("Failed to save profile", err);
+  story.oops("Failed to save profile", error);
 }
 ```
 
 The `oops` story hits the console *and* the database. The full context — who the user was, what they were doing, where in the app it happened, and exactly which step failed — is all in one event.
 
 No grepping. No guessing. Just the story.
+
+---
+
+## Structured for Machines Too
+
+Every story event is a typed, serializable JSON object. AI agents, log aggregators, and monitoring tools can parse them without regex or guesswork:
+
+```json
+{
+  "timestamp": "2026-03-22T14:15:03.421Z",
+  "level": "oops",
+  "title": "Payment failed",
+  "origin": {
+    "where": { "app": "checkout", "page": "Payment" }
+  },
+  "notes": [
+    {
+      "timestamp": "2026-03-22T14:15:02.218Z",
+      "note": "User submitted payment",
+      "who": { "id": "user:413" },
+      "what": { "amount": 49.99, "currency": "USD" }
+    },
+    {
+      "timestamp": "2026-03-22T14:15:03.421Z",
+      "note": "Gateway timed out",
+      "where": { "service": "payments" },
+      "error": { "name": "Error", "message": "gateway timeout" }
+    }
+  ],
+  "error": { "name": "Error", "message": "gateway timeout" }
+}
+```
+
+Every field has a clear, unabbreviated name. `timestamp` not `ts`. `error` not `?`. Designed to be read by humans and parsed by machines without a decoder ring.
 
 ---
 
@@ -320,6 +358,7 @@ No grepping. No guessing. Just the story.
 | **Batch reports** | Generate day-grouped reports from stored events |
 | **Shared singleton** | `useStoryteller()` for cross-component stories |
 | **TypeScript-first** | Full type safety, exported types for everything |
+| **Human + machine readable** | Clear field names, consistent structure, no abbreviations |
 
 ---
 

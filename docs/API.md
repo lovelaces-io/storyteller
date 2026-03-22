@@ -22,7 +22,7 @@ The core class. Collects notes and emits them as structured story events.
 ### Constructor
 
 ```ts
-new Storyteller(opts?: {
+new Storyteller(options?: {
   origin?: {
     who?: string | Record<string, unknown>;
     what?: string | Record<string, unknown>;
@@ -123,9 +123,9 @@ oops(title: string, error?: unknown): { to: (...audienceNames: string[]) => void
 ```ts
 try {
   await saveProfile(data);
-} catch (err) {
-  story.note("Write failed", { where: "primary-db", error: err });
-  story.oops("Failed to save profile", err);
+} catch (error) {
+  story.note("Write failed", { where: "primary-db", error });
+  story.oops("Failed to save profile", error);
 }
 ```
 
@@ -140,7 +140,7 @@ try {
 story.tell("Page loaded");
 
 // Deliver only to "console" and "db"
-story.oops("Critical failure", err).to("console", "db");
+story.oops("Critical failure", error).to("console", "db");
 
 // Deliver only to "db" (skip console)
 story.warn("Slow query").to("db");
@@ -150,12 +150,12 @@ If `.to()` is not called, the story is delivered to all audiences via microtask.
 
 ---
 
-### story.summarize(opts?)
+### story.summarize(options?)
 
 Generate a formatted summary of the current notes without emitting or clearing them.
 
 ```ts
-summarize(opts?: {
+summarize(options?: {
   title?: string;      // default: "Story preview"
   level?: StoryLevel;  // default: "tell"
   error?: unknown;
@@ -229,12 +229,12 @@ story.audience.remove("console");
 
 ---
 
-## useStoryteller(opts?)
+## useStoryteller(options?)
 
 Returns a shared singleton `Storyteller` instance. Useful for cross-component or cross-service logging where you want all notes to flow into the same story.
 
 ```ts
-useStoryteller(opts?: {
+useStoryteller(options?: {
   origin?: StoryEventBase["origin"];
   reset?: boolean;
 }): Storyteller
@@ -282,7 +282,7 @@ story.audience.add(consoleAudience());
 
 ---
 
-### dbAudience(insertFn)
+### dbAudience(insertFunction)
 
 Persists stories to a database. Only accepts `"warn"` and `"oops"` events by default.
 
@@ -300,7 +300,7 @@ story.audience.add(
     await db.insert("story_events", {
       title: event.title,
       level: event.level,
-      timestamp: event.ts,
+      timestamp: event.timestamp,
       payload: JSON.stringify(event),
     });
   })
@@ -345,14 +345,14 @@ story.audience.add(slackAudience);
 
 ---
 
-## summarizeStory(story, opts?)
+## summarizeStory(story, options?)
 
 Standalone function to generate a formatted summary from a `StoryEventBase` object. Used internally by `Storyteller.summarize()` and `writeStoryReport()`, but also available directly.
 
 ```ts
 summarizeStory(
   story: StoryEventBase,
-  opts?: {
+  options?: {
     timezone?: string;
     locale?: string;
     verbosity?: "brief" | "normal" | "full";
@@ -376,14 +376,14 @@ console.log(result.text);
 
 ---
 
-## writeStoryReport(stories, opts?)
+## writeStoryReport(stories, options?)
 
 Generate a formatted report from an array of story events, grouped by day.
 
 ```ts
 writeStoryReport(
   stories: StoryEventBase[],
-  opts?: {
+  options?: {
     timezone?: string;          // default: local timezone
     locale?: string;            // default: "en-US"
     verbosity?: "brief" | "normal" | "full";  // default: "normal"
@@ -412,14 +412,16 @@ Storyteller Report (America/New_York)
 Range: Mar 20, 2026 – Mar 22, 2026
 
 Mar 20, 2026
-StorytellerSummary: User signed up
+Story: User signed up
+Level: tell
 Time: Mar 20, 2026, 3:42:18 PM
 
 Mar 22, 2026
-StorytellerSummary: Payment failed
+Story: Payment failed
+Level: oops
 Time: Mar 22, 2026, 10:15:03 AM (1.2s)
 Origin: checkout / Payment
-?: Error: gateway timeout
+Error: gateway timeout
 ```
 
 ---
@@ -442,11 +444,22 @@ type StoryContextValue = Record<string, unknown> | string;
 
 Used for `who`, `what`, and `where` fields on notes and origins.
 
+### StoryError
+
+```ts
+type StoryError = {
+  name?: string;
+  message?: string;
+  stack?: string;
+  cause?: unknown;
+};
+```
+
 ### StoryNote
 
 ```ts
 type StoryNote = {
-  ts: string;                    // ISO 8601 timestamp
+  timestamp: string;             // ISO 8601 timestamp
   note: string;                  // The note text
   who?: StoryContextValue;
   what?: StoryContextValue;
@@ -459,7 +472,7 @@ type StoryNote = {
 
 ```ts
 type StoryEventBase = {
-  ts: string;
+  timestamp: string;
   level: StoryLevel;
   title: string;
   origin?: {
@@ -478,7 +491,7 @@ Extends `StoryEventBase` with a `summarize()` method. This is what audience memb
 
 ```ts
 type StoryEvent = StoryEventBase & {
-  summarize: (opts?: StorySummaryOptions) => StorySummary;
+  summarize: (options?: StorySummaryOptions) => StorySummary;
 };
 ```
 
@@ -572,7 +585,7 @@ story.note("Gateway timed out after 5000ms", {
 story.oops("Payment failed", new Error("gateway timeout")).to("console", "db");
 
 // Later, generate a report from stored events
-const events = await db.query("SELECT * FROM logs WHERE ts > ?", [yesterday]);
+const events = await db.query("SELECT * FROM logs WHERE timestamp > ?", [yesterday]);
 const report = writeStoryReport(events, {
   colorize: false,
   verbosity: "brief",

@@ -1,20 +1,21 @@
 import type { StoryEventBase } from "./storyteller";
 import { Storyteller } from "./storyteller";
 
-let shared: Storyteller | undefined;
+let sharedInstance: Storyteller | undefined;
 
 type StorytellerSharedOptions = {
   origin?: StoryEventBase["origin"];
   reset?: boolean;
 };
 
+/** Return a shared singleton Storyteller instance for cross-component or cross-service logging */
 export function useStoryteller(
-  opts: StorytellerSharedOptions = {}
+  options: StorytellerSharedOptions = {}
 ): Storyteller {
-  if (!shared || opts.reset) {
-    shared = new Storyteller({ origin: opts.origin });
-    return shared;
+  if (!sharedInstance || options.reset) {
+    sharedInstance = new Storyteller({ origin: options.origin });
+    return sharedInstance;
   }
 
-  return shared;
+  return sharedInstance;
 }

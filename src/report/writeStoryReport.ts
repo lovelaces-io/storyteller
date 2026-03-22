@@ -11,9 +11,10 @@ export type StoryReportOptions = {
   colorize?: boolean;
 };
 
+/** Generate a formatted report from an array of story events, grouped by day */
 export function writeStoryReport(
   stories: StoryEventBase[],
-  opts: StoryReportOptions = {}
+  options: StoryReportOptions = {}
 ): string {
   const {
     timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -22,48 +23,47 @@ export function writeStoryReport(
     maxNotesPerStory = 50,
     showData = true,
     colorize = true,
-  } = opts;
+  } = options;
 
   if (!stories.length) {
     return "Storyteller Report\n\n(no stories)\n";
   }
 
   const sorted = [...stories].sort(
-    (a, b) => Date.parse(a.ts) - Date.parse(b.ts)
+    (storyA, storyB) => Date.parse(storyA.timestamp) - Date.parse(storyB.timestamp)
   );
 
-  const dateFmt = new Intl.DateTimeFormat(locale, {
+  const dateFormatter = new Intl.DateTimeFormat(locale, {
     timeZone: timezone,
     year: "numeric",
     month: "short",
     day: "2-digit",
   });
 
-  const first = sorted[0];
-  const last = sorted[sorted.length - 1];
-  if (!first || !last) {
+  const firstStory = sorted[0];
+  const lastStory = sorted[sorted.length - 1];
+  if (!firstStory || !lastStory) {
     return "Storyteller Report\n\n(no stories)\n";
   }
 
   const lines: string[] = [];
   lines.push(`Storyteller Report (${timezone})`);
   lines.push(
-    `Range: ${dateFmt.format(new Date(first.ts))} – ${dateFmt.format(
-      new Date(last.ts)
+    `Range: ${dateFormatter.format(new Date(firstStory.timestamp))} – ${dateFormatter.format(
+      new Date(lastStory.timestamp)
     )}`
   );
   lines.push("");
 
-  // Group by day
-  const byDay = new Map<string, StoryEventBase[]>();
-  for (const s of sorted) {
-    const key = dateFmt.format(new Date(s.ts));
-    const arr = byDay.get(key) ?? [];
-    arr.push(s);
-    byDay.set(key, arr);
+  const storiesByDay = new Map<string, StoryEventBase[]>();
+  for (const story of sorted) {
+    const dayKey = dateFormatter.format(new Date(story.timestamp));
+    const dayEvents = storiesByDay.get(dayKey) ?? [];
+    dayEvents.push(story);
+    storiesByDay.set(dayKey, dayEvents);
   }
 
-  for (const [day, dayStories] of byDay) {
+  for (const [day, dayStories] of storiesByDay) {
     lines.push(day);
 
     for (const story of dayStories) {
@@ -81,7 +81,8 @@ export function writeStoryReport(
         colorize ? `${levelColor}${text}${ANSI.reset}` : text;
 
       const duration = data.duration ? ` (${data.duration})` : "";
-      lines.push(`${label("StorytellerSummary")}: ${story.title}`);
+      lines.push(`${label("Story")}: ${story.title}`);
+      lines.push(`${label("Level")}: ${story.level}`);
       lines.push(`${label("Time")}: ${data.when}${duration}`);
 
       if (originLabel) {
@@ -89,20 +90,20 @@ export function writeStoryReport(
       }
 
       if (data.error) {
-        const errLine = [
+        const errorLine = [
           data.error.name,
           data.error.message,
         ]
           .filter(Boolean)
           .join(": ");
-        if (errLine) lines.push(`${label("?")}: ${errLine}`);
+        if (errorLine) lines.push(`${label("Error")}: ${errorLine}`);
       }
 
       if (verbosity !== "brief" && data.notes.length) {
         lines.push(`  ${label("Notes")}:`);
 
-        for (const n of data.notes) {
-          lines.push(`    ${n.when} - ${n.text}`);
+        for (const summaryNote of data.notes) {
+          lines.push(`    ${summaryNote.when} — ${summaryNote.text}`);
         }
 
         if (story.notes.length > data.notes.length) {
@@ -113,7 +114,7 @@ export function writeStoryReport(
       }
 
       if (showData) {
-        lines.push(`${label("Story")}:`);
+        lines.push(`${label("Data")}:`);
         const json = JSON.stringify(data, null, 2);
         if (colorize) {
           const colored = colorizeJsonSections(json, {
@@ -133,4 +134,3 @@ export function writeStoryReport(
 
   return lines.join("\n").trim() + "\n";
 }
-

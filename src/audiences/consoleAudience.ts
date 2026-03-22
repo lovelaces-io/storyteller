@@ -1,10 +1,12 @@
 import type { AudienceMember } from "../storyteller";
+import { ANSI } from "../utils";
 
+/** Create an audience that logs stories to the browser console with color-coded grouped output */
 export function consoleAudience(): AudienceMember {
   return {
     name: "console",
     hear: (event) => {
-      const label = "Storyteller";
+      const prefix = "Storyteller";
 
       const style =
         event.level === "tell"
@@ -13,13 +15,13 @@ export function consoleAudience(): AudienceMember {
           ? "color:#f59e0b;font-weight:600"
           : "color:#dc2626;font-weight:600";
 
-      const header = `${label}: ${event.title}`;
+      const header = `${prefix}: ${event.title}`;
 
       console.groupCollapsed(`%c${header}`, style);
 
       const payload = JSON.stringify(event, null, 2);
       const coloredPayload =
-        event.level === "oops" ? `\x1b[38;2;250;128;114m${payload}\x1b[0m` : payload;
+        event.level === "oops" ? `${ANSI.red}${payload}${ANSI.reset}` : payload;
 
       if (event.level === "tell") {
         console.log(header, payload);

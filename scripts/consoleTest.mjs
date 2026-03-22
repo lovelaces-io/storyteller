@@ -78,11 +78,11 @@ class ConsoleTestRunner {
     story.oops("Failed to save profile", error);
   }
 
-  static printSummary(story, level, title, err) {
+  static printSummary(story, level, title, error) {
     const summary = story.summarize({
       title,
       level,
-      error: err,
+      error,
       verbosity: "full",
     });
     console.log(summary.text);

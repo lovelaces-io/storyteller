@@ -5,7 +5,7 @@ export type StoryLevel = "tell" | "warn" | "oops";
 
 export type StoryContextValue = Record<string, unknown> | string;
 
-type StoryError = {
+export type StoryError = {
   name?: string;
   message?: string;
   stack?: string;
@@ -13,7 +13,7 @@ type StoryError = {
 };
 
 export type StoryNote = {
-  ts: string;
+  timestamp: string;
   note: string;
   who?: StoryContextValue;
   what?: StoryContextValue;
@@ -22,7 +22,7 @@ export type StoryNote = {
 };
 
 export type StoryEventBase = {
-  ts: string;
+  timestamp: string;
   level: StoryLevel;
   title: string;
 
@@ -53,7 +53,7 @@ export type StoryPreviewOptions = StorySummaryOptions & {
 };
 
 export type StorySummaryNote = {
-  ts: string;
+  timestamp: string;
   when: string;
   note: string;
   text: string;
@@ -80,7 +80,7 @@ export type StorySummary = {
 };
 
 export type StoryEvent = StoryEventBase & {
-  summarize: (opts?: StorySummaryOptions) => StorySummary;
+  summarize: (options?: StorySummaryOptions) => StorySummary;
 };
 
 export type AudienceMember = {
@@ -96,43 +96,53 @@ type NoteData = {
   error?: unknown;
 };
 
+/** Manages the set of audience members that receive story events */
 class AudienceRegistry {
-  private map = new Map<string, AudienceMember>();
+  private members = new Map<string, AudienceMember>();
 
+  /** Register an audience member, replacing any existing member with the same name */
   add(member: AudienceMember) {
-    this.map.set(member.name, member);
+    this.members.set(member.name, member);
     return this;
   }
+
+  /** Remove an audience member by name */
   remove(name: string) {
-    this.map.delete(name);
+    this.members.delete(name);
     return this;
   }
+
+  /** Return all registered audience members */
   getAll() {
-    return [...this.map.values()];
+    return [...this.members.values()];
   }
+
+  /** Return only the audience members matching the given names */
   getOnly(names: string[]) {
-    return names.map((n) => this.map.get(n)).filter(Boolean) as AudienceMember[];
+    return names.map((name) => this.members.get(name)).filter(Boolean) as AudienceMember[];
   }
 }
 
+/** Core logging class that collects timestamped notes and emits them as structured story events */
 export class Storyteller {
   public readonly audience = new AudienceRegistry();
 
   private readonly origin?: StoryEventBase["origin"];
   private notes: StoryNote[] = [];
 
-  constructor(opts?: { origin?: StoryEventBase["origin"]; audiences?: AudienceMember[] }) {
-    this.origin = opts?.origin;
+  constructor(options?: { origin?: StoryEventBase["origin"]; audiences?: AudienceMember[] }) {
+    this.origin = options?.origin;
 
-    // default console audience (all levels)
+    // Every storyteller gets a console audience by default
     this.audience.add(consoleAudience());
 
-    opts?.audiences?.forEach((a) => this.audience.add(a));
+    options?.audiences?.forEach((audience) => this.audience.add(audience));
   }
 
+  /** Add a timestamped note with optional context (who, what, where, error) */
   note(text: string, data: NoteData = {}) {
     this.notes.push({
-      ts: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
       note: text,
       ...(data.who ? { who: data.who } : {}),
       ...(data.what ? { what: data.what } : {}),
@@ -142,20 +152,22 @@ export class Storyteller {
     return this;
   }
 
+  /** Clear all accumulated notes without emitting a story */
   reset() {
     this.notes = [];
     return this;
   }
 
-  summarize(opts: StoryPreviewOptions = {}) {
+  /** Generate a formatted summary of current notes without emitting or clearing them */
+  summarize(options: StoryPreviewOptions = {}) {
     const {
       title = "Story preview",
       level = "tell",
       error,
-      ...summaryOpts
-    } = opts;
+      ...summaryOptions
+    } = options;
     const event: StoryEventBase = {
-      ts: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
       level,
       title,
       ...(this.origin ? { origin: this.origin } : {}),
@@ -163,35 +175,41 @@ export class Storyteller {
       ...(error ? { error: normalizeError(error) } : {}),
     };
 
-    return summarizeStory(event, summaryOpts);
+    return summarizeStory(event, summaryOptions);
   }
 
+  /** Emit a story at the "tell" level (success / informational) */
   tell(title: string) {
     return this.createDelivery("tell", title);
   }
+
+  /** Emit a story at the "warn" level (something was off) */
   warn(title: string) {
     return this.createDelivery("warn", title);
   }
-  oops(title: string, err?: unknown) {
-    return this.createDelivery("oops", title, err);
+
+  /** Emit a story at the "oops" level (something broke) with an optional error */
+  oops(title: string, error?: unknown) {
+    return this.createDelivery("oops", title, error);
   }
 
-  private createDelivery(level: StoryLevel, title: string, err?: unknown) {
-    const event = this.buildEvent(level, title, err);
+  /** Build a story event and schedule delivery, returning a handle to override the audience list */
+  private createDelivery(level: StoryLevel, title: string, error?: unknown) {
+    const event = this.buildEvent(level, title, error);
 
-    // default: all audiences (scheduled so `.to()` can override)
     let delivered = false;
-    let cancelledDefault = false;
+    let defaultCancelled = false;
 
+    // Delivery is microtask-scheduled so .to() can override synchronously
     queueMicrotask(() => {
-      if (delivered || cancelledDefault) return;
+      if (delivered || defaultCancelled) return;
       delivered = true;
       void this.deliver(event);
     });
 
     return {
       to: (...names: string[]) => {
-        cancelledDefault = true;
+        defaultCancelled = true;
         if (delivered) return;
         delivered = true;
         void this.deliver(event, { only: names });
@@ -199,54 +217,58 @@ export class Storyteller {
     };
   }
 
-  private buildEvent(level: StoryLevel, title: string, err?: unknown): StoryEvent {
+  /** Assemble the story event from current notes and clear notes for the next story */
+  private buildEvent(level: StoryLevel, title: string, error?: unknown): StoryEvent {
     const now = new Date().toISOString();
-    const notes = [...this.notes];
+    const collectedNotes = [...this.notes];
 
-    // clear notes after telling the story (your desired behavior)
     this.notes = [];
 
     const event: StoryEventBase = {
-      ts: now,
+      timestamp: now,
       level,
       title,
       ...(this.origin ? { origin: this.origin } : {}),
-      notes,
-      ...(err ? { error: normalizeError(err) } : {}),
+      notes: collectedNotes,
+      ...(error ? { error: normalizeError(error) } : {}),
     };
 
     const eventWithSummary = event as StoryEvent;
     Object.defineProperty(eventWithSummary, "summarize", {
-      value: (opts?: StorySummaryOptions) => summarizeStory(event, opts),
+      value: (options?: StorySummaryOptions) => summarizeStory(event, options),
       enumerable: false,
     });
 
     return eventWithSummary;
   }
 
-  private async deliver(event: StoryEvent, opts?: { only?: string[] }) {
-    const members = opts?.only?.length ? this.audience.getOnly(opts.only) : this.audience.getAll();
+  /** Deliver a story event to matching audience members */
+  private async deliver(event: StoryEvent, options?: { only?: string[] }) {
+    const targets = options?.only?.length
+      ? this.audience.getOnly(options.only)
+      : this.audience.getAll();
 
     await Promise.allSettled(
-      members
-        .filter((m) => (m.accepts ? m.accepts(event) : true))
-        .map((m) => m.hear(event))
+      targets
+        .filter((member) => (member.accepts ? member.accepts(event) : true))
+        .map((member) => member.hear(event))
     );
   }
 }
 
-function normalizeError(err: unknown): StoryError {
-  if (err instanceof Error) {
+/** Convert an unknown error value into a serializable StoryError object */
+function normalizeError(rawError: unknown): StoryError {
+  if (rawError instanceof Error) {
     const normalized: StoryError = {
-      name: err.name,
-      message: err.message,
+      name: rawError.name,
+      message: rawError.message,
     };
 
-    if (err.stack !== undefined) {
-      normalized.stack = err.stack;
+    if (rawError.stack !== undefined) {
+      normalized.stack = rawError.stack;
     }
 
-    const cause = (err as { cause?: unknown }).cause;
+    const cause = (rawError as { cause?: unknown }).cause;
     if (cause !== undefined) {
       normalized.cause = cause;
     }
@@ -254,27 +276,31 @@ function normalizeError(err: unknown): StoryError {
     return normalized;
   }
 
-  return { message: String(err) };
+  return { message: String(rawError) };
 }
 
-function summarizeNotes(notes: StoryNote[]) {
+/** Calculate the duration between the first and last note in a sequence */
+function calculateNoteDuration(notes: StoryNote[]) {
   if (notes.length <= 1) {
     return {
       durationMs: undefined as number | undefined,
     };
   }
 
-  const start = Date.parse(notes[0]!.ts);
-  const end = Date.parse(notes[notes.length - 1]!.ts);
+  const startTime = Date.parse(notes[0]!.timestamp);
+  const endTime = Date.parse(notes[notes.length - 1]!.timestamp);
 
   return {
-    durationMs: Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : undefined,
+    durationMs: Number.isFinite(startTime) && Number.isFinite(endTime)
+      ? Math.max(0, endTime - startTime)
+      : undefined,
   };
 }
 
+/** Generate a formatted, human-readable summary from a story event */
 export function summarizeStory(
   story: StoryEventBase,
-  opts: StorySummaryOptions = {}
+  options: StorySummaryOptions = {}
 ): StorySummary {
   const {
     timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
@@ -283,9 +309,9 @@ export function summarizeStory(
     maxNotes = 50,
     showData = true,
     colorize = true,
-  } = opts;
+  } = options;
 
-  const dateTimeFmt = new Intl.DateTimeFormat(locale, {
+  const dateTimeFormatter = new Intl.DateTimeFormat(locale, {
     timeZone: timezone,
     year: "numeric",
     month: "short",
@@ -295,7 +321,7 @@ export function summarizeStory(
     second: "2-digit",
   });
 
-  const timeFmt = new Intl.DateTimeFormat(locale, {
+  const timeFormatter = new Intl.DateTimeFormat(locale, {
     timeZone: timezone,
     hour: "numeric",
     minute: "2-digit",
@@ -303,19 +329,19 @@ export function summarizeStory(
   });
 
   const orderedNotes = [...story.notes].sort(
-    (a, b) => Date.parse(a.ts) - Date.parse(b.ts)
+    (noteA, noteB) => Date.parse(noteA.timestamp) - Date.parse(noteB.timestamp)
   );
-  const summary = summarizeNotes(orderedNotes);
+  const noteTiming = calculateNoteDuration(orderedNotes);
   const originLabel = formatOrigin(story.origin);
   const duration =
-    summary.durationMs != null ? formatDuration(summary.durationMs) : undefined;
+    noteTiming.durationMs != null ? formatDuration(noteTiming.durationMs) : undefined;
 
   const slicedNotes = orderedNotes.slice(0, maxNotes);
-  const notes: StorySummaryNote[] = slicedNotes.map((note) => ({
-    ts: note.ts,
-    when: timeFmt.format(new Date(note.ts)),
+  const summaryNotes: StorySummaryNote[] = slicedNotes.map((note) => ({
+    timestamp: note.timestamp,
+    when: timeFormatter.format(new Date(note.timestamp)),
     note: note.note,
-    text: formatNote(note, verbosity),
+    text: formatNoteText(note, verbosity),
     ...(note.who ? { who: note.who } : {}),
     ...(note.what ? { what: note.what } : {}),
     ...(note.where ? { where: note.where } : {}),
@@ -325,11 +351,11 @@ export function summarizeStory(
   const data: StorySummaryData = {
     title: story.title,
     level: story.level,
-    when: dateTimeFmt.format(new Date(story.ts)),
-    ...(summary.durationMs != null ? { durationMs: summary.durationMs } : {}),
+    when: dateTimeFormatter.format(new Date(story.timestamp)),
+    ...(noteTiming.durationMs != null ? { durationMs: noteTiming.durationMs } : {}),
     ...(duration ? { duration } : {}),
     ...(story.origin ? { origin: story.origin } : {}),
-    notes,
+    notes: summaryNotes,
     ...(story.error ? { error: story.error } : {}),
   };
 
@@ -338,7 +364,8 @@ export function summarizeStory(
     colorize ? `${levelColor}${text}${ANSI.reset}` : text;
 
   const lines: string[] = [];
-  lines.push(`${label("StorytellerSummary")}: ${story.title}`);
+  lines.push(`${label("Story")}: ${story.title}`);
+  lines.push(`${label("Level")}: ${story.level}`);
   lines.push(`${label("Time")}: ${data.when}${duration ? ` (${duration})` : ""}`);
 
   if (originLabel) {
@@ -346,24 +373,24 @@ export function summarizeStory(
   }
 
   if (story.error) {
-    const errLine = [story.error.name, story.error.message]
+    const errorLine = [story.error.name, story.error.message]
       .filter(Boolean)
       .join(": ");
-    if (errLine) lines.push(`${label("?")}: ${errLine}`);
+    if (errorLine) lines.push(`${label("Error")}: ${errorLine}`);
   }
 
-  if (verbosity !== "brief" && notes.length) {
+  if (verbosity !== "brief" && summaryNotes.length) {
     lines.push(`${label("Notes")}:`);
-    for (const note of notes) {
-      lines.push(`- ${note.when} - ${note.text}`);
+    for (const note of summaryNotes) {
+      lines.push(`  ${note.when} — ${note.text}`);
     }
-    if (orderedNotes.length > notes.length) {
-      lines.push(`… (${orderedNotes.length - notes.length} more)`);
+    if (orderedNotes.length > summaryNotes.length) {
+      lines.push(`  … (${orderedNotes.length - summaryNotes.length} more)`);
     }
   }
 
   if (showData) {
-    lines.push(`${label("Story")}:`);
+    lines.push(`${label("Data")}:`);
     const json = JSON.stringify(data, null, 2);
     if (colorize) {
       const colored = colorizeJsonSections(json, {
@@ -380,47 +407,48 @@ export function summarizeStory(
   return { text: lines.join("\n"), data };
 }
 
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  const s = ms / 1000;
-  if (s < 60) return `${s.toFixed(1)}s`;
-  const m = Math.floor(s / 60);
-  const r = Math.round(s % 60)
+/** Convert milliseconds into a human-readable duration string */
+function formatDuration(milliseconds: number): string {
+  if (milliseconds < 1000) return `${milliseconds}ms`;
+  const seconds = milliseconds / 1000;
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.round(seconds % 60)
     .toString()
     .padStart(2, "0");
-  return `${m}:${r}m`;
+  return `${minutes}:${remainingSeconds}m`;
 }
 
-
-function formatNote(
+/** Format a note's text with optional context details when verbosity is "full" */
+function formatNoteText(
   note: StoryNote,
   verbosity: "brief" | "normal" | "full"
 ): string {
   if (verbosity !== "full") return note.note;
 
-  const extras: string[] = [];
+  const details: string[] = [];
   const what = note.what;
   const where = note.where;
 
   if (typeof what === "string") {
-    extras.push(`what=${what}`);
+    details.push(`what=${what}`);
   } else if (what) {
-    if (what.field) extras.push(`field=${String(what.field)}`);
-    if (what.status) extras.push(`status=${String(what.status)}`);
+    if (what.field) details.push(`field=${String(what.field)}`);
+    if (what.status) details.push(`status=${String(what.status)}`);
   }
   if (typeof where === "string") {
-    extras.push(`where=${where}`);
+    details.push(`where=${where}`);
   } else if (where) {
-    if (where.component) extras.push(`component=${String(where.component)}`);
+    if (where.component) details.push(`component=${String(where.component)}`);
   }
   if (note.error) {
-    const errLine = [note.error.name, note.error.message]
+    const errorLine = [note.error.name, note.error.message]
       .filter(Boolean)
       .join(": ");
-    if (errLine) extras.push(`error=${errLine}`);
+    if (errorLine) details.push(`error=${errorLine}`);
   }
 
-  return extras.length
-    ? `${note.note} (${extras.join(" ")})`
+  return details.length
+    ? `${note.note} (${details.join(" ")})`
     : note.note;
 }
