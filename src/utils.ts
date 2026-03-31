@@ -7,7 +7,7 @@ export const ANSI = {
   yellow: "\x1b[33m",
   red: "\x1b[38;2;250;128;114m",
   grayLight: "\x1b[37m",
-  grayDark: "\x1b[37m",
+  grayDark: "\x1b[90m",
 };
 
 /** Map a story level to its corresponding ANSI terminal color */
