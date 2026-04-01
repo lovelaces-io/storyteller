@@ -1,0 +1,490 @@
+---
+import Base from '../layouts/Base.astro';
+import Terminal from '../components/Terminal.astro';
+
+const installCode = `<span class="prompt">$</span> npm install @lovelaces-io/storyteller`;
+
+const quickStartCode = `<span class="keyword">import</span> <span class="punctuation">{</span> Storyteller <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller"</span>;
+
+<span class="keyword">const</span> story = <span class="keyword">new</span> <span class="function">Storyteller</span>(<span class="punctuation">{</span>
+  origin: <span class="punctuation">{</span> who: <span class="string">"my-service"</span> <span class="punctuation">}</span>,
+<span class="punctuation">}</span>);
+
+story.<span class="function">note</span>(<span class="string">"User clicked checkout"</span>);
+story.<span class="function">note</span>(<span class="string">"Cart validated"</span>, <span class="punctuation">{</span> what: <span class="punctuation">{</span> items: <span class="type">3</span> <span class="punctuation">}</span> <span class="punctuation">}</span>);
+story.<span class="function">tell</span>(<span class="string">"Checkout started"</span>);`;
+
+const outputCode = `<span class="punctuation">{</span>
+  <span class="keyword">"timestamp"</span>: <span class="string">"2026-03-31T14:30:00.000Z"</span>,
+  <span class="keyword">"level"</span>: <span class="string">"tell"</span>,
+  <span class="keyword">"title"</span>: <span class="string">"Checkout started"</span>,
+  <span class="keyword">"origin"</span>: <span class="punctuation">{</span> <span class="keyword">"who"</span>: <span class="string">"my-service"</span> <span class="punctuation">}</span>,
+  <span class="keyword">"durationMs"</span>: <span class="type">0</span>,
+  <span class="keyword">"notes"</span>: <span class="punctuation">[</span>
+    <span class="punctuation">{</span> <span class="keyword">"timestamp"</span>: <span class="string">"..."</span>, <span class="keyword">"note"</span>: <span class="string">"User clicked checkout"</span> <span class="punctuation">}</span>,
+    <span class="punctuation">{</span> <span class="keyword">"timestamp"</span>: <span class="string">"..."</span>, <span class="keyword">"note"</span>: <span class="string">"Cart validated"</span>, <span class="keyword">"what"</span>: <span class="punctuation">{</span> <span class="keyword">"items"</span>: <span class="type">3</span> <span class="punctuation">}</span> <span class="punctuation">}</span>
+  <span class="punctuation">]</span>
+<span class="punctuation">}</span>`;
+
+const contextCode = `story.<span class="function">note</span>(<span class="string">"Card charged"</span>, <span class="punctuation">{</span>
+  who: <span class="punctuation">{</span> id: <span class="string">"user:413"</span>, role: <span class="string">"member"</span> <span class="punctuation">}</span>,
+  what: <span class="punctuation">{</span> amount: <span class="string">"$49.99"</span>, method: <span class="string">"visa"</span> <span class="punctuation">}</span>,
+  where: <span class="string">"stripe-api"</span>,
+<span class="punctuation">}</span>);
+
+story.<span class="function">note</span>(<span class="string">"Write failed"</span>, <span class="punctuation">{</span>
+  where: <span class="string">"primary-db"</span>,
+  error: <span class="keyword">new</span> <span class="function">Error</span>(<span class="string">"connection timeout"</span>),
+<span class="punctuation">}</span>);`;
+
+const dbAudienceCode = `<span class="keyword">import</span> <span class="punctuation">{</span> dbAudience <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller"</span>;
+
+<span class="comment">// Only stores warn and oops — filters out tell to reduce noise</span>
+story.audience.<span class="function">add</span>(
+  <span class="function">dbAudience</span>(<span class="keyword">async</span> (event) => <span class="punctuation">{</span>
+    <span class="keyword">await</span> db.<span class="function">insert</span>(<span class="string">"story_logs"</span>, event);
+  <span class="punctuation">}</span>)
+);`;
+
+const customAudienceCode = `story.audience.<span class="function">add</span>(<span class="punctuation">{</span>
+  name: <span class="string">"slack"</span>,
+  accepts: (event) => event.level === <span class="string">"oops"</span>,
+  hear: <span class="keyword">async</span> (event) => <span class="punctuation">{</span>
+    <span class="keyword">await</span> <span class="function">sendSlackAlert</span>(event.title, event.error);
+  <span class="punctuation">}</span>,
+<span class="punctuation">}</span>);`;
+
+const targetingCode = `<span class="comment">// Send this story only to the database, not the console</span>
+story.<span class="function">warn</span>(<span class="string">"Slow query detected"</span>).<span class="function">to</span>(<span class="string">"db"</span>);
+
+<span class="comment">// Send to multiple specific audiences</span>
+story.<span class="function">oops</span>(<span class="string">"Critical failure"</span>, error).<span class="function">to</span>(<span class="string">"db"</span>, <span class="string">"slack"</span>);`;
+
+const audienceManagementCode = `story.audience.<span class="function">has</span>(<span class="string">"console"</span>);    <span class="comment">// true</span>
+story.audience.<span class="function">names</span>();           <span class="comment">// ["console", "db"]</span>
+story.audience.<span class="function">remove</span>(<span class="string">"console"</span>); <span class="comment">// quiet mode</span>`;
+
+const singletonCode = `<span class="keyword">import</span> <span class="punctuation">{</span> useStoryteller <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller"</span>;
+
+<span class="comment">// First call creates the instance</span>
+<span class="keyword">const</span> story = <span class="function">useStoryteller</span>(<span class="punctuation">{</span>
+  origin: <span class="punctuation">{</span> who: <span class="string">"api-server"</span> <span class="punctuation">}</span>,
+<span class="punctuation">}</span>);
+
+<span class="comment">// Same instance everywhere</span>
+<span class="keyword">const</span> sameStory = <span class="function">useStoryteller</span>();
+console.<span class="function">log</span>(story === sameStory); <span class="comment">// true</span>`;
+
+const outputReferenceCode = `<span class="punctuation">{</span>
+  <span class="keyword">"timestamp"</span>: <span class="string">"2026-03-31T14:30:03.420Z"</span>,    <span class="comment">// when the story was told</span>
+  <span class="keyword">"level"</span>: <span class="string">"warn"</span>,                            <span class="comment">// tell | warn | oops</span>
+  <span class="keyword">"title"</span>: <span class="string">"Payment retry succeeded"</span>,         <span class="comment">// the story's headline</span>
+  <span class="keyword">"origin"</span>: <span class="punctuation">{</span>                                  <span class="comment">// where this story comes from</span>
+    <span class="keyword">"who"</span>: <span class="string">"payment-service"</span>,
+    <span class="keyword">"where"</span>: <span class="punctuation">{</span> <span class="keyword">"app"</span>: <span class="string">"web"</span>, <span class="keyword">"page"</span>: <span class="string">"checkout"</span> <span class="punctuation">}</span>
+  <span class="punctuation">}</span>,
+  <span class="keyword">"durationMs"</span>: <span class="type">3420</span>,                         <span class="comment">// first note to last note</span>
+  <span class="keyword">"notes"</span>: <span class="punctuation">[</span>                                   <span class="comment">// chronologically sorted</span>
+    <span class="punctuation">{</span>
+      <span class="keyword">"timestamp"</span>: <span class="string">"2026-03-31T14:30:00.000Z"</span>,
+      <span class="keyword">"note"</span>: <span class="string">"Card declined by processor"</span>,
+      <span class="keyword">"error"</span>: <span class="punctuation">{</span> <span class="keyword">"message"</span>: <span class="string">"insufficient funds"</span> <span class="punctuation">}</span>
+    <span class="punctuation">}</span>,
+    <span class="punctuation">{</span>
+      <span class="keyword">"timestamp"</span>: <span class="string">"2026-03-31T14:30:02.000Z"</span>,
+      <span class="keyword">"note"</span>: <span class="string">"Retrying with backup processor"</span>
+    <span class="punctuation">}</span>,
+    <span class="punctuation">{</span>
+      <span class="keyword">"timestamp"</span>: <span class="string">"2026-03-31T14:30:03.420Z"</span>,
+      <span class="keyword">"note"</span>: <span class="string">"Payment approved"</span>,
+      <span class="keyword">"what"</span>: <span class="punctuation">{</span> <span class="keyword">"amount"</span>: <span class="string">"$42.00"</span> <span class="punctuation">}</span>
+    <span class="punctuation">}</span>
+  <span class="punctuation">]</span>,
+  <span class="keyword">"error"</span>: <span class="punctuation">{</span>                                   <span class="comment">// top-level error (from oops)</span>
+    <span class="keyword">"name"</span>: <span class="string">"CardDeclinedError"</span>,
+    <span class="keyword">"message"</span>: <span class="string">"Insufficient funds"</span>
+  <span class="punctuation">}</span>
+<span class="punctuation">}</span>`;
+
+const apiRequestCode = `<span class="keyword">const</span> story = <span class="keyword">new</span> <span class="function">Storyteller</span>(<span class="punctuation">{</span>
+  origin: <span class="punctuation">{</span> who: <span class="string">"api"</span>, where: <span class="punctuation">{</span> service: <span class="string">"users"</span> <span class="punctuation">}</span> <span class="punctuation">}</span>,
+<span class="punctuation">}</span>);
+
+story.<span class="function">note</span>(<span class="string">"Request received"</span>, <span class="punctuation">{</span> what: <span class="punctuation">{</span> method: <span class="string">"POST"</span>, path: <span class="string">"/users"</span> <span class="punctuation">}</span> <span class="punctuation">}</span>);
+
+<span class="keyword">try</span> <span class="punctuation">{</span>
+  <span class="keyword">const</span> user = <span class="keyword">await</span> <span class="function">createUser</span>(body);
+  story.<span class="function">note</span>(<span class="string">"User created"</span>, <span class="punctuation">{</span> what: <span class="punctuation">{</span> id: user.id <span class="punctuation">}</span> <span class="punctuation">}</span>);
+  story.<span class="function">tell</span>(<span class="string">"User registration complete"</span>);
+<span class="punctuation">}</span> <span class="keyword">catch</span> (error) <span class="punctuation">{</span>
+  story.<span class="function">oops</span>(<span class="string">"User registration failed"</span>, error);
+<span class="punctuation">}</span>`;
+
+const backgroundJobCode = `<span class="keyword">const</span> story = <span class="keyword">new</span> <span class="function">Storyteller</span>(<span class="punctuation">{</span> origin: <span class="punctuation">{</span> who: <span class="string">"sync-worker"</span> <span class="punctuation">}</span> <span class="punctuation">}</span>);
+
+story.<span class="function">note</span>(<span class="string">"Starting daily sync"</span>);
+<span class="keyword">const</span> records = <span class="keyword">await</span> <span class="function">fetchRecords</span>();
+story.<span class="function">note</span>(<span class="string">\`Fetched \$&#123;records.length&#125; records\`</span>);
+
+<span class="keyword">let</span> failures = <span class="type">0</span>;
+<span class="keyword">for</span> (<span class="keyword">const</span> record <span class="keyword">of</span> records) <span class="punctuation">{</span>
+  <span class="keyword">try</span> <span class="punctuation">{</span>
+    <span class="keyword">await</span> <span class="function">processRecord</span>(record);
+  <span class="punctuation">}</span> <span class="keyword">catch</span> <span class="punctuation">{</span>
+    failures++;
+  <span class="punctuation">}</span>
+<span class="punctuation">}</span>
+
+story.<span class="function">note</span>(<span class="string">\`Processed with \$&#123;failures&#125; failures\`</span>);
+
+<span class="keyword">if</span> (failures > <span class="type">0</span>) <span class="punctuation">{</span>
+  story.<span class="function">warn</span>(<span class="string">"Sync completed with errors"</span>);
+<span class="punctuation">}</span> <span class="keyword">else</span> <span class="punctuation">{</span>
+  story.<span class="function">tell</span>(<span class="string">"Sync completed"</span>);
+<span class="punctuation">}</span>`;
+---
+
+<Base title="Storyteller — Developer Docs" description="Get started with Storyteller in under a minute. Progressive guide from install to production.">
+
+<div class="docs-layout container">
+  <aside class="docs-sidebar">
+    <nav class="toc">
+      <a href="#quick-start">Quick Start</a>
+      <a href="#two-modes">The Two Modes</a>
+      <a href="#notes-context">Notes & Context</a>
+      <a href="#story-levels">Story Levels</a>
+      <a href="#audiences">Audiences</a>
+      <a href="#shared-instance">Shared Instance</a>
+      <a href="#api-reference">API Reference</a>
+      <a href="#output-reference">Output Reference</a>
+      <a href="#real-world">Real-World Examples</a>
+      <a href="#ai-agents">For AI Agents</a>
+    </nav>
+  </aside>
+
+  <main class="docs-content">
+
+    <!-- Quick Start -->
+    <section id="quick-start">
+      <h1>Get started in under a minute</h1>
+      <p>Install, tell a story, see the output. Three steps.</p>
+
+      <h3>Step 1: Install</h3>
+      <Terminal title="terminal" code={installCode} />
+
+      <h3>Step 2: Tell a story</h3>
+      <Terminal title="app.ts" code={quickStartCode} />
+
+      <h3>Step 3: See the output</h3>
+      <p>The console audience (included by default) prints a color-coded report. The underlying event is a clean JSON record you can store anywhere.</p>
+      <Terminal title="output (JSON record)" code={outputCode} />
+      <p style="color: var(--text-muted); margin-top: 1rem;">That's it. One record. The whole story.</p>
+    </section>
+
+    <!-- Two Modes -->
+    <section id="two-modes">
+      <h2>The two modes</h2>
+      <p>Storyteller has two distinct outputs. Keep them separate in your head — it makes everything clearer.</p>
+
+      <div class="comparison">
+        <div>
+          <p class="comparison-label level-tell">Story (JSON record)</p>
+          <p>Clean, serializable data. This is what you <strong>store</strong> — in a database, a log file, a monitoring system. <code>JSON.stringify(event)</code> gives you the record.</p>
+        </div>
+        <div>
+          <p class="comparison-label level-warn">Report (formatted text)</p>
+          <p>Colorized, human-readable output. This is what you <strong>read</strong> — in a console, a terminal, a debug view. <code>formatStory(event)</code> gives you the report.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Notes & Context -->
+    <section id="notes-context">
+      <h2>Notes & context</h2>
+      <p>Every note can carry four optional context fields. Use whichever ones make sense.</p>
+
+      <table class="api-table">
+        <thead>
+          <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>who</code></td><td>string | object</td><td>Who did it — user ID, service name, role</td></tr>
+          <tr><td><code>what</code></td><td>string | object</td><td>What was involved — action, field, amount</td></tr>
+          <tr><td><code>where</code></td><td>string | object</td><td>Where it happened — component, service, route</td></tr>
+          <tr><td><code>error</code></td><td>Error | unknown</td><td>Any error — automatically normalized to serializable form</td></tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top: 1.5rem;">
+        <Terminal title="context example" code={contextCode} />
+      </div>
+      <p style="color: var(--text-muted); margin-top: 1rem;">Notes are collected in chronological order and emitted together when you tell the story.</p>
+    </section>
+
+    <!-- Story Levels -->
+    <section id="story-levels">
+      <h2>Story levels</h2>
+      <p>Three levels. Pick the one that fits.</p>
+
+      <div class="features-grid" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="feature-card">
+          <h3><span class="level-dot tell"></span> tell</h3>
+          <p>Everything went well. Informational. The happy path.</p>
+          <code style="font-size: 0.85rem; color: var(--tell);">story.tell("Checkout completed")</code>
+        </div>
+        <div class="feature-card">
+          <h3><span class="level-dot warn"></span> warn</h3>
+          <p>Something was off but it's handled. Worth knowing about.</p>
+          <code style="font-size: 0.85rem; color: var(--warn);">story.warn("Payment retried")</code>
+        </div>
+        <div class="feature-card">
+          <h3><span class="level-dot oops"></span> oops</h3>
+          <p>Something broke. Pass the error for automatic normalization.</p>
+          <code style="font-size: 0.85rem; color: var(--oops);">story.oops("Failed", error)</code>
+        </div>
+      </div>
+    </section>
+
+    <!-- Audiences -->
+    <section id="audiences">
+      <h2>Audiences: who hears your stories</h2>
+      <p>Stories are delivered to audiences. Think of them as listeners — each one decides what to do with the story.</p>
+
+      <h3>Console (default)</h3>
+      <p>Prints a color-coded, grouped report. Included automatically on every Storyteller instance.</p>
+
+      <h3>Database</h3>
+      <Terminal title="database audience" code={dbAudienceCode} />
+
+      <h3>Custom audience</h3>
+      <Terminal title="custom audience" code={customAudienceCode} />
+
+      <h3>Targeting specific audiences</h3>
+      <Terminal title="targeting" code={targetingCode} />
+
+      <h3>Managing audiences</h3>
+      <Terminal title="audience management" code={audienceManagementCode} />
+    </section>
+
+    <!-- Shared Instance -->
+    <section id="shared-instance">
+      <h2>Shared instance</h2>
+      <p>Use <code>useStoryteller()</code> when you want the same instance across your app — services, middleware, components all contributing notes to the same story.</p>
+
+      <Terminal title="singleton" code={singletonCode} />
+    </section>
+
+    <!-- API Reference -->
+    <section id="api-reference">
+      <h2>API reference</h2>
+
+      <h3>Storyteller</h3>
+      <table class="api-table">
+        <thead>
+          <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>note(text, context?)</code></td><td><code>this</code></td><td>Add a timestamped note with optional who/what/where/error</td></tr>
+          <tr><td><code>tell(title)</code></td><td><code>{'{ to }'}</code></td><td>Tell a success story</td></tr>
+          <tr><td><code>warn(title)</code></td><td><code>{'{ to }'}</code></td><td>Tell a cautionary story</td></tr>
+          <tr><td><code>oops(title, error?)</code></td><td><code>{'{ to }'}</code></td><td>Tell an error story</td></tr>
+          <tr><td><code>reset()</code></td><td><code>this</code></td><td>Clear accumulated notes without telling a story</td></tr>
+          <tr><td><code>summarize(options?)</code></td><td><code>FormattedReport</code></td><td>Preview current notes as a formatted report</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Audience registry</h3>
+      <table class="api-table">
+        <thead>
+          <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>audience.add(member)</code></td><td><code>this</code></td><td>Register an audience (replaces existing with same name)</td></tr>
+          <tr><td><code>audience.remove(name)</code></td><td><code>this</code></td><td>Unregister an audience by name</td></tr>
+          <tr><td><code>audience.has(name)</code></td><td><code>boolean</code></td><td>Check if an audience is registered</td></tr>
+          <tr><td><code>audience.names()</code></td><td><code>string[]</code></td><td>List all registered audience names</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Formatting</h3>
+      <table class="api-table">
+        <thead>
+          <tr><th>Function</th><th>Returns</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>formatStory(event, options?)</code></td><td><code>FormattedReport</code></td><td>Format a story event as human-readable text</td></tr>
+          <tr><td><code>writeStoryReport(stories[], options?)</code></td><td><code>string</code></td><td>Format multiple stories grouped by day</td></tr>
+          <tr><td><code>formatDuration(ms)</code></td><td><code>string</code></td><td>Convert milliseconds to human duration (e.g. "3.4s")</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Report options</h3>
+      <table class="api-table">
+        <thead>
+          <tr><th>Option</th><th>Type</th><th>Default</th><th>Description</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>detail</code></td><td><code>"brief" | "normal" | "full"</code></td><td><code>"normal"</code></td><td>How much detail to include</td></tr>
+          <tr><td><code>colors</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Include ANSI color codes</td></tr>
+          <tr><td><code>noteLimit</code></td><td><code>number</code></td><td><code>50</code></td><td>Maximum notes to include</td></tr>
+          <tr><td><code>showData</code></td><td><code>boolean</code></td><td><code>true</code></td><td>Include JSON data block</td></tr>
+          <tr><td><code>timezone</code></td><td><code>string</code></td><td>system</td><td>IANA timezone for formatting</td></tr>
+          <tr><td><code>locale</code></td><td><code>string</code></td><td><code>"en-US"</code></td><td>Locale for date formatting</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Output Reference -->
+    <section id="output-reference">
+      <h2>Output reference</h2>
+      <p>This is exactly what a story record looks like. Every field serves a purpose.</p>
+
+      <Terminal title="JSON.stringify(event)" code={outputReferenceCode} />
+    </section>
+
+    <!-- Real-World Examples -->
+    <section id="real-world">
+      <h2>Real-world examples</h2>
+
+      <h3>API request lifecycle</h3>
+      <Terminal title="middleware.ts" code={apiRequestCode} />
+
+      <h3>Background job tracking</h3>
+      <Terminal title="sync-job.ts" code={backgroundJobCode} />
+    </section>
+
+    <!-- For AI Agents -->
+    <section id="ai-agents">
+      <h2>For AI agents</h2>
+      <p>Storyteller is designed to be used by AI coding agents as well as human developers. Structured JSON output, clear types, zero config.</p>
+      <ul style="margin-top: 1rem; list-style: none; padding: 0;">
+        <li style="margin-bottom: 0.75rem;"><a href="https://github.com/lovelaces-io/storyteller/blob/main/llms.txt">llms.txt</a> — quick context file for AI agents</li>
+        <li style="margin-bottom: 0.75rem;"><a href="https://github.com/lovelaces-io/storyteller/blob/main/AGENTS.md">AGENTS.md</a> — full usage guide, patterns, and anti-patterns</li>
+        <li><a href="https://github.com/lovelaces-io/storyteller">GitHub</a> — source code, issues, and discussions</li>
+      </ul>
+    </section>
+
+  </main>
+</div>
+
+</Base>
+
+<style>
+  .docs-layout {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 3rem;
+    padding-top: 2rem;
+    padding-bottom: 4rem;
+  }
+
+  .docs-sidebar {
+    position: sticky;
+    top: 2rem;
+    align-self: start;
+  }
+
+  .toc {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .toc a {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding: 0.25rem 0;
+    border-left: 2px solid transparent;
+    padding-left: 0.75rem;
+    transition: all 0.2s;
+  }
+
+  .toc a:hover {
+    color: var(--green);
+    border-left-color: var(--green-dim);
+  }
+
+  .docs-content section {
+    padding: 3rem 0;
+  }
+
+  .docs-content section:first-child {
+    padding-top: 1rem;
+  }
+
+  .docs-content h1 {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .docs-content h2 {
+    margin-bottom: 0.75rem;
+  }
+
+  .docs-content h3 {
+    margin-top: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .docs-content p {
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    max-width: 700px;
+  }
+
+  .docs-content .terminal {
+    margin-bottom: 1.5rem;
+  }
+
+  .api-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+  }
+
+  .api-table th {
+    text-align: left;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .api-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+
+  .api-table code {
+    color: var(--green);
+    font-size: 0.85rem;
+  }
+
+  @media (max-width: 768px) {
+    .docs-layout {
+      grid-template-columns: 1fr;
+    }
+
+    .docs-sidebar {
+      position: static;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1rem;
+    }
+
+    .toc {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 0.25rem 1rem;
+    }
+
+    .toc a {
+      border-left: none;
+      padding-left: 0;
+    }
+  }
+</style>

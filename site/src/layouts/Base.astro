@@ -1,0 +1,57 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { title, description = "Lightweight TypeScript logging library that treats logs as stories." } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://storyteller.lovelaces.io" />
+    <link rel="icon" type="image/svg+xml" href="/lovelaces-logo.svg" />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+  </head>
+  <body>
+    <div class="container">
+      <nav>
+        <a href="/" class="logo">
+          <img src="/lovelaces-logo.svg" alt="Lovelaces" />
+          Storyteller
+        </a>
+        <div class="nav-links">
+          <a href="/devs">Docs</a>
+          <a href="https://github.com/lovelaces-io/storyteller">GitHub</a>
+          <a href="https://www.npmjs.com/package/@lovelaces-io/storyteller">npm</a>
+        </div>
+      </nav>
+    </div>
+
+    <slot />
+
+    <footer>
+      <div class="container">
+        <div class="footer-links">
+          <a href="https://github.com/lovelaces-io/storyteller">GitHub</a>
+          <a href="https://www.npmjs.com/package/@lovelaces-io/storyteller">npm</a>
+          <a href="/devs">Developer Docs</a>
+          <a href="https://lovelaces.io">Lovelaces</a>
+        </div>
+        <p>Happy logging! Built by <a href="https://lovelaces.io">Lovelaces</a></p>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style is:global>
+  @import '../styles/global.css';
+</style>
