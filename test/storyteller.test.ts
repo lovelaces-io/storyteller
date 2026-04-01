@@ -317,4 +317,18 @@ describe("AudienceRegistry", () => {
     expect(all.length).toBeGreaterThanOrEqual(1);
     expect(all.some((m) => m.name === "console")).toBe(true);
   });
+
+  it("has() checks if an audience is registered", () => {
+    const story = new Storyteller();
+    expect(story.audience.has("console")).toBe(true);
+    expect(story.audience.has("nonexistent")).toBe(false);
+  });
+
+  it("names() lists all registered audience names", () => {
+    const story = new Storyteller();
+    story.audience.add({ name: "custom", hear: () => {} });
+    const names = story.audience.names();
+    expect(names).toContain("console");
+    expect(names).toContain("custom");
+  });
 });

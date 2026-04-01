@@ -22,9 +22,17 @@ export function formatOrigin(origin?: StoryEventBase["origin"]): string | undefi
   if (!origin?.where) return;
   if (typeof origin.where === "string") return origin.where;
   const whereRecord = origin.where as Record<string, unknown>;
-  const parts = [whereRecord.app, whereRecord.service, whereRecord.page, whereRecord.component]
-    .filter(Boolean)
-    .map(String);
+
+  // Show well-known keys first in a natural order, then any additional fields
+  const priorityKeys = ["app", "service", "page", "component"];
+  const priorityParts = priorityKeys
+    .filter((key) => whereRecord[key] != null)
+    .map((key) => String(whereRecord[key]));
+  const extraParts = Object.entries(whereRecord)
+    .filter(([key, value]) => !priorityKeys.includes(key) && value != null)
+    .map(([_, value]) => String(value));
+
+  const parts = [...priorityParts, ...extraParts];
   return parts.length ? parts.join(" / ") : undefined;
 }
 

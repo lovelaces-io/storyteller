@@ -1,5 +1,5 @@
 import { consoleAudience } from "./audiences/consoleAudience";
-import { ANSI, getLevelColor, formatOrigin, colorizeJsonSections } from "./utils";
+import { summarizeStory } from "./formatting";
 
 export type StoryLevel = "tell" | "warn" | "oops";
 
@@ -33,6 +33,7 @@ export type StoryEventBase = {
   };
 
   notes: StoryNote[];
+  durationMs?: number;
 
   error?: StoryError;
 };
@@ -120,6 +121,16 @@ class AudienceRegistry {
   /** Return only the audience members matching the given names */
   getOnly(names: string[]) {
     return names.map((name) => this.members.get(name)).filter(Boolean) as AudienceMember[];
+  }
+
+  /** Check if an audience member is registered by name */
+  has(name: string) {
+    return this.members.has(name);
+  }
+
+  /** List the names of all registered audience members */
+  names() {
+    return [...this.members.keys()];
   }
 }
 
@@ -220,16 +231,24 @@ export class Storyteller {
   /** Assemble the story event from current notes and clear notes for the next story */
   private buildEvent(level: StoryLevel, title: string, error?: unknown): StoryEvent {
     const now = new Date().toISOString();
-    const collectedNotes = [...this.notes];
+
+    // Sort notes chronologically so the record tells the story in order
+    const sortedNotes = [...this.notes].sort(
+      (noteA, noteB) => Date.parse(noteA.timestamp) - Date.parse(noteB.timestamp)
+    );
 
     this.notes = [];
+
+    // Compute duration from first to last note
+    const durationMs = calculateNoteDuration(sortedNotes).durationMs;
 
     const event: StoryEventBase = {
       timestamp: now,
       level,
       title,
       ...(this.origin ? { origin: this.origin } : {}),
-      notes: collectedNotes,
+      notes: sortedNotes,
+      ...(durationMs != null ? { durationMs } : {}),
       ...(error ? { error: normalizeError(error) } : {}),
     };
 
@@ -297,158 +316,5 @@ function calculateNoteDuration(notes: StoryNote[]) {
   };
 }
 
-/** Generate a formatted, human-readable summary from a story event */
-export function summarizeStory(
-  story: StoryEventBase,
-  options: StorySummaryOptions = {}
-): StorySummary {
-  const {
-    timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
-    locale = "en-US",
-    verbosity = "normal",
-    maxNotes = 50,
-    showData = true,
-    colorize = true,
-  } = options;
-
-  const dateTimeFormatter = new Intl.DateTimeFormat(locale, {
-    timeZone: timezone,
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-
-  const timeFormatter = new Intl.DateTimeFormat(locale, {
-    timeZone: timezone,
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-
-  const orderedNotes = [...story.notes].sort(
-    (noteA, noteB) => Date.parse(noteA.timestamp) - Date.parse(noteB.timestamp)
-  );
-  const noteTiming = calculateNoteDuration(orderedNotes);
-  const originLabel = formatOrigin(story.origin);
-  const duration =
-    noteTiming.durationMs != null ? formatDuration(noteTiming.durationMs) : undefined;
-
-  const slicedNotes = orderedNotes.slice(0, maxNotes);
-  const summaryNotes: StorySummaryNote[] = slicedNotes.map((note) => ({
-    timestamp: note.timestamp,
-    when: timeFormatter.format(new Date(note.timestamp)),
-    note: note.note,
-    text: formatNoteText(note, verbosity),
-    ...(note.who ? { who: note.who } : {}),
-    ...(note.what ? { what: note.what } : {}),
-    ...(note.where ? { where: note.where } : {}),
-    ...(note.error ? { error: note.error } : {}),
-  }));
-
-  const data: StorySummaryData = {
-    title: story.title,
-    level: story.level,
-    when: dateTimeFormatter.format(new Date(story.timestamp)),
-    ...(noteTiming.durationMs != null ? { durationMs: noteTiming.durationMs } : {}),
-    ...(duration ? { duration } : {}),
-    ...(story.origin ? { origin: story.origin } : {}),
-    notes: summaryNotes,
-    ...(story.error ? { error: story.error } : {}),
-  };
-
-  const levelColor = getLevelColor(story.level);
-  const label = (text: string) =>
-    colorize ? `${levelColor}${text}${ANSI.reset}` : text;
-
-  const lines: string[] = [];
-  lines.push(`${label("Story")}: ${story.title}`);
-  lines.push(`${label("Level")}: ${story.level}`);
-  lines.push(`${label("Time")}: ${data.when}${duration ? ` (${duration})` : ""}`);
-
-  if (originLabel) {
-    lines.push(`${label("Origin")}: ${originLabel}`);
-  }
-
-  if (story.error) {
-    const errorLine = [story.error.name, story.error.message]
-      .filter(Boolean)
-      .join(": ");
-    if (errorLine) lines.push(`${label("Error")}: ${errorLine}`);
-  }
-
-  if (verbosity !== "brief" && summaryNotes.length) {
-    lines.push(`${label("Notes")}:`);
-    for (const note of summaryNotes) {
-      lines.push(`  ${note.when} — ${note.text}`);
-    }
-    if (orderedNotes.length > summaryNotes.length) {
-      lines.push(`  … (${orderedNotes.length - summaryNotes.length} more)`);
-    }
-  }
-
-  if (showData) {
-    lines.push(`${label("Data")}:`);
-    const json = JSON.stringify(data, null, 2);
-    if (colorize) {
-      const colored = colorizeJsonSections(json, {
-        base: ANSI.grayLight,
-        notes: ANSI.grayDark,
-        reset: ANSI.reset,
-      });
-      lines.push(...colored);
-    } else {
-      lines.push(...json.split("\n"));
-    }
-  }
-
-  return { text: lines.join("\n"), data };
-}
-
-/** Convert milliseconds into a human-readable duration string */
-function formatDuration(milliseconds: number): string {
-  if (milliseconds < 1000) return `${milliseconds}ms`;
-  const seconds = milliseconds / 1000;
-  if (seconds < 60) return `${seconds.toFixed(1)}s`;
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.round(seconds % 60)
-    .toString()
-    .padStart(2, "0");
-  return `${minutes}:${remainingSeconds}m`;
-}
-
-/** Format a note's text with optional context details when verbosity is "full" */
-function formatNoteText(
-  note: StoryNote,
-  verbosity: "brief" | "normal" | "full"
-): string {
-  if (verbosity !== "full") return note.note;
-
-  const details: string[] = [];
-  const what = note.what;
-  const where = note.where;
-
-  if (typeof what === "string") {
-    details.push(`what=${what}`);
-  } else if (what) {
-    if (what.field) details.push(`field=${String(what.field)}`);
-    if (what.status) details.push(`status=${String(what.status)}`);
-  }
-  if (typeof where === "string") {
-    details.push(`where=${where}`);
-  } else if (where) {
-    if (where.component) details.push(`component=${String(where.component)}`);
-  }
-  if (note.error) {
-    const errorLine = [note.error.name, note.error.message]
-      .filter(Boolean)
-      .join(": ");
-    if (errorLine) details.push(`error=${errorLine}`);
-  }
-
-  return details.length
-    ? `${note.note} (${details.join(" ")})`
-    : note.note;
-}
+// Re-export summarizeStory from formatting module for backward compatibility
+export { summarizeStory } from "./formatting";

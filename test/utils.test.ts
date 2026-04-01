@@ -51,6 +51,20 @@ describe("formatOrigin", () => {
   it("returns undefined for empty record", () => {
     expect(formatOrigin({ where: {} })).toBeUndefined();
   });
+
+  it("includes custom fields after known fields", () => {
+    const result = formatOrigin({
+      where: { app: "web", region: "us-west", instance: "3" },
+    });
+    expect(result).toBe("web / us-west / 3");
+  });
+
+  it("shows only custom fields when no known fields present", () => {
+    const result = formatOrigin({
+      where: { environment: "staging", cluster: "east" },
+    });
+    expect(result).toBe("staging / east");
+  });
 });
 
 describe("countBrackets", () => {

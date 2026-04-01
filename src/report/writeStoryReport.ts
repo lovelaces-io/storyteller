@@ -1,5 +1,5 @@
 import type { StoryEventBase } from "../storyteller";
-import { summarizeStory } from "../storyteller";
+import { summarizeStory } from "../formatting";
 import { ANSI, getLevelColor, formatOrigin, colorizeJsonSections } from "../utils";
 
 export type StoryReportOptions = {
