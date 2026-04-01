@@ -1,0 +1,66 @@
+{
+  "name": "@lovelaces-io/storyteller",
+  "version": "0.2.0",
+  "description": "Lightweight TypeScript logging library that treats logs as stories: grouped notes emitted as a single structured event.",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lovelaces-io/storyteller.git"
+  },
+  "author": "Lovelaces <hello@lovelaces.io> (https://lovelaces.io)",
+  "homepage": "https://storyteller.lovelaces.io",
+  "bugs": {
+    "url": "https://github.com/lovelaces-io/storyteller/issues"
+  },
+  "keywords": [
+    "logging",
+    "logger",
+    "structured-logging",
+    "storyteller",
+    "events",
+    "observability",
+    "typescript",
+    "story-logging",
+    "structured-events",
+    "zero-dependencies",
+    "audit-log",
+    "context-logging"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test:console": "npm run build && node ./scripts/consoleTest.mjs",
+    "test": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint .",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.1.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.57.1",
+    "vitest": "^2.0.0"
+  }
+}

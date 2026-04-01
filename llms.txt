@@ -1,0 +1,76 @@
+# Storyteller
+
+> Lightweight TypeScript logging library that treats logs as stories: grouped notes emitted as a single structured event.
+
+## What it does
+
+Storyteller collects timestamped notes during an operation and emits them as a single structured story event at one of three levels: tell (info), warn, or oops (error). Events are delivered to pluggable audiences — a console audience prints colorized reports, a DB audience stores JSON records. Zero production dependencies.
+
+## Quick start
+
+```bash
+npm install @lovelaces-io/storyteller
+```
+
+```typescript
+import { Storyteller } from "@lovelaces-io/storyteller";
+
+const story = new Storyteller({ origin: { who: "my-service" } });
+story.note("Connected to database");
+story.note("Loaded 42 records");
+story.tell("Startup complete");
+```
+
+## Key concepts
+
+- **Stories** — a group of notes emitted as one event with a title and level
+- **Notes** — timestamped log entries with optional context (who, what, where, error)
+- **Levels** — `tell` (info), `warn` (warning), `oops` (error)
+- **Audiences** — pluggable listeners that receive story events (console, DB, or custom)
+- **Reports** — human-readable formatted text output from story events
+- **Origin** — optional who/what/where metadata attached to every story from an instance
+
+## API surface
+
+- `Storyteller` — core class; collects notes and emits story events
+  - `.note(text, context?)` — add a timestamped note with optional who/what/where/error
+  - `.tell(title)` — emit story at info level
+  - `.warn(title)` — emit story at warning level
+  - `.oops(title, error?)` — emit story at error level with optional error object
+  - `.reset()` — clear accumulated notes without emitting
+  - `.summarize(options?)` — preview current notes as formatted summary without emitting
+  - `.audience` — registry to add/remove/query audience members
+    - `.audience.has(name)` — check if an audience member is registered by name
+    - `.audience.names()` — list all registered audience member names
+  - `.to(...names)` — target specific audiences (call synchronously after tell/warn/oops)
+- `useStoryteller(options?)` — get or create a shared singleton instance
+- `formatStory(event, options?)` — format a single story event as a human-readable report
+- `writeStoryReport(stories[], options?)` — format multiple story events grouped by day
+- `consoleAudience()` — audience that prints color-coded stories to the console (registered by default)
+- `dbAudience(insert)` — audience that persists warn/oops events via a provided insert function
+- `ANSI` — ANSI color code constants
+- `getLevelColor(level)` — get the ANSI color for a story level
+- `formatOrigin(origin?)` — format an origin object as a readable string
+- `formatDuration(ms)` — format a duration in milliseconds as a human-readable string
+
+
+### Types
+
+- `StoryLevel` — `"Information" | "Warning" | "Error"`
+- `StoryNote` — timestamped note with optional context
+- `StoryEventBase` — core event structure (timestamp, level, title, origin, notes, durationMs, error)
+- `StoryEvent` — event with attached `.summarize()` method
+- `AudienceMember` — audience interface (name, accepts?, hear)
+- `FormattedReport` — formatted report result (text + structured data)
+- `StoryReport` — structured report data
+- `ReportNote` — a note as it appears in a formatted report
+- `ReportOptions` — options for report formatting (timezone, locale, detail, noteLimit, colors)
+- `PreviewOptions` — options for the `.summarize()` preview method
+- `StoryReportOptions` — options for writeStoryReport
+- Deprecated aliases (still exported for backwards compatibility): `StorySummaryOptions` (use `ReportOptions`), `StorySummary` (use `FormattedReport`), `SummaryNote` (use `ReportNote`)
+
+## Links
+
+- npm: https://www.npmjs.com/package/@lovelaces-io/storyteller
+- GitHub: https://github.com/lovelaces-io/storyteller
+- Issues: https://github.com/lovelaces-io/storyteller/issues

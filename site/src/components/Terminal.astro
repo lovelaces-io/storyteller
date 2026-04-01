@@ -1,0 +1,20 @@
+---
+interface Props {
+  title?: string;
+  code: string;
+}
+
+const { title = "terminal", code } = Astro.props;
+---
+
+<div class="terminal">
+  <div class="terminal-header">
+    <span class="terminal-dot"></span>
+    <span class="terminal-dot"></span>
+    <span class="terminal-dot"></span>
+    <span class="terminal-title">{title}</span>
+  </div>
+  <div class="terminal-body">
+    <pre set:html={code} />
+  </div>
+</div>
