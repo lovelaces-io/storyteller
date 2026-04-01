@@ -27,13 +27,14 @@ Zero dependencies. TypeScript-first. One record per story.
 ```json
 {
   "level": "warn",
+  "levelLabel": "Warning",
   "title": "Payment retry succeeded",
   "durationMs": 4000,
   "notes": [
-    { "note": "User clicked checkout" },
-    { "note": "Cart validated", "what": { "items": 3 } },
-    { "note": "Card declined", "error": { "message": "gateway timeout" } },
-    { "note": "Retry succeeded" }
+    { "timestamp": "14:30:00", "note": "User clicked checkout" },
+    { "timestamp": "14:30:01", "note": "Cart validated", "what": { "items": 3 } },
+    { "timestamp": "14:30:03", "note": "Card declined", "error": { "message": "gateway timeout" } },
+    { "timestamp": "14:30:04", "note": "Retry succeeded" }
   ]
 }
 ```
@@ -109,15 +110,15 @@ story.oops("Critical failure", error).to("console", "db");
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `note(text, context?)` | `this` | Add a timestamped note with optional who/what/where/error |
-| `tell(title)` | `{ to }` | Emit a success story |
-| `warn(title)` | `{ to }` | Emit a warning story |
-| `oops(title, error?)` | `{ to }` | Emit an error story |
-| `reset()` | `this` | Clear notes without emitting |
-| `summarize(options?)` | `FormattedReport` | Preview current notes as a report |
+| `tell(title)` | `{ to }` | Tell a success story |
+| `warn(title)` | `{ to }` | Tell a cautionary story |
+| `oops(title, error?)` | `{ to }` | Tell an error story |
+| `reset()` | `this` | Clear notes without telling a story |
+| `summarize(options?)` | `FormattedReport` | Preview current notes as a formatted report |
 | `audience.add(member)` | `this` | Register an audience |
 | `audience.remove(name)` | `this` | Unregister an audience |
-| `audience.has(name)` | `boolean` | Check if audience exists |
-| `audience.names()` | `string[]` | List registered audiences |
+| `audience.has(name)` | `boolean` | Check if an audience is listening |
+| `audience.names()` | `string[]` | List who's listening |
 
 ## Shared Instance
 

@@ -6,10 +6,12 @@ Complete API reference for `@lovelaces-io/storyteller`.
 import {
   Storyteller,
   useStoryteller,
-  summarizeStory,
+  formatStory,
   writeStoryReport,
   consoleAudience,
   dbAudience,
+  formatDuration,
+  getLevelLabel,
 } from "@lovelaces-io/storyteller";
 ```
 
@@ -161,14 +163,16 @@ summarize(options?: {
   error?: unknown;
   timezone?: string;   // default: local timezone
   locale?: string;     // default: "en-US"
-  verbosity?: "brief" | "normal" | "full";  // default: "normal"
-  maxNotes?: number;   // default: 50
+  detail?: "brief" | "normal" | "full";  // default: "normal"
+  noteLimit?: number;   // default: 50
   showData?: boolean;  // default: true
-  colorize?: boolean;  // default: true
-}): StorySummary
+  colors?: boolean;  // default: true
+}): FormattedReport
 ```
 
-Returns `{ text: string, data: StorySummaryData }`.
+Returns `{ text: string, data: StoryReport }`.
+
+> **Deprecated aliases:** `StorySummaryData` is a deprecated alias for `StoryReport`. `FormattedReport` was previously named `StorySummary`.
 
 ```ts
 story.note("User opened page");
@@ -177,11 +181,11 @@ story.note("Widgets loaded", { what: { count: 6 } });
 const summary = story.summarize({
   title: "Dashboard status",
   level: "tell",
-  verbosity: "full",
+  detail: "full",
 });
 
 console.log(summary.text);  // Formatted, colorized text block
-console.log(summary.data);  // Structured data object
+console.log(summary.data);  // Structured StoryReport object
 
 // Notes are still here — summarize doesn't clear them
 story.tell("Dashboard ready");  // This story includes the same notes
@@ -225,6 +229,12 @@ story.audience.add({
 
 // Remove an audience
 story.audience.remove("console");
+
+// Check if an audience is registered
+story.audience.has("console");  // true or false
+
+// List all registered audience names
+story.audience.names();  // ["console", "db", ...]
 ```
 
 ---
@@ -332,7 +342,7 @@ const slackAudience: AudienceMember = {
   name: "slack",
   accepts: (event) => event.level === "oops",
   hear: async (event) => {
-    const summary = event.summarize({ colorize: false, verbosity: "brief" });
+    const summary = event.summarize({ colors: false, detail: "brief" });
     await fetch(SLACK_WEBHOOK_URL, {
       method: "POST",
       body: JSON.stringify({ text: `${event.title}\n${summary.text}` }),
@@ -345,31 +355,33 @@ story.audience.add(slackAudience);
 
 ---
 
-## summarizeStory(story, options?)
+## formatStory(story, options?)
 
 Standalone function to generate a formatted summary from a `StoryEventBase` object. Used internally by `Storyteller.summarize()` and `writeStoryReport()`, but also available directly.
 
+> **Deprecated alias:** `summarizeStory` still works but is deprecated. Use `formatStory` instead.
+
 ```ts
-summarizeStory(
+formatStory(
   story: StoryEventBase,
   options?: {
     timezone?: string;
     locale?: string;
-    verbosity?: "brief" | "normal" | "full";
-    maxNotes?: number;
+    detail?: "brief" | "normal" | "full";
+    noteLimit?: number;
     showData?: boolean;
-    colorize?: boolean;
+    colors?: boolean;
   }
-): StorySummary
+): FormattedReport
 ```
 
 ```ts
-import { summarizeStory } from "@lovelaces-io/storyteller";
+import { formatStory } from "@lovelaces-io/storyteller";
 
-// Summarize a raw story event (e.g., loaded from a database)
-const result = summarizeStory(savedEvent, {
-  colorize: false,
-  verbosity: "full",
+// Format a raw story event (e.g., loaded from a database)
+const result = formatStory(savedEvent, {
+  colors: false,
+  detail: "full",
 });
 console.log(result.text);
 ```
@@ -386,10 +398,10 @@ writeStoryReport(
   options?: {
     timezone?: string;          // default: local timezone
     locale?: string;            // default: "en-US"
-    verbosity?: "brief" | "normal" | "full";  // default: "normal"
-    maxNotesPerStory?: number;  // default: 50
+    detail?: "brief" | "normal" | "full";  // default: "normal"
+    noteLimit?: number;         // default: 50
     showData?: boolean;         // default: true
-    colorize?: boolean;         // default: true
+    colors?: boolean;           // default: true
   }
 ): string
 ```
@@ -400,8 +412,8 @@ import { writeStoryReport } from "@lovelaces-io/storyteller";
 // Generate a report from stored events
 const report = writeStoryReport(events, {
   timezone: "America/New_York",
-  verbosity: "brief",
-  colorize: false,
+  detail: "brief",
+  colors: false,
 });
 console.log(report);
 ```
@@ -413,15 +425,51 @@ Range: Mar 20, 2026 – Mar 22, 2026
 
 Mar 20, 2026
 Story: User signed up
-Level: tell
+Level: Information
 Time: Mar 20, 2026, 3:42:18 PM
 
 Mar 22, 2026
 Story: Payment failed
-Level: oops
+Level: Error
 Time: Mar 22, 2026, 10:15:03 AM (1.2s)
 Origin: checkout / Payment
 Error: gateway timeout
+```
+
+---
+
+## formatDuration(ms)
+
+Formats a duration in milliseconds into a human-readable string.
+
+```ts
+formatDuration(ms: number): string
+```
+
+```ts
+import { formatDuration } from "@lovelaces-io/storyteller";
+
+formatDuration(350);    // "350ms"
+formatDuration(1200);   // "1.2s"
+formatDuration(65000);  // "1m 5s"
+```
+
+---
+
+## getLevelLabel(level)
+
+Returns a human-readable label for a `StoryLevel` value.
+
+```ts
+getLevelLabel(level: StoryLevel): string
+```
+
+```ts
+import { getLevelLabel } from "@lovelaces-io/storyteller";
+
+getLevelLabel("tell");  // "Information"
+getLevelLabel("warn");  // "Warning"
+getLevelLabel("oops");  // "Error"
 ```
 
 ---
@@ -474,6 +522,7 @@ type StoryNote = {
 type StoryEventBase = {
   timestamp: string;
   level: StoryLevel;
+  levelLabel: string;              // Human-readable label: "Information", "Warning", or "Error"
   title: string;
   origin?: {
     who?: StoryContextValue;
@@ -482,6 +531,7 @@ type StoryEventBase = {
   };
   notes: StoryNote[];
   error?: StoryError;
+  durationMs?: number;             // Computed from first to last note (undefined if < 2 notes)
 };
 ```
 
@@ -491,46 +541,64 @@ Extends `StoryEventBase` with a `summarize()` method. This is what audience memb
 
 ```ts
 type StoryEvent = StoryEventBase & {
-  summarize: (options?: StorySummaryOptions) => StorySummary;
+  summarize: (options?: ReportOptions) => FormattedReport;
 };
 ```
 
-### StorySummary
+### FormattedReport
+
+> **Deprecated alias:** `StorySummary` still works but is deprecated.
 
 ```ts
-type StorySummary = {
+type FormattedReport = {
   text: string;           // Formatted, human-readable text
-  data: StorySummaryData; // Structured data
+  data: StoryReport;      // Structured data
 };
 ```
 
-### StorySummaryData
+### StoryReport
+
+> **Deprecated alias:** `StorySummaryData` still works but is deprecated.
 
 ```ts
-type StorySummaryData = {
+type StoryReport = {
   title: string;
   level: StoryLevel;
   when: string;              // Formatted date/time string
   durationMs?: number;       // Time between first and last note
   duration?: string;         // Human-readable duration (e.g., "1.2s")
   origin?: StoryEventBase["origin"];
-  notes: StorySummaryNote[];
+  notes: ReportNote[];
   error?: StoryError;
 };
 ```
 
-### StorySummaryOptions
+### ReportOptions
+
+> **Deprecated alias:** `StorySummaryOptions` still works but is deprecated.
 
 ```ts
-type StorySummaryOptions = {
+type ReportOptions = {
   timezone?: string;
   locale?: string;
-  verbosity?: "brief" | "normal" | "full";
-  maxNotes?: number;
+  detail?: "brief" | "normal" | "full";
+  noteLimit?: number;
   showData?: boolean;
-  colorize?: boolean;
+  colors?: boolean;
 };
 ```
+
+### ReportNote
+
+> **Deprecated alias:** `StorySummaryNote` still works but is deprecated.
+
+A formatted note within a `StoryReport`.
+
+### PreviewOptions
+
+> **Deprecated alias:** `StoryPreviewOptions` still works but is deprecated.
+
+Options passed to `story.summarize()`. Same shape as `ReportOptions`.
 
 ### AudienceMember
 
@@ -587,8 +655,8 @@ story.oops("Payment failed", new Error("gateway timeout")).to("console", "db");
 // Later, generate a report from stored events
 const events = await db.query("SELECT * FROM logs WHERE timestamp > ?", [yesterday]);
 const report = writeStoryReport(events, {
-  colorize: false,
-  verbosity: "brief",
+  colors: false,
+  detail: "brief",
 });
 console.log(report);
 ```

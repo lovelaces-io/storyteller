@@ -106,9 +106,10 @@ function buildReportText(
     options.colors ? `${levelColor}${text}${ANSI.reset}` : text;
   const originLabel = formatOrigin(story.origin);
 
+  const levelLabel = getLevelLabel(story.level);
   const lines: string[] = [];
   lines.push(`${label("Story")}: ${story.title}`);
-  lines.push(`${label("Level")}: ${story.level}`);
+  lines.push(`${label("Level")}: ${levelLabel}`);
   lines.push(`${label("Time")}: ${data.when}${options.duration ? ` (${options.duration})` : ""}`);
 
   if (originLabel) {
@@ -148,6 +149,14 @@ function buildReportText(
   }
 
   return lines;
+}
+
+/** Translate internal level names to human-readable labels for reports */
+export function getLevelLabel(level: string): string {
+  if (level === "tell") return "Information";
+  if (level === "warn") return "Warning";
+  if (level === "oops") return "Error";
+  return level;
 }
 
 /** Calculate the duration between the first and last note in a sequence */

@@ -40,6 +40,8 @@ story.tell("Startup complete");
   - `.reset()` — clear accumulated notes without emitting
   - `.summarize(options?)` — preview current notes as formatted summary without emitting
   - `.audience` — registry to add/remove/query audience members
+    - `.audience.has(name)` — check if an audience member is registered by name
+    - `.audience.names()` — list all registered audience member names
   - `.to(...names)` — target specific audiences (call synchronously after tell/warn/oops)
 - `useStoryteller(options?)` — get or create a shared singleton instance
 - `formatStory(event, options?)` — format a single story event as a human-readable report
@@ -49,19 +51,23 @@ story.tell("Startup complete");
 - `ANSI` — ANSI color code constants
 - `getLevelColor(level)` — get the ANSI color for a story level
 - `formatOrigin(origin?)` — format an origin object as a readable string
+- `formatDuration(ms)` — format a duration in milliseconds as a human-readable string
+- `getLevelLabel(level)` — get the human-readable label for a story level (e.g., "Information", "Warning", "Error")
 
 ### Types
 
 - `StoryLevel` — `"tell" | "warn" | "oops"`
 - `StoryNote` — timestamped note with optional context
-- `StoryEventBase` — core event structure (timestamp, level, title, origin, notes, error)
+- `StoryEventBase` — core event structure (timestamp, level, levelLabel, title, origin, notes, error)
 - `StoryEvent` — event with attached `.summarize()` method
 - `AudienceMember` — audience interface (name, accepts?, hear)
 - `FormattedReport` — formatted report result (text + structured data)
 - `StoryReport` — structured report data
 - `ReportNote` — a note as it appears in a formatted report
 - `ReportOptions` — options for report formatting (timezone, locale, detail, noteLimit, colors)
+- `PreviewOptions` — options for the `.summarize()` preview method
 - `StoryReportOptions` — options for writeStoryReport
+- Deprecated aliases (still exported for backwards compatibility): `StorySummaryOptions` (use `ReportOptions`), `StorySummary` (use `FormattedReport`), `SummaryNote` (use `ReportNote`)
 
 ## Links
 

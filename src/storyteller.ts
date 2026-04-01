@@ -1,5 +1,5 @@
 import { consoleAudience } from "./audiences/consoleAudience";
-import { formatStory } from "./formatting";
+import { formatStory, getLevelLabel } from "./formatting";
 
 export type StoryLevel = "tell" | "warn" | "oops";
 
@@ -24,6 +24,7 @@ export type StoryNote = {
 export type StoryEventBase = {
   timestamp: string;
   level: StoryLevel;
+  levelLabel: string;
   title: string;
 
   origin?: {
@@ -215,6 +216,7 @@ export class Storyteller {
     const event: StoryEventBase = {
       timestamp: new Date().toISOString(),
       level,
+      levelLabel: getLevelLabel(level),
       title,
       ...(this.origin ? { origin: this.origin } : {}),
       notes: [...this.notes],
@@ -280,6 +282,7 @@ export class Storyteller {
     const event: StoryEventBase = {
       timestamp: now,
       level,
+      levelLabel: getLevelLabel(level),
       title,
       ...(this.origin ? { origin: this.origin } : {}),
       notes: sortedNotes,

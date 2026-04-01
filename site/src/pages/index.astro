@@ -13,14 +13,15 @@ const beforeCode = `<span class="comment">[14:30:00]</span> User clicked checkou
 
 const afterCode = `<span class="punctuation">{</span>
   <span class="keyword">"level"</span>: <span class="string">"warn"</span>,
+  <span class="keyword">"levelLabel"</span>: <span class="string">"Warning"</span>,
   <span class="keyword">"title"</span>: <span class="string">"Payment retry succeeded"</span>,
   <span class="keyword">"durationMs"</span>: <span class="type">4000</span>,
   <span class="keyword">"notes"</span>: <span class="punctuation">[</span>
-    <span class="punctuation">{</span> <span class="keyword">"note"</span>: <span class="string">"User clicked checkout"</span> <span class="punctuation">}</span>,
-    <span class="punctuation">{</span> <span class="keyword">"note"</span>: <span class="string">"Cart validated"</span> <span class="punctuation">}</span>,
-    <span class="punctuation">{</span> <span class="keyword">"note"</span>: <span class="string">"Card declined"</span>,
+    <span class="punctuation">{</span> <span class="keyword">"timestamp"</span>: <span class="string">"14:30:00"</span>, <span class="keyword">"note"</span>: <span class="string">"User clicked checkout"</span> <span class="punctuation">}</span>,
+    <span class="punctuation">{</span> <span class="keyword">"timestamp"</span>: <span class="string">"14:30:01"</span>, <span class="keyword">"note"</span>: <span class="string">"Cart validated"</span> <span class="punctuation">}</span>,
+    <span class="punctuation">{</span> <span class="keyword">"timestamp"</span>: <span class="string">"14:30:03"</span>, <span class="keyword">"note"</span>: <span class="string">"Card declined"</span>,
       <span class="keyword">"error"</span>: <span class="punctuation">{</span> <span class="keyword">"message"</span>: <span class="string">"gateway timeout"</span> <span class="punctuation">}</span> <span class="punctuation">}</span>,
-    <span class="punctuation">{</span> <span class="keyword">"note"</span>: <span class="string">"Retry succeeded"</span> <span class="punctuation">}</span>
+    <span class="punctuation">{</span> <span class="keyword">"timestamp"</span>: <span class="string">"14:30:04"</span>, <span class="keyword">"note"</span>: <span class="string">"Retry succeeded"</span> <span class="punctuation">}</span>
   <span class="punctuation">]</span>
 <span class="punctuation">}</span>`;
 
@@ -48,7 +49,7 @@ story.<span class="function">note</span>(<span class="string">"Payment approved"
 story.<span class="function">tell</span>(<span class="string">"Payment completed"</span>);`;
 ---
 
-<Base title="Storyteller — Your logs should tell a story">
+<Base title="Storyteller — Your logs should tell a story" path="/">
 
 <!-- Hero -->
 <section style="padding-top: 6rem; padding-bottom: 4rem; text-align: center;">

@@ -134,7 +134,8 @@ describe("Story record (what gets stored)", () => {
     console.log("=== END ===\n");
 
     // The absolute minimum shape
-    expect(Object.keys(record).sort()).toEqual(["level", "notes", "timestamp", "title"]);
+    expect(Object.keys(record).sort()).toEqual(["level", "levelLabel", "notes", "timestamp", "title"]);
+    expect(record.levelLabel).toBe("Information");
     expect(record.notes).toEqual([]);
   });
 });
@@ -145,6 +146,7 @@ describe("Report output (what gets printed)", () => {
       {
         timestamp: "2026-03-31T14:30:00.000Z",
         level: "warn",
+        levelLabel: "Warning",
         title: "Payment retry succeeded on second attempt",
         origin: { who: "payment-service", where: { app: "web", page: "checkout" } },
         notes: [
@@ -163,7 +165,7 @@ describe("Report output (what gets printed)", () => {
 
     // Text contains the key sections
     expect(report.text).toContain("Story: Payment retry");
-    expect(report.text).toContain("Level: warn");
+    expect(report.text).toContain("Level: Warning");
     expect(report.text).toContain("Time:");
     expect(report.text).toContain("Origin:");
     expect(report.text).toContain("Error: CardDeclinedError");
@@ -193,12 +195,14 @@ describe("Report output (what gets printed)", () => {
       {
         timestamp: "2026-03-31T10:00:00.000Z",
         level: "tell" as const,
+        levelLabel: "Information",
         title: "User logged in",
         notes: [{ timestamp: "2026-03-31T10:00:00.000Z", note: "OAuth flow completed" }],
       },
       {
         timestamp: "2026-03-31T10:05:00.000Z",
         level: "warn" as const,
+        levelLabel: "Warning",
         title: "Slow query detected",
         notes: [
           { timestamp: "2026-03-31T10:05:00.000Z", note: "Query started" },
@@ -208,6 +212,7 @@ describe("Report output (what gets printed)", () => {
       {
         timestamp: "2026-03-31T15:30:00.000Z",
         level: "oops" as const,
+        levelLabel: "Error",
         title: "Background job failed",
         notes: [],
         error: { name: "TimeoutError", message: "Job exceeded 30s limit" },

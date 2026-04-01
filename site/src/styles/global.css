@@ -276,6 +276,7 @@ nav .logo {
 nav .logo img {
   height: 28px;
   width: auto;
+  filter: invert(1) brightness(2);
 }
 
 nav .nav-links {

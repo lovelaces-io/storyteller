@@ -31,7 +31,7 @@ One story. One structured event. Full context.
 
 ```
 Story: Payment failed
-Level: oops
+Level: Error
 Time: Mar 22, 2026, 10:15:03 AM (1.2s)
 Origin: checkout / Payment
 
@@ -167,7 +167,7 @@ story.audience.add({
   name: "slack",
   accepts: (event) => event.level === "oops",
   hear: async (event) => {
-    const summary = event.summarize({ colorize: false });
+    const summary = event.summarize({ colors: false });
     await postToSlack(summary.text);
   },
 });
@@ -189,12 +189,12 @@ story.note("Dashboard ready");
 const summary = story.summarize({
   title: "Dashboard loaded",
   level: "tell",
-  verbosity: "full",
+  detail: "full",
 });
 
 console.log(summary.text);
 // Story: Dashboard loaded
-// Level: tell
+// Level: Information
 // Time: Mar 22, 2026, 3:42:18 PM (12ms)
 // Origin: admin / Dashboard
 // Notes:
@@ -243,8 +243,8 @@ import { writeStoryReport } from "@lovelaces-io/storyteller";
 const events = await db.query("SELECT * FROM logs WHERE timestamp > ?", [weekAgo]);
 const report = writeStoryReport(events, {
   timezone: "America/New_York",
-  verbosity: "brief",
-  colorize: false,
+  detail: "brief",
+  colors: false,
 });
 ```
 
@@ -254,12 +254,12 @@ Range: Mar 15, 2026 – Mar 22, 2026
 
 Mar 15, 2026
 Story: User signed up
-Level: tell
+Level: Information
 Time: Mar 15, 2026, 2:18:44 PM
 
 Mar 22, 2026
 Story: Payment failed
-Level: oops
+Level: Error
 Time: Mar 22, 2026, 10:15:03 AM (1.2s)
 Origin: checkout / Payment
 Error: gateway timeout
@@ -318,7 +318,9 @@ Every story event is a typed, serializable JSON object. AI agents, log aggregato
 {
   "timestamp": "2026-03-22T14:15:03.421Z",
   "level": "oops",
+  "levelLabel": "Error",
   "title": "Payment failed",
+  "durationMs": 1203,
   "origin": {
     "where": { "app": "checkout", "page": "Payment" }
   },

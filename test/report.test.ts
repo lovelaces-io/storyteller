@@ -1,12 +1,14 @@
 import { describe, it, expect } from "vitest";
-import type { StoryEventBase } from "../src/storyteller";
-import { formatStory } from "../src/formatting";
+import type { StoryEventBase, StoryLevel } from "../src/storyteller";
+import { formatStory, getLevelLabel } from "../src/formatting";
 import { writeStoryReport } from "../src/report/writeStoryReport";
 
 function makeEvent(overrides: Partial<StoryEventBase> = {}): StoryEventBase {
+  const level: StoryLevel = (overrides.level as StoryLevel) ?? "tell";
   return {
     timestamp: "2026-03-31T14:30:00.000Z",
-    level: "tell",
+    level,
+    levelLabel: getLevelLabel(level),
     title: "Test story",
     notes: [],
     ...overrides,
