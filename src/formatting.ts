@@ -1,25 +1,37 @@
 import type {
   StoryEventBase,
   StoryNote,
-  StorySummaryNote,
-  StorySummaryData,
-  StorySummary,
-  StorySummaryOptions,
+  ReportNote,
+  StoryReport,
+  FormattedReport,
+  ReportOptions,
 } from "./storyteller";
 import { ANSI, getLevelColor, formatOrigin, colorizeJsonSections } from "./utils";
 
-/** Generate a formatted, human-readable report from a story event */
-export function summarizeStory(
+/**
+ * Format a story event into a human-readable report with optional colors.
+ *
+ * @param story - The story event to format
+ * @param options - Formatting options (timezone, locale, detail level, colors)
+ * @returns A FormattedReport with both text (for display) and data (structured)
+ *
+ * @example
+ * ```ts
+ * const report = formatStory(event, { colors: false, detail: "brief" });
+ * console.log(report.text);
+ * ```
+ */
+export function formatStory(
   story: StoryEventBase,
-  options: StorySummaryOptions = {}
-): StorySummary {
+  options: ReportOptions = {}
+): FormattedReport {
   const {
     timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
     locale = "en-US",
-    verbosity = "normal",
-    maxNotes = 50,
+    detail = "normal",
+    noteLimit = 50,
     showData = true,
-    colorize = true,
+    colors = true,
   } = options;
 
   const dateTimeFormatter = new Intl.DateTimeFormat(locale, {
@@ -48,32 +60,32 @@ export function summarizeStory(
   const durationMs = story.durationMs ?? calculateNoteDuration(orderedNotes);
   const duration = durationMs != null ? formatDuration(durationMs) : undefined;
 
-  const slicedNotes = orderedNotes.slice(0, maxNotes);
-  const summaryNotes: StorySummaryNote[] = slicedNotes.map((note) => ({
+  const slicedNotes = orderedNotes.slice(0, noteLimit);
+  const reportNotes: ReportNote[] = slicedNotes.map((note) => ({
     timestamp: note.timestamp,
     when: timeFormatter.format(new Date(note.timestamp)),
     note: note.note,
-    text: formatNoteText(note, verbosity),
+    text: formatNoteText(note, detail),
     ...(note.who ? { who: note.who } : {}),
     ...(note.what ? { what: note.what } : {}),
     ...(note.where ? { where: note.where } : {}),
     ...(note.error ? { error: note.error } : {}),
   }));
 
-  const data: StorySummaryData = {
+  const data: StoryReport = {
     title: story.title,
     level: story.level,
     when: dateTimeFormatter.format(new Date(story.timestamp)),
     ...(durationMs != null ? { durationMs } : {}),
     ...(duration ? { duration } : {}),
     ...(story.origin ? { origin: story.origin } : {}),
-    notes: summaryNotes,
+    notes: reportNotes,
     ...(story.error ? { error: story.error } : {}),
   };
 
-  const lines = buildSummaryText(story, data, summaryNotes, orderedNotes, {
-    colorize,
-    verbosity,
+  const lines = buildReportText(story, data, reportNotes, orderedNotes, {
+    colors,
+    detail,
     showData,
     duration,
   });
@@ -81,17 +93,17 @@ export function summarizeStory(
   return { text: lines.join("\n"), data };
 }
 
-/** Build the human-readable text lines for a story summary */
-function buildSummaryText(
+/** Build the human-readable text lines for a story report */
+function buildReportText(
   story: StoryEventBase,
-  data: StorySummaryData,
-  summaryNotes: StorySummaryNote[],
+  data: StoryReport,
+  reportNotes: ReportNote[],
   orderedNotes: StoryNote[],
-  options: { colorize: boolean; verbosity: string; showData: boolean; duration?: string | undefined }
+  options: { colors: boolean; detail: string; showData: boolean; duration?: string | undefined }
 ): string[] {
   const levelColor = getLevelColor(story.level);
   const label = (text: string) =>
-    options.colorize ? `${levelColor}${text}${ANSI.reset}` : text;
+    options.colors ? `${levelColor}${text}${ANSI.reset}` : text;
   const originLabel = formatOrigin(story.origin);
 
   const lines: string[] = [];
@@ -110,20 +122,20 @@ function buildSummaryText(
     if (errorLine) lines.push(`${label("Error")}: ${errorLine}`);
   }
 
-  if (options.verbosity !== "brief" && summaryNotes.length) {
+  if (options.detail !== "brief" && reportNotes.length) {
     lines.push(`${label("Notes")}:`);
-    for (const note of summaryNotes) {
+    for (const note of reportNotes) {
       lines.push(`  ${note.when} — ${note.text}`);
     }
-    if (orderedNotes.length > summaryNotes.length) {
-      lines.push(`  … (${orderedNotes.length - summaryNotes.length} more)`);
+    if (orderedNotes.length > reportNotes.length) {
+      lines.push(`  … (${orderedNotes.length - reportNotes.length} more)`);
     }
   }
 
   if (options.showData) {
     lines.push(`${label("Data")}:`);
     const json = JSON.stringify(data, null, 2);
-    if (options.colorize) {
+    if (options.colors) {
       const colored = colorizeJsonSections(json, {
         base: ANSI.grayLight,
         notes: ANSI.grayDark,
@@ -162,7 +174,10 @@ export function formatDuration(milliseconds: number): string {
   return `${minutes}:${remainingSeconds}m`;
 }
 
-/** Format a note's text with optional context details when verbosity is "full" */
+/** @deprecated Use formatStory instead */
+export const summarizeStory = formatStory;
+
+/** Format a note's text with optional context details when detail level is "full" */
 function formatNoteText(
   note: StoryNote,
   verbosity: "brief" | "normal" | "full"

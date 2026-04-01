@@ -1,5 +1,5 @@
 import { consoleAudience } from "./audiences/consoleAudience";
-import { summarizeStory } from "./formatting";
+import { formatStory } from "./formatting";
 
 export type StoryLevel = "tell" | "warn" | "oops";
 
@@ -38,22 +38,28 @@ export type StoryEventBase = {
   error?: StoryError;
 };
 
-export type StorySummaryOptions = {
+export type ReportOptions = {
   timezone?: string;
   locale?: string;
-  verbosity?: "brief" | "normal" | "full";
-  maxNotes?: number;
+  detail?: "brief" | "normal" | "full";
+  noteLimit?: number;
   showData?: boolean;
-  colorize?: boolean;
+  colors?: boolean;
 };
 
-export type StoryPreviewOptions = StorySummaryOptions & {
+/** @deprecated Use ReportOptions instead */
+export type StorySummaryOptions = ReportOptions;
+
+export type PreviewOptions = ReportOptions & {
   title?: string;
   level?: StoryLevel;
   error?: unknown;
 };
 
-export type StorySummaryNote = {
+/** @deprecated Use PreviewOptions instead */
+export type StoryPreviewOptions = PreviewOptions;
+
+export type ReportNote = {
   timestamp: string;
   when: string;
   note: string;
@@ -64,24 +70,33 @@ export type StorySummaryNote = {
   error?: StoryError;
 };
 
-export type StorySummaryData = {
+/** @deprecated Use ReportNote instead */
+export type StorySummaryNote = ReportNote;
+
+export type StoryReport = {
   title: string;
   level: StoryLevel;
   when: string;
   durationMs?: number;
   duration?: string;
   origin?: StoryEventBase["origin"];
-  notes: StorySummaryNote[];
+  notes: ReportNote[];
   error?: StoryError;
 };
 
-export type StorySummary = {
+/** @deprecated Use StoryReport instead */
+export type StorySummaryData = StoryReport;
+
+export type FormattedReport = {
   text: string;
-  data: StorySummaryData;
+  data: StoryReport;
 };
 
+/** @deprecated Use FormattedReport instead */
+export type StorySummary = FormattedReport;
+
 export type StoryEvent = StoryEventBase & {
-  summarize: (options?: StorySummaryOptions) => StorySummary;
+  summarize: (options?: ReportOptions) => FormattedReport;
 };
 
 export type AudienceMember = {
@@ -134,7 +149,17 @@ class AudienceRegistry {
   }
 }
 
-/** Core logging class that collects timestamped notes and emits them as structured story events */
+/**
+ * Collects timestamped notes and emits them as a single structured story event.
+ *
+ * @example
+ * ```ts
+ * const story = new Storyteller({ origin: { who: "api-server" } });
+ * story.note("Request received", { what: { path: "/checkout" } });
+ * story.note("Validated cart");
+ * story.tell("Checkout started");
+ * ```
+ */
 export class Storyteller {
   public readonly audience = new AudienceRegistry();
 
@@ -150,7 +175,17 @@ export class Storyteller {
     options?.audiences?.forEach((audience) => this.audience.add(audience));
   }
 
-  /** Add a timestamped note with optional context (who, what, where, error) */
+  /**
+   * Add a timestamped note to the current story.
+   * @param text - What happened
+   * @param data - Optional context: who did it, what was involved, where it happened, any error
+   * @returns `this` for chaining
+   *
+   * @example
+   * ```ts
+   * story.note("Card charged", { what: { amount: "$42" }, where: "stripe" });
+   * ```
+   */
   note(text: string, data: NoteData = {}) {
     this.notes.push({
       timestamp: new Date().toISOString(),
@@ -169,13 +204,13 @@ export class Storyteller {
     return this;
   }
 
-  /** Generate a formatted summary of current notes without emitting or clearing them */
-  summarize(options: StoryPreviewOptions = {}) {
+  /** Preview the current notes as a formatted report without emitting or clearing them */
+  summarize(options: PreviewOptions = {}) {
     const {
       title = "Story preview",
       level = "tell",
       error,
-      ...summaryOptions
+      ...reportOptions
     } = options;
     const event: StoryEventBase = {
       timestamp: new Date().toISOString(),
@@ -186,20 +221,20 @@ export class Storyteller {
       ...(error ? { error: normalizeError(error) } : {}),
     };
 
-    return summarizeStory(event, summaryOptions);
+    return formatStory(event, reportOptions);
   }
 
-  /** Emit a story at the "tell" level (success / informational) */
+  /** Tell a success story — everything went well */
   tell(title: string) {
     return this.createDelivery("tell", title);
   }
 
-  /** Emit a story at the "warn" level (something was off) */
+  /** Tell a cautionary story — something was off but it's handled */
   warn(title: string) {
     return this.createDelivery("warn", title);
   }
 
-  /** Emit a story at the "oops" level (something broke) with an optional error */
+  /** Tell an error story — something broke. Pass the error for automatic normalization. */
   oops(title: string, error?: unknown) {
     return this.createDelivery("oops", title, error);
   }
@@ -254,7 +289,7 @@ export class Storyteller {
 
     const eventWithSummary = event as StoryEvent;
     Object.defineProperty(eventWithSummary, "summarize", {
-      value: (options?: StorySummaryOptions) => summarizeStory(event, options),
+      value: (options?: ReportOptions) => formatStory(event, options),
       enumerable: false,
     });
 
@@ -316,5 +351,3 @@ function calculateNoteDuration(notes: StoryNote[]) {
   };
 }
 
-// Re-export summarizeStory from formatting module for backward compatibility
-export { summarizeStory } from "./formatting";

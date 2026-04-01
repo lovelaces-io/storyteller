@@ -17,7 +17,8 @@
     "type": "git",
     "url": "https://github.com/lovelaces-io/storyteller.git"
   },
-  "homepage": "https://github.com/lovelaces-io/storyteller#readme",
+  "author": "Lovelaces <hello@lovelaces.io> (https://lovelaces.io)",
+  "homepage": "https://storyteller.lovelaces.io",
   "bugs": {
     "url": "https://github.com/lovelaces-io/storyteller/issues"
   },
@@ -28,7 +29,12 @@
     "storyteller",
     "events",
     "observability",
-    "typescript"
+    "typescript",
+    "story-logging",
+    "structured-events",
+    "zero-dependencies",
+    "audit-log",
+    "context-logging"
   ],
   "exports": {
     ".": {

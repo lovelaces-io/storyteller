@@ -11,7 +11,8 @@
 
 import { describe, it, expect } from "vitest";
 import type { StoryEvent } from "../src/storyteller";
-import { Storyteller, summarizeStory } from "../src/storyteller";
+import { Storyteller } from "../src/storyteller";
+import { formatStory } from "../src/formatting";
 import { writeStoryReport } from "../src/report/writeStoryReport";
 
 /** Capture the exact event that an audience receives */
@@ -140,7 +141,7 @@ describe("Story record (what gets stored)", () => {
 
 describe("Report output (what gets printed)", () => {
   it("baseline: single story report", () => {
-    const report = summarizeStory(
+    const report = formatStory(
       {
         timestamp: "2026-03-31T14:30:00.000Z",
         level: "warn",
@@ -153,7 +154,7 @@ describe("Report output (what gets printed)", () => {
         ],
         error: { name: "CardDeclinedError", message: "Insufficient funds" },
       },
-      { colorize: false, timezone: "America/New_York" }
+      { colors: false, timezone: "America/New_York" }
     );
 
     console.log("\n=== REPORT (single story, no colors) ===");
@@ -214,7 +215,7 @@ describe("Report output (what gets printed)", () => {
     ];
 
     const report = writeStoryReport(stories, {
-      colorize: false,
+      colors: false,
       showData: false,
       timezone: "America/New_York",
     });

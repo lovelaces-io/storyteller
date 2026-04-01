@@ -1,6 +1,15 @@
 import type { AudienceMember } from "../storyteller";
 
-/** Create an audience that logs stories to the browser console with color-coded grouped output */
+/**
+ * Create an audience that prints stories to the console with color-coded grouped output.
+ * Registered by default on every Storyteller instance.
+ *
+ * @example
+ * ```ts
+ * // Already included — but you can re-add after removing:
+ * story.audience.add(consoleAudience());
+ * ```
+ */
 export function consoleAudience(): AudienceMember {
   return {
     name: "console",

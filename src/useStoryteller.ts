@@ -8,7 +8,19 @@ type StorytellerSharedOptions = {
   reset?: boolean;
 };
 
-/** Return a shared singleton Storyteller instance for cross-component or cross-service logging */
+/**
+ * Get or create a shared Storyteller instance for cross-component logging.
+ * First call creates the instance; subsequent calls return the same one.
+ *
+ * @param options.origin - Origin context for the shared instance
+ * @param options.reset - Create a fresh instance (useful in tests)
+ *
+ * @example
+ * ```ts
+ * // Same instance everywhere in your app
+ * const story = useStoryteller({ origin: { who: "worker" } });
+ * ```
+ */
 export function useStoryteller(
   options: StorytellerSharedOptions = {}
 ): Storyteller {

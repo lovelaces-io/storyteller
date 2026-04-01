@@ -1,14 +1,14 @@
 import type { StoryEventBase } from "../storyteller";
-import { summarizeStory } from "../formatting";
+import { formatStory } from "../formatting";
 import { ANSI, getLevelColor, formatOrigin, colorizeJsonSections } from "../utils";
 
 export type StoryReportOptions = {
   timezone?: string;
   locale?: string;
-  verbosity?: "brief" | "normal" | "full";
-  maxNotesPerStory?: number;
+  detail?: "brief" | "normal" | "full";
+  noteLimit?: number;
   showData?: boolean;
-  colorize?: boolean;
+  colors?: boolean;
 };
 
 /** Generate a formatted report from an array of story events, grouped by day */
@@ -19,10 +19,10 @@ export function writeStoryReport(
   const {
     timezone = Intl.DateTimeFormat().resolvedOptions().timeZone,
     locale = "en-US",
-    verbosity = "normal",
-    maxNotesPerStory = 50,
+    detail = "normal",
+    noteLimit = 50,
     showData = true,
-    colorize = true,
+    colors = true,
   } = options;
 
   if (!stories.length) {
@@ -67,18 +67,18 @@ export function writeStoryReport(
     lines.push(day);
 
     for (const story of dayStories) {
-      const summary = summarizeStory(story, {
+      const report = formatStory(story, {
         timezone,
         locale,
-        verbosity,
-        maxNotes: maxNotesPerStory,
-        colorize,
+        detail,
+        noteLimit,
+        colors,
       });
-      const { data } = summary;
+      const { data } = report;
       const originLabel = formatOrigin(story.origin);
       const levelColor = getLevelColor(story.level);
       const label = (text: string) =>
-        colorize ? `${levelColor}${text}${ANSI.reset}` : text;
+        colors ? `${levelColor}${text}${ANSI.reset}` : text;
 
       const duration = data.duration ? ` (${data.duration})` : "";
       lines.push(`${label("Story")}: ${story.title}`);
@@ -99,11 +99,11 @@ export function writeStoryReport(
         if (errorLine) lines.push(`${label("Error")}: ${errorLine}`);
       }
 
-      if (verbosity !== "brief" && data.notes.length) {
+      if (detail !== "brief" && data.notes.length) {
         lines.push(`  ${label("Notes")}:`);
 
-        for (const summaryNote of data.notes) {
-          lines.push(`    ${summaryNote.when} — ${summaryNote.text}`);
+        for (const reportNote of data.notes) {
+          lines.push(`    ${reportNote.when} — ${reportNote.text}`);
         }
 
         if (story.notes.length > data.notes.length) {
@@ -116,7 +116,7 @@ export function writeStoryReport(
       if (showData) {
         lines.push(`${label("Data")}:`);
         const json = JSON.stringify(data, null, 2);
-        if (colorize) {
+        if (colors) {
           const colored = colorizeJsonSections(json, {
             base: ANSI.grayLight,
             notes: ANSI.grayDark,

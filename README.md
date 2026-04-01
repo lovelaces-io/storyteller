@@ -1,8 +1,42 @@
 # Storyteller
 
+[![npm](https://img.shields.io/npm/v/@lovelaces-io/storyteller)](https://www.npmjs.com/package/@lovelaces-io/storyteller)
+[![license](https://img.shields.io/npm/l/@lovelaces-io/storyteller)](LICENSE)
+[![zero deps](https://img.shields.io/badge/dependencies-0-brightgreen)](package.json)
+
 Lightweight TypeScript logging library that treats logs as **stories** — grouped notes emitted as a single structured event.
 
-Zero dependencies. ~24 kB packed. TypeScript-first.
+Zero dependencies. TypeScript-first. One record per story.
+
+## Why Storyteller?
+
+**Before:** 47 scattered `console.log` lines. Something broke. Good luck figuring out what happened.
+
+```
+[14:30:00] User clicked checkout
+[14:30:00] Validating cart...
+[14:30:01] Cart valid
+[14:30:01] Charging card...
+[14:30:03] ERROR: gateway timeout
+[14:30:03] Retrying...
+[14:30:04] Charge succeeded
+```
+
+**After:** One story. One record. The whole picture.
+
+```json
+{
+  "level": "warn",
+  "title": "Payment retry succeeded",
+  "durationMs": 4000,
+  "notes": [
+    { "note": "User clicked checkout" },
+    { "note": "Cart validated", "what": { "items": 3 } },
+    { "note": "Card declined", "error": { "message": "gateway timeout" } },
+    { "note": "Retry succeeded" }
+  ]
+}
+```
 
 ## Install
 
@@ -10,43 +44,40 @@ Zero dependencies. ~24 kB packed. TypeScript-first.
 npm install @lovelaces-io/storyteller
 ```
 
-## Usage
+## Quick Start
 
 ```ts
 import { Storyteller } from "@lovelaces-io/storyteller";
 
 const story = new Storyteller({
-  origin: { where: { app: "checkout", page: "Payment" } },
+  origin: { who: "checkout-service", where: { app: "web" } },
 });
 
-// Collect notes as things happen
-story.note("User submitted payment", {
-  who: { id: "user:413" },
-  what: { amount: 49.99, currency: "USD" },
-});
-
-story.note("Charging card", {
-  what: "stripe:charge",
-  where: { service: "payments" },
-});
-
-// Tell the story when it's done
+story.note("User submitted payment", { what: { amount: 49.99 } });
+story.note("Charging card", { where: "stripe" });
 story.tell("Payment completed");
 ```
 
-Notes are bundled into one structured event, delivered to your audiences, and cleared for the next story.
+Notes are collected, sorted chronologically, and emitted as one structured event to your audiences.
+
+## Two Output Modes
+
+| Mode | What it is | Use it for |
+|------|-----------|------------|
+| **Story** (JSON) | Clean serializable record | DB storage, monitoring, audit logs |
+| **Report** (text) | Colorized human-readable output | Console, log files, debugging |
+
+`JSON.stringify(event)` gives you the story record. `formatStory(event)` gives you the report.
 
 ## Three Levels
 
 ```ts
-story.tell("Payment completed");              // success
-story.warn("Payment slow but succeeded");     // something was off
+story.tell("Payment completed");              // all good
+story.warn("Payment slow but succeeded");     // heads up
 story.oops("Payment failed", new Error());    // something broke
 ```
 
 ## Context on Every Note
-
-Every note can carry `who`, `what`, `where`, and `error`:
 
 ```ts
 story.note("Write failed", {
@@ -57,83 +88,51 @@ story.note("Write failed", {
 });
 ```
 
-## Audiences
+## Audiences — Who Hears Your Stories
 
-Stories are delivered to **audiences**. Console is included by default. Add your own:
+Stories are delivered to **audiences**. Console is included by default.
 
 ```ts
 import { dbAudience } from "@lovelaces-io/storyteller";
 
-// Persist warn and oops events to your database
+// Store warn and oops events in your database
 story.audience.add(
   dbAudience(async (event) => await db.insert("logs", event))
 );
 
-// Target specific audiences per story
+// Target specific audiences
 story.oops("Critical failure", error).to("console", "db");
 ```
 
-## Summaries
+## Quick Reference
 
-Generate a formatted summary without emitting:
-
-```ts
-const summary = story.summarize({
-  title: "Dashboard status",
-  level: "tell",
-  verbosity: "full",
-});
-
-console.log(summary.text);
-```
-
-```
-Story: Dashboard status
-Level: tell
-Time: Mar 22, 2026, 3:42:18 PM (12ms)
-Origin: checkout / Payment
-Notes:
-  3:42:18 PM — User submitted payment
-  3:42:18 PM — Charging card
-```
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `note(text, context?)` | `this` | Add a timestamped note with optional who/what/where/error |
+| `tell(title)` | `{ to }` | Emit a success story |
+| `warn(title)` | `{ to }` | Emit a warning story |
+| `oops(title, error?)` | `{ to }` | Emit an error story |
+| `reset()` | `this` | Clear notes without emitting |
+| `summarize(options?)` | `FormattedReport` | Preview current notes as a report |
+| `audience.add(member)` | `this` | Register an audience |
+| `audience.remove(name)` | `this` | Unregister an audience |
+| `audience.has(name)` | `boolean` | Check if audience exists |
+| `audience.names()` | `string[]` | List registered audiences |
 
 ## Shared Instance
-
-Use `useStoryteller()` for cross-component logging into the same story:
 
 ```ts
 import { useStoryteller } from "@lovelaces-io/storyteller";
 
-// Same instance everywhere
-const story = useStoryteller({ origin: { where: { app: "admin" } } });
-```
-
-## Structured Output
-
-Every story is a typed, serializable JSON object — designed for humans and machines:
-
-```json
-{
-  "timestamp": "2026-03-22T14:15:03.421Z",
-  "level": "oops",
-  "title": "Payment failed",
-  "origin": { "where": { "app": "checkout", "page": "Payment" } },
-  "notes": [
-    {
-      "timestamp": "2026-03-22T14:15:02.218Z",
-      "note": "User submitted payment",
-      "who": { "id": "user:413" }
-    }
-  ],
-  "error": { "name": "Error", "message": "gateway timeout" }
-}
+const story = useStoryteller({ origin: { who: "worker" } });
 ```
 
 ## Docs
 
 - [API Reference](docs/API.md) — full signatures and examples
-- [How It Works](docs/HOW-IT-WORKS.md) — narrative guide with real-world scenarios
+- [How It Works](docs/HOW-IT-WORKS.md) — narrative guide
 - [Changelog](CHANGELOG.md)
+- [For AI Agents](AGENTS.md) — guidance for AI coding assistants
 
 ## License
 

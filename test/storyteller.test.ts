@@ -220,7 +220,7 @@ describe("Storyteller", () => {
     const story = new Storyteller();
 
     story.note("one").note("two");
-    const summary = story.summarize({ title: "preview", colorize: false });
+    const summary = story.summarize({ title: "preview", colors: false });
 
     expect(summary.text).toContain("preview");
     expect(summary.data.notes.length).toBe(2);

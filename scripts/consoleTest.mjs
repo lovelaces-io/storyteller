@@ -83,7 +83,7 @@ class ConsoleTestRunner {
       title,
       level,
       error,
-      verbosity: "full",
+      detail: "full",
     });
     console.log(summary.text);
     const levelColor = getLevelColor(level);
