@@ -11,7 +11,6 @@ import {
   consoleAudience,
   dbAudience,
   formatDuration,
-  getLevelLabel,
 } from "@lovelaces-io/storyteller";
 ```
 
@@ -316,7 +315,7 @@ story.audience.add(
   })
 );
 
-// "tell" events are filtered out — only "warn" and "oops" persist
+// "Information" events are filtered out — only "Warning" and "Error" persist
 story.tell("Page loaded");           // NOT sent to db
 story.warn("Slow response");         // Sent to db
 story.oops("Crash", new Error());    // Sent to db
@@ -456,24 +455,6 @@ formatDuration(65000);  // "1m 5s"
 
 ---
 
-## getLevelLabel(level)
-
-Returns a human-readable label for a `StoryLevel` value.
-
-```ts
-getLevelLabel(level: StoryLevel): string
-```
-
-```ts
-import { getLevelLabel } from "@lovelaces-io/storyteller";
-
-getLevelLabel("tell");  // "Information"
-getLevelLabel("warn");  // "Warning"
-getLevelLabel("oops");  // "Error"
-```
-
----
-
 ## Types
 
 All types are exported from the main entry point.
@@ -481,7 +462,7 @@ All types are exported from the main entry point.
 ### StoryLevel
 
 ```ts
-type StoryLevel = "tell" | "warn" | "oops";
+type StoryLevel = "Information" | "Warning" | "Error";
 ```
 
 ### StoryContextValue
@@ -521,8 +502,7 @@ type StoryNote = {
 ```ts
 type StoryEventBase = {
   timestamp: string;
-  level: StoryLevel;
-  levelLabel: string;              // Human-readable label: "Information", "Warning", or "Error"
+  level: StoryLevel;               // "Information", "Warning", or "Error"
   title: string;
   origin?: {
     who?: StoryContextValue;

@@ -29,7 +29,7 @@ class ConsoleTestRunner {
     });
     story.note("Dashboard ready", { what: "initial render complete" });
 
-    ConsoleTestRunner.printSummary(story, "tell", "Dashboard loaded");
+    ConsoleTestRunner.printSummary(story, "Information", "Dashboard loaded");
     story.tell("Dashboard loaded");
   }
 
@@ -52,7 +52,7 @@ class ConsoleTestRunner {
       where: { component: "PaymentService" },
     });
 
-    ConsoleTestRunner.printSummary(story, "warn", "Payment gateway slow");
+    ConsoleTestRunner.printSummary(story, "Warning", "Payment gateway slow");
     story.warn("Payment gateway slow");
   }
 
@@ -74,7 +74,7 @@ class ConsoleTestRunner {
       error,
     });
 
-    ConsoleTestRunner.printSummary(story, "oops", "Failed to save profile", error);
+    ConsoleTestRunner.printSummary(story, "Error", "Failed to save profile", error);
     story.oops("Failed to save profile", error);
   }
 

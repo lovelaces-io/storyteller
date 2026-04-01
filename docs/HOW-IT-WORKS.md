@@ -317,8 +317,7 @@ Every story event is a typed, serializable JSON object. AI agents, log aggregato
 ```json
 {
   "timestamp": "2026-03-22T14:15:03.421Z",
-  "level": "oops",
-  "levelLabel": "Error",
+  "level": "Error",
   "title": "Payment failed",
   "durationMs": 1203,
   "origin": {

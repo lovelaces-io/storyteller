@@ -12,8 +12,8 @@ export const ANSI = {
 
 /** Map a story level to its corresponding ANSI terminal color */
 export function getLevelColor(level: StoryLevel): string {
-  if (level === "tell") return ANSI.green;
-  if (level === "warn") return ANSI.yellow;
+  if (level === "Information") return ANSI.green;
+  if (level === "Warning") return ANSI.yellow;
   return ANSI.red;
 }
 

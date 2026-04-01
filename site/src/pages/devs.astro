@@ -16,8 +16,7 @@ story.<span class="function">tell</span>(<span class="string">"Checkout started"
 
 const outputCode = `<span class="punctuation">{</span>
   <span class="keyword">"timestamp"</span>: <span class="string">"2026-03-31T14:30:00.000Z"</span>,
-  <span class="keyword">"level"</span>: <span class="string">"tell"</span>,
-  <span class="keyword">"levelLabel"</span>: <span class="string">"Information"</span>,
+  <span class="keyword">"level"</span>: <span class="string">"Information"</span>,
   <span class="keyword">"title"</span>: <span class="string">"Checkout started"</span>,
   <span class="keyword">"origin"</span>: <span class="punctuation">{</span> <span class="keyword">"who"</span>: <span class="string">"my-service"</span> <span class="punctuation">}</span>,
   <span class="keyword">"durationMs"</span>: <span class="type">0</span>,
@@ -78,8 +77,7 @@ console.<span class="function">log</span>(story === sameStory); <span class="com
 
 const outputReferenceCode = `<span class="punctuation">{</span>
   <span class="keyword">"timestamp"</span>: <span class="string">"2026-03-31T14:30:03.420Z"</span>,    <span class="comment">// when the story was told</span>
-  <span class="keyword">"level"</span>: <span class="string">"warn"</span>,                            <span class="comment">// tell | warn | oops</span>
-  <span class="keyword">"levelLabel"</span>: <span class="string">"Warning"</span>,                      <span class="comment">// Information | Warning | Error</span>
+  <span class="keyword">"level"</span>: <span class="string">"Warning"</span>,                         <span class="comment">// Information | Warning | Error</span>
   <span class="keyword">"title"</span>: <span class="string">"Payment retry succeeded"</span>,         <span class="comment">// the story's headline</span>
   <span class="keyword">"origin"</span>: <span class="punctuation">{</span>                                  <span class="comment">// where this story comes from</span>
     <span class="keyword">"who"</span>: <span class="string">"payment-service"</span>,
@@ -317,7 +315,6 @@ story.<span class="function">note</span>(<span class="string">\`Processed with \
           <tr><td><code>formatStory(event, options?)</code></td><td><code>FormattedReport</code></td><td>Format a story event as human-readable text</td></tr>
           <tr><td><code>writeStoryReport(stories[], options?)</code></td><td><code>string</code></td><td>Format multiple stories grouped by day</td></tr>
           <tr><td><code>formatDuration(ms)</code></td><td><code>string</code></td><td>Convert milliseconds to human duration (e.g. "3.4s")</td></tr>
-          <tr><td><code>getLevelLabel(level)</code></td><td><code>string</code></td><td>Translate level to readable label (tell="Information", warn="Warning", oops="Error")</td></tr>
         </tbody>
       </table>
 

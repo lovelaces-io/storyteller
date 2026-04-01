@@ -9,15 +9,15 @@ describe("ANSI", () => {
 
 describe("getLevelColor", () => {
   it("returns green for tell", () => {
-    expect(getLevelColor("tell")).toBe(ANSI.green);
+    expect(getLevelColor("Information")).toBe(ANSI.green);
   });
 
   it("returns yellow for warn", () => {
-    expect(getLevelColor("warn")).toBe(ANSI.yellow);
+    expect(getLevelColor("Warning")).toBe(ANSI.yellow);
   });
 
   it("returns red for oops", () => {
-    expect(getLevelColor("oops")).toBe(ANSI.red);
+    expect(getLevelColor("Error")).toBe(ANSI.red);
   });
 });
 

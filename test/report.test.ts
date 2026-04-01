@@ -1,14 +1,12 @@
 import { describe, it, expect } from "vitest";
-import type { StoryEventBase, StoryLevel } from "../src/storyteller";
-import { formatStory, getLevelLabel } from "../src/formatting";
+import type { StoryEventBase } from "../src/storyteller";
+import { formatStory } from "../src/formatting";
 import { writeStoryReport } from "../src/report/writeStoryReport";
 
 function makeEvent(overrides: Partial<StoryEventBase> = {}): StoryEventBase {
-  const level: StoryLevel = (overrides.level as StoryLevel) ?? "tell";
   return {
     timestamp: "2026-03-31T14:30:00.000Z",
-    level,
-    levelLabel: getLevelLabel(level),
+    level: "Information",
     title: "Test story",
     notes: [],
     ...overrides,
@@ -21,7 +19,7 @@ describe("summarizeStory", () => {
 
     expect(result.text).toContain("Test story");
     expect(result.data.title).toBe("Test story");
-    expect(result.data.level).toBe("tell");
+    expect(result.data.level).toBe("Information");
   });
 
   it("includes notes in output", () => {
@@ -81,7 +79,7 @@ describe("summarizeStory", () => {
 
   it("includes error in output", () => {
     const event = makeEvent({
-      level: "oops",
+      level: "Error",
       error: { name: "TypeError", message: "null reference" },
     });
     const result = formatStory(event, { colors: false });

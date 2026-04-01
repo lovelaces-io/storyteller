@@ -49,7 +49,7 @@ describe("Story record (what gets stored)", () => {
 
     // Structure assertions
     expect(record.timestamp).toBeDefined();
-    expect(record.level).toBe("tell");
+    expect(record.level).toBe("Information");
     expect(record.title).toBe("Checkout started");
     expect(record.origin).toEqual({
       who: "payment-service",
@@ -89,7 +89,7 @@ describe("Story record (what gets stored)", () => {
     console.log(JSON.stringify(record, null, 2));
     console.log("=== END ===\n");
 
-    expect(record.level).toBe("oops");
+    expect(record.level).toBe("Error");
     expect(record.error).toBeDefined();
     expect(record.error.name).toBe("Error");
     expect(record.error.message).toBe("Checkout error");
@@ -116,7 +116,7 @@ describe("Story record (what gets stored)", () => {
     console.log("=== END ===\n");
 
     expect(record.origin).toBeUndefined();
-    expect(record.level).toBe("warn");
+    expect(record.level).toBe("Warning");
   });
 
   it("baseline: minimal tell (no notes, no origin)", async () => {
@@ -134,8 +134,8 @@ describe("Story record (what gets stored)", () => {
     console.log("=== END ===\n");
 
     // The absolute minimum shape
-    expect(Object.keys(record).sort()).toEqual(["level", "levelLabel", "notes", "timestamp", "title"]);
-    expect(record.levelLabel).toBe("Information");
+    expect(Object.keys(record).sort()).toEqual(["level", "notes", "timestamp", "title"]);
+    expect(record.level).toBe("Information");
     expect(record.notes).toEqual([]);
   });
 });
@@ -145,8 +145,7 @@ describe("Report output (what gets printed)", () => {
     const report = formatStory(
       {
         timestamp: "2026-03-31T14:30:00.000Z",
-        level: "warn",
-        levelLabel: "Warning",
+        level: "Warning",
         title: "Payment retry succeeded on second attempt",
         origin: { who: "payment-service", where: { app: "web", page: "checkout" } },
         notes: [
@@ -194,15 +193,13 @@ describe("Report output (what gets printed)", () => {
     const stories = [
       {
         timestamp: "2026-03-31T10:00:00.000Z",
-        level: "tell" as const,
-        levelLabel: "Information",
+        level: "Information" as const,
         title: "User logged in",
         notes: [{ timestamp: "2026-03-31T10:00:00.000Z", note: "OAuth flow completed" }],
       },
       {
         timestamp: "2026-03-31T10:05:00.000Z",
-        level: "warn" as const,
-        levelLabel: "Warning",
+        level: "Warning" as const,
         title: "Slow query detected",
         notes: [
           { timestamp: "2026-03-31T10:05:00.000Z", note: "Query started" },
@@ -211,8 +208,7 @@ describe("Report output (what gets printed)", () => {
       },
       {
         timestamp: "2026-03-31T15:30:00.000Z",
-        level: "oops" as const,
-        levelLabel: "Error",
+        level: "Error" as const,
         title: "Background job failed",
         notes: [],
         error: { name: "TimeoutError", message: "Job exceeded 30s limit" },

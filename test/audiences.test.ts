@@ -18,7 +18,7 @@ describe("dbAudience", () => {
     await tick();
 
     expect(events.length).toBe(1);
-    expect(events[0]!.level).toBe("warn");
+    expect(events[0]!.level).toBe("Warning");
   });
 
   it("accepts oops events", async () => {
@@ -30,7 +30,7 @@ describe("dbAudience", () => {
     await tick();
 
     expect(events.length).toBe(1);
-    expect(events[0]!.level).toBe("oops");
+    expect(events[0]!.level).toBe("Error");
   });
 
   it("rejects tell events", async () => {

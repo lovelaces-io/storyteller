@@ -52,13 +52,13 @@ story.tell("Startup complete");
 - `getLevelColor(level)` — get the ANSI color for a story level
 - `formatOrigin(origin?)` — format an origin object as a readable string
 - `formatDuration(ms)` — format a duration in milliseconds as a human-readable string
-- `getLevelLabel(level)` — get the human-readable label for a story level (e.g., "Information", "Warning", "Error")
+
 
 ### Types
 
-- `StoryLevel` — `"tell" | "warn" | "oops"`
+- `StoryLevel` — `"Information" | "Warning" | "Error"`
 - `StoryNote` — timestamped note with optional context
-- `StoryEventBase` — core event structure (timestamp, level, levelLabel, title, origin, notes, error)
+- `StoryEventBase` — core event structure (timestamp, level, title, origin, notes, durationMs, error)
 - `StoryEvent` — event with attached `.summarize()` method
 - `AudienceMember` — audience interface (name, accepts?, hear)
 - `FormattedReport` — formatted report result (text + structured data)

@@ -1,5 +1,5 @@
 import type { StoryEventBase } from "../storyteller";
-import { formatStory, getLevelLabel } from "../formatting";
+import { formatStory } from "../formatting";
 import { ANSI, getLevelColor, formatOrigin, colorizeJsonSections } from "../utils";
 
 export type StoryReportOptions = {
@@ -82,7 +82,7 @@ export function writeStoryReport(
 
       const duration = data.duration ? ` (${data.duration})` : "";
       lines.push(`${label("Story")}: ${story.title}`);
-      lines.push(`${label("Level")}: ${getLevelLabel(story.level)}`);
+      lines.push(`${label("Level")}: ${story.level}`);
       lines.push(`${label("Time")}: ${data.when}${duration}`);
 
       if (originLabel) {

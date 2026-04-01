@@ -1,7 +1,11 @@
 import { consoleAudience } from "./audiences/consoleAudience";
-import { formatStory, getLevelLabel } from "./formatting";
+import { formatStory } from "./formatting";
 
-export type StoryLevel = "tell" | "warn" | "oops";
+/** Internal method identifiers — mapped to human-readable labels in the stored record */
+type StoryMethod = "tell" | "warn" | "oops";
+
+/** Human-readable level labels stored in story records */
+export type StoryLevel = "Information" | "Warning" | "Error";
 
 export type StoryContextValue = Record<string, unknown> | string;
 
@@ -24,7 +28,6 @@ export type StoryNote = {
 export type StoryEventBase = {
   timestamp: string;
   level: StoryLevel;
-  levelLabel: string;
   title: string;
 
   origin?: {
@@ -209,14 +212,13 @@ export class Storyteller {
   summarize(options: PreviewOptions = {}) {
     const {
       title = "Story preview",
-      level = "tell",
+      level = "Information",
       error,
       ...reportOptions
     } = options;
     const event: StoryEventBase = {
       timestamp: new Date().toISOString(),
       level,
-      levelLabel: getLevelLabel(level),
       title,
       ...(this.origin ? { origin: this.origin } : {}),
       notes: [...this.notes],
@@ -242,8 +244,8 @@ export class Storyteller {
   }
 
   /** Build a story event and schedule delivery, returning a handle to override the audience list */
-  private createDelivery(level: StoryLevel, title: string, error?: unknown) {
-    const event = this.buildEvent(level, title, error);
+  private createDelivery(method: StoryMethod, title: string, error?: unknown) {
+    const event = this.buildEvent(method, title, error);
 
     let delivered = false;
     let defaultCancelled = false;
@@ -266,8 +268,9 @@ export class Storyteller {
   }
 
   /** Assemble the story event from current notes and clear notes for the next story */
-  private buildEvent(level: StoryLevel, title: string, error?: unknown): StoryEvent {
+  private buildEvent(method: StoryMethod, title: string, error?: unknown): StoryEvent {
     const now = new Date().toISOString();
+    const level = methodToLevel(method);
 
     // Sort notes chronologically so the record tells the story in order
     const sortedNotes = [...this.notes].sort(
@@ -282,7 +285,6 @@ export class Storyteller {
     const event: StoryEventBase = {
       timestamp: now,
       level,
-      levelLabel: getLevelLabel(level),
       title,
       ...(this.origin ? { origin: this.origin } : {}),
       notes: sortedNotes,
@@ -311,6 +313,13 @@ export class Storyteller {
         .map((member) => member.hear(event))
     );
   }
+}
+
+/** Map internal method names to human-readable level labels */
+function methodToLevel(method: StoryMethod): StoryLevel {
+  if (method === "tell") return "Information";
+  if (method === "warn") return "Warning";
+  return "Error";
 }
 
 /** Convert an unknown error value into a serializable StoryError object */

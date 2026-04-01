@@ -26,8 +26,7 @@ Zero dependencies. TypeScript-first. One record per story.
 
 ```json
 {
-  "level": "warn",
-  "levelLabel": "Warning",
+  "level": "Warning",
   "title": "Payment retry succeeded",
   "durationMs": 4000,
   "notes": [

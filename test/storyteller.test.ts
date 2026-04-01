@@ -71,7 +71,7 @@ describe("Storyteller", () => {
     await tick();
 
     expect(events.length).toBe(1);
-    expect(events[0]!.level).toBe("tell");
+    expect(events[0]!.level).toBe("Information");
     expect(events[0]!.title).toBe("success story");
   });
 
@@ -83,7 +83,7 @@ describe("Storyteller", () => {
     await tick();
 
     expect(events.length).toBe(1);
-    expect(events[0]!.level).toBe("warn");
+    expect(events[0]!.level).toBe("Warning");
   });
 
   it("oops() delivers with oops level and attaches error", async () => {
@@ -95,7 +95,7 @@ describe("Storyteller", () => {
     await tick();
 
     expect(events.length).toBe(1);
-    expect(events[0]!.level).toBe("oops");
+    expect(events[0]!.level).toBe("Error");
     expect(events[0]!.error?.message).toBe("boom");
     expect(events[0]!.error?.name).toBe("Error");
     expect(events[0]!.error?.stack).toBeDefined();
@@ -250,7 +250,7 @@ describe("Storyteller", () => {
     const story = new Storyteller();
     story.audience.add({
       name: "warns-only",
-      accepts: (event) => event.level === "warn",
+      accepts: (event) => event.level === "Warning",
       hear: (e) => { events.push(e); },
     });
 

@@ -21,7 +21,7 @@ import type { AudienceMember, StoryEvent } from "../storyteller";
 export function dbAudience(insert: (event: StoryEvent) => Promise<void> | void): AudienceMember {
   return {
     name: "db",
-    accepts: (event) => event.level === "warn" || event.level === "oops",
+    accepts: (event) => event.level === "Warning" || event.level === "Error",
     hear: async (event) => {
       await insert(event);
     },

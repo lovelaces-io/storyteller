@@ -17,9 +17,9 @@ export function consoleAudience(): AudienceMember {
       const prefix = "Storyteller";
 
       const style =
-        event.level === "tell"
+        event.level === "Information"
           ? "color:#16a34a;font-weight:600"
-          : event.level === "warn"
+          : event.level === "Warning"
           ? "color:#f59e0b;font-weight:600"
           : "color:#dc2626;font-weight:600";
 
@@ -29,9 +29,9 @@ export function consoleAudience(): AudienceMember {
 
       const payload = JSON.stringify(event, null, 2);
 
-      if (event.level === "tell") {
+      if (event.level === "Information") {
         console.log(header, payload);
-      } else if (event.level === "warn") {
+      } else if (event.level === "Warning") {
         console.warn(header, payload);
       } else {
         console.error(header, payload);
