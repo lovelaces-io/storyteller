@@ -1,5 +1,5 @@
 import { describe, it } from "vitest";
-import { Storyteller } from "@lovelaces-io/storyteller";
+import { Storyteller } from "../src/index.js";
 
 describe("Storyteller smoke", () => {
   it("instantiates and logs", () => {
