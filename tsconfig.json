@@ -9,6 +9,9 @@
     "sourceMap": true,
     "strict": true,
     "skipLibCheck": true,
+    "paths": {
+      "@lovelaces-io/storyteller": ["./src/index.ts"]
+    },
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true
   },
