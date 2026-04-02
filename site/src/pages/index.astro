@@ -1,0 +1,186 @@
+---
+import Base from '../layouts/Base.astro';
+import Terminal from '../components/Terminal.astro';
+
+const beforeCode = `<span class="comment">[14:30:00]</span> User clicked checkout
+<span class="comment">[14:30:00]</span> Validating cart...
+<span class="comment">[14:30:01]</span> Cart valid
+<span class="comment">[14:30:01]</span> Charging card...
+<span class="comment">[14:30:03]</span> <span class="string">ERROR: gateway timeout</span>
+<span class="comment">[14:30:03]</span> Retrying...
+<span class="comment">[14:30:04]</span> Charge succeeded
+<span class="comment">[14:30:04]</span> Order confirmed`;
+
+const afterCode = `<span class="punctuation">{</span>
+  <span class="keyword">"level"</span>: <span class="string">"Warning"</span>,
+  <span class="keyword">"title"</span>: <span class="string">"Payment retry succeeded"</span>,
+  <span class="keyword">"durationMs"</span>: <span class="type">4000</span>,
+  <span class="keyword">"notes"</span>: <span class="punctuation">[</span>
+    <span class="punctuation">{</span> <span class="keyword">"timestamp"</span>: <span class="string">"14:30:00"</span>, <span class="keyword">"note"</span>: <span class="string">"User clicked checkout"</span> <span class="punctuation">}</span>,
+    <span class="punctuation">{</span> <span class="keyword">"timestamp"</span>: <span class="string">"14:30:01"</span>, <span class="keyword">"note"</span>: <span class="string">"Cart validated"</span> <span class="punctuation">}</span>,
+    <span class="punctuation">{</span> <span class="keyword">"timestamp"</span>: <span class="string">"14:30:03"</span>, <span class="keyword">"note"</span>: <span class="string">"Card declined"</span>,
+      <span class="keyword">"error"</span>: <span class="punctuation">{</span> <span class="keyword">"message"</span>: <span class="string">"gateway timeout"</span> <span class="punctuation">}</span> <span class="punctuation">}</span>,
+    <span class="punctuation">{</span> <span class="keyword">"timestamp"</span>: <span class="string">"14:30:04"</span>, <span class="keyword">"note"</span>: <span class="string">"Retry succeeded"</span> <span class="punctuation">}</span>
+  <span class="punctuation">]</span>
+<span class="punctuation">}</span>`;
+
+const checkoutCode = `<span class="keyword">import</span> <span class="punctuation">{</span> Storyteller, dbAudience <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller"</span>;
+
+<span class="keyword">const</span> story = <span class="keyword">new</span> <span class="function">Storyteller</span>(<span class="punctuation">{</span>
+  origin: <span class="punctuation">{</span> who: <span class="string">"checkout-service"</span>, where: <span class="punctuation">{</span> app: <span class="string">"web"</span> <span class="punctuation">}</span> <span class="punctuation">}</span>,
+<span class="punctuation">}</span>);
+
+<span class="comment">// Store warnings and errors in your database</span>
+story.audience.<span class="function">add</span>(
+  <span class="function">dbAudience</span>(<span class="keyword">async</span> (event) => <span class="keyword">await</span> db.<span class="function">insert</span>(<span class="string">"logs"</span>, event))
+);
+
+<span class="comment">// Collect notes as the operation progresses</span>
+story.<span class="function">note</span>(<span class="string">"User submitted payment"</span>, <span class="punctuation">{</span>
+  who: <span class="punctuation">{</span> id: <span class="string">"user:413"</span> <span class="punctuation">}</span>,
+  what: <span class="punctuation">{</span> amount: <span class="type">49.99</span>, currency: <span class="string">"USD"</span> <span class="punctuation">}</span>,
+<span class="punctuation">}</span>);
+
+story.<span class="function">note</span>(<span class="string">"Charging card"</span>, <span class="punctuation">{</span> where: <span class="string">"stripe"</span> <span class="punctuation">}</span>);
+story.<span class="function">note</span>(<span class="string">"Payment approved"</span>);
+
+<span class="comment">// Tell the story — one record, delivered to all audiences</span>
+story.<span class="function">tell</span>(<span class="string">"Payment completed"</span>);`;
+---
+
+<Base title="Storyteller — Your logs should tell a story" path="/">
+
+<!-- Hero -->
+<section style="padding-top: 6rem; padding-bottom: 4rem; text-align: center;">
+  <div class="container">
+    <p style="font-family: var(--font-mono); color: var(--green); font-size: 0.9rem; margin-bottom: 1rem;">@lovelaces-io/storyteller</p>
+    <h1>Your logs should tell a story<span class="cursor"></span></h1>
+    <p style="font-size: 1.2rem; color: var(--text-muted); max-width: 600px; margin: 1.5rem auto;">
+      Collect notes as things happen. Emit one structured record when the story is complete. Zero dependencies.
+    </p>
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem;">
+      <div class="install-cmd">
+        <span class="prompt">$</span> npm install @lovelaces-io/storyteller
+      </div>
+    </div>
+    <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
+      <a href="/docs" class="btn btn-primary">Get Started</a>
+      <a href="https://github.com/lovelaces-io/storyteller" class="btn btn-ghost">GitHub</a>
+    </div>
+  </div>
+</section>
+
+<!-- The Problem -->
+<section>
+  <div class="container">
+    <h2>Ever stared at scattered logs trying to figure out what happened?</h2>
+    <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
+      Traditional logging gives you a pile of disconnected lines. Storyteller gives you one record that tells the whole story.
+    </p>
+
+    <div class="comparison">
+      <div>
+        <p class="comparison-label level-oops">Before: scattered logs</p>
+        <Terminal title="console" code={beforeCode} />
+      </div>
+
+      <div>
+        <p class="comparison-label level-tell">After: one story</p>
+        <Terminal title="story record" code={afterCode} />
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section>
+  <div class="container">
+    <h2>How it works</h2>
+    <p style="color: var(--text-muted); margin-top: 0.5rem;">Three steps. That's it.</p>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <h3>Collect notes</h3>
+        <p>Add timestamped notes as things happen. Attach context — who, what, where, errors.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <h3>Tell the story</h3>
+        <p>Call <code>tell()</code>, <code>warn()</code>, or <code>oops()</code> when the operation is done.</p>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <h3>One record, anywhere</h3>
+        <p>Audiences hear the story — console prints it, database stores it, your custom handler does whatever you need.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Code Example -->
+<section>
+  <div class="container">
+    <h2>See it in action</h2>
+    <p style="color: var(--text-muted); margin-top: 0.5rem; margin-bottom: 2rem;">A real-world example: tracking a payment flow.</p>
+
+    <Terminal title="checkout.ts" code={checkoutCode} />
+  </div>
+</section>
+
+<!-- Features -->
+<section>
+  <div class="container">
+    <h2>Built for developers who care about their logs</h2>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <h3>Zero Dependencies</h3>
+        <p>Nothing to install besides Storyteller. Lightweight by design, stays out of your way.</p>
+      </div>
+      <div class="feature-card">
+        <h3>TypeScript-First</h3>
+        <p>Full type safety, declaration files, and IntelliSense. Dual ESM + CJS builds.</p>
+      </div>
+      <div class="feature-card">
+        <h3>One Record Per Story</h3>
+        <p>Notes are collected and emitted as a single structured JSON record. Store it, search it, read it.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Pluggable Audiences</h3>
+        <p>Console, database, Slack, custom — stories go where you need them. Add your own in 5 lines.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Three Levels</h3>
+        <p>
+          <span class="level-dot tell"></span><span class="level-tell">tell</span> — all good.
+          <span class="level-dot warn"></span><span class="level-warn">warn</span> — heads up.
+          <span class="level-dot oops"></span><span class="level-oops">oops</span> — something broke.
+        </p>
+      </div>
+      <div class="feature-card">
+        <h3>AI-Friendly</h3>
+        <p>Structured JSON output, clear types, <a href="/llms.txt">llms.txt</a> included. Built for humans and agents alike.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Install -->
+<section style="text-align: center;">
+  <div class="container">
+    <h2>Ready to tell better stories?</h2>
+    <p style="color: var(--text-muted); margin-top: 0.5rem; margin-bottom: 2rem;">Install and start logging in under a minute.</p>
+
+    <div class="install-cmd" style="font-size: 1.1rem;">
+      <span class="prompt">$</span> npm install @lovelaces-io/storyteller
+    </div>
+
+    <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+      <a href="/docs" class="btn btn-primary">Read the Docs</a>
+      <a href="https://github.com/lovelaces-io/storyteller" class="btn btn-ghost">View on GitHub</a>
+    </div>
+  </div>
+</section>
+
+</Base>
