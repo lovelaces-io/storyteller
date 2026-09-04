@@ -1,10 +1,11 @@
-import type { StoryEventBase } from "./storyteller";
+import type { NarrationInput, StoryOriginInput } from "./storyteller";
 import { Storyteller } from "./storyteller";
 
 let sharedInstance: Storyteller | undefined;
 
 type StorytellerSharedOptions = {
-  origin?: StoryEventBase["origin"];
+  origin?: StoryOriginInput;
+  narration?: NarrationInput;
   reset?: boolean;
 };
 
@@ -25,7 +26,10 @@ export function useStoryteller(
   options: StorytellerSharedOptions = {}
 ): Storyteller {
   if (!sharedInstance || options.reset) {
-    sharedInstance = new Storyteller({ origin: options.origin });
+    sharedInstance = new Storyteller({
+      ...(options.origin !== undefined ? { origin: options.origin } : {}),
+      ...(options.narration !== undefined ? { narration: options.narration } : {}),
+    });
     return sharedInstance;
   }
 

@@ -41,9 +41,9 @@ describe("formatOrigin", () => {
     expect(result).toBe("web / api / home / header");
   });
 
-  it("skips falsy values in record", () => {
+  it("skips null values in record", () => {
     const result = formatOrigin({
-      where: { app: "web", service: undefined, page: "home" },
+      where: { app: "web", service: null, page: "home" },
     });
     expect(result).toBe("web / home");
   });

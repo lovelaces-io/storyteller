@@ -8,7 +8,7 @@ function createTestStoryteller() {
   const events: StoryEvent[] = [];
   const audience: AudienceMember = {
     name: "spy",
-    hear: (event) => { events.push(event); },
+    hear: (event) => { if (event.kind === "story") events.push(event); },
   };
   const story = new Storyteller();
   story.audience.add(audience);
@@ -118,7 +118,11 @@ describe("Storyteller", () => {
     story.oops("chained", error);
     await tick();
 
-    expect(events[0]!.error?.cause).toBe(cause);
+    // The cause chain is normalized so it survives JSON.stringify — a raw Error
+    // serializes to {} and the cause would be lost in a stored record.
+    expect(events[0]!.error?.cause).toEqual(
+      expect.objectContaining({ name: "Error", message: "root cause" })
+    );
   });
 
   it(".to() targets specific audiences by name", async () => {
@@ -126,8 +130,8 @@ describe("Storyteller", () => {
     const spyB: StoryEvent[] = [];
 
     const story = new Storyteller();
-    story.audience.add({ name: "a", hear: (e) => { spyA.push(e); } });
-    story.audience.add({ name: "b", hear: (e) => { spyB.push(e); } });
+    story.audience.add({ name: "a", hear: (e) => { if (e.kind === "story") spyA.push(e); } });
+    story.audience.add({ name: "b", hear: (e) => { if (e.kind === "story") spyB.push(e); } });
 
     story.note("targeted");
     story.tell("only for a").to("a");
@@ -142,7 +146,7 @@ describe("Storyteller", () => {
     const story = new Storyteller({
       origin: { who: "test-service", where: "checkout" },
     });
-    story.audience.add({ name: "spy", hear: (e) => { events.push(e); } });
+    story.audience.add({ name: "spy", hear: (e) => { if (e.kind === "story") events.push(e); } });
 
     story.tell("with origin");
     await tick();
@@ -227,7 +231,7 @@ describe("Storyteller", () => {
 
     // Notes should still be there for the next tell
     const events: StoryEvent[] = [];
-    story.audience.add({ name: "spy", hear: (e) => { events.push(e); } });
+    story.audience.add({ name: "spy", hear: (e) => { if (e.kind === "story") events.push(e); } });
     story.tell("after summarize");
     await tick();
 
@@ -251,7 +255,7 @@ describe("Storyteller", () => {
     story.audience.add({
       name: "warns-only",
       accepts: (event) => event.level === "Warning",
-      hear: (e) => { events.push(e); },
+      hear: (e) => { if (e.kind === "story") events.push(e); },
     });
 
     story.tell("ignored");
@@ -270,7 +274,7 @@ describe("Storyteller", () => {
       name: "slow",
       hear: async (e) => {
         await new Promise((resolve) => setTimeout(resolve, 10));
-        events.push(e);
+        if (e.kind === "story") events.push(e);
       },
     });
 
@@ -288,8 +292,8 @@ describe("AudienceRegistry", () => {
     const eventsB: StoryEvent[] = [];
 
     const story = new Storyteller();
-    story.audience.add({ name: "test", hear: (e) => { eventsA.push(e); } });
-    story.audience.add({ name: "test", hear: (e) => { eventsB.push(e); } });
+    story.audience.add({ name: "test", hear: (e) => { if (e.kind === "story") eventsA.push(e); } });
+    story.audience.add({ name: "test", hear: (e) => { if (e.kind === "story") eventsB.push(e); } });
 
     story.tell("replaced");
     await tick();
@@ -301,7 +305,7 @@ describe("AudienceRegistry", () => {
   it("remove() stops delivery to that audience", async () => {
     const events: StoryEvent[] = [];
     const story = new Storyteller();
-    story.audience.add({ name: "removable", hear: (e) => { events.push(e); } });
+    story.audience.add({ name: "removable", hear: (e) => { if (e.kind === "story") events.push(e); } });
     story.audience.remove("removable");
 
     story.tell("after remove");
