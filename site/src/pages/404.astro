@@ -1,0 +1,16 @@
+---
+import Base from "../layouts/Base.astro";
+---
+<Base title="Not found — Storyteller" description="That page isn't here." path="/404">
+  <section style="text-align: center; padding-top: 6rem;">
+    <div class="container">
+      <p class="section-label" style="display: inline-block;">404</p>
+      <h1>No story here</h1>
+      <p style="color: var(--text-muted); max-width: 40ch; margin: 1rem auto 2rem;">That page doesn't exist, or it moved. The docs start at the beginning.</p>
+      <div style="display: flex; gap: 1rem; justify-content: center;">
+        <a href="/docs" class="btn btn-primary">Getting started</a>
+        <a href="/" class="btn btn-ghost">Home</a>
+      </div>
+    </div>
+  </section>
+</Base>

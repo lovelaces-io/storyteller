@@ -36,19 +36,31 @@ const sections = [
       { href: "/docs/api", label: "API" },
       { href: "/docs/examples", label: "Examples" },
       { href: "/docs/migration", label: "Migrating from 0.2" },
+      { href: "/docs/faq", label: "FAQ" },
     ],
   },
 ];
 
 const flat = sections.flatMap((section) => section.pages);
+const current = flat.find((page) => page.href === path);
+const siteUrl = "https://storyteller.lovelaces.io";
+const schema = [
+  { "@type": "TechArticle", headline: title, description, url: `${siteUrl}${path}`, about: { "@id": `${siteUrl}/#software` }, author: { "@id": `${siteUrl}/#org` }, isPartOf: { "@id": `${siteUrl}/#site` } },
+  { "@type": "BreadcrumbList", itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Storyteller", item: siteUrl },
+      { "@type": "ListItem", position: 2, name: "Docs", item: `${siteUrl}/docs` },
+      ...(current && path !== "/docs" ? [{ "@type": "ListItem", position: 3, name: current.label, item: `${siteUrl}${path}` }] : []),
+  ] },
+];
 const currentIndex = flat.findIndex((page) => page.href === path);
 const previous = currentIndex > 0 ? flat[currentIndex - 1] : undefined;
 const next = currentIndex >= 0 && currentIndex < flat.length - 1 ? flat[currentIndex + 1] : undefined;
 ---
 
-<Base title={`${title} — Storyteller`} description={description} path={path}>
+<Base title={`${title} — Storyteller`} description={description} path={path} schema={schema}>
   <div class="container docs-layout">
     <aside class="docs-sidebar">
+      <div id="docs-search" class="docs-search"></div>
       {sections.map((section) => (
         <div class="docs-nav-group">
           <p class="docs-nav-heading">{section.heading}</p>
@@ -67,7 +79,7 @@ const next = currentIndex >= 0 && currentIndex < flat.length - 1 ? flat[currentI
       </div>
     </aside>
 
-    <article class="docs-content">
+    <article class="docs-content" data-pagefind-body>
       <slot />
 
       <AgentLinks />
@@ -78,4 +90,37 @@ const next = currentIndex >= 0 && currentIndex < flat.length - 1 ? flat[currentI
       </nav>
     </article>
   </div>
+
+  <link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
+  <script is:inline src="/pagefind/pagefind-ui.js"></script>
+  <script is:inline>
+    // Search over the built docs. Pagefind indexes dist/ after the build; in dev
+    // the assets are absent and the box simply does not appear.
+    window.addEventListener("DOMContentLoaded", () => {
+      if (window.PagefindUI) new window.PagefindUI({ element: "#docs-search", showSubResults: true, showImages: false, resetStyles: false });
+      else document.getElementById("docs-search")?.remove();
+    });
+  </script>
+  <script>
+    // Heading anchors and an on-this-page list. Runs on load; the sidebar and
+    // prev/next are server-rendered, so nothing essential depends on this.
+    const headings = [...document.querySelectorAll<HTMLHeadingElement>(".docs-content h2")];
+    const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    for (const heading of headings) {
+      heading.id ||= slug(heading.textContent ?? "");
+      const anchor = document.createElement("a");
+      anchor.href = `#${heading.id}`;
+      anchor.className = "heading-anchor";
+      anchor.setAttribute("aria-label", "Link to this section");
+      anchor.textContent = "#";
+      heading.append(anchor);
+    }
+    if (headings.length > 2) {
+      const toc = document.createElement("nav");
+      toc.className = "on-this-page";
+      toc.setAttribute("aria-label", "On this page");
+      toc.innerHTML = `<p class="docs-nav-heading">on this page</p>` + headings.map((h) => `<a href="#${h.id}">${h.firstChild?.textContent ?? h.textContent}</a>`).join("");
+      document.querySelector(".docs-sidebar")?.append(toc);
+    }
+  </script>
 </Base>

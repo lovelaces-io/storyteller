@@ -5,17 +5,43 @@ interface Props {
   title: string;
   description?: string;
   path?: string;
+  /** Extra JSON-LD objects for this page, merged into the graph */
+  schema?: Record<string, unknown>[];
 }
 
 const {
   title,
-  description = "Lightweight TypeScript logging library that treats logs as stories. Zero dependencies. One record per story.",
+  description = "Zero-dependency TypeScript logging for humans and AI agents. Report work as it happens, get one clean structured record when it's done.",
   path = "",
+  schema = [],
 } = Astro.props;
 
 const siteUrl = "https://storyteller.lovelaces.io";
 const canonicalUrl = `${siteUrl}${path}`;
 const ogImageUrl = `${siteUrl}/og-image.png`;
+
+// Structured data. Search engines and AI systems read this before they read the page.
+const graph = [
+  {
+    "@type": "SoftwareSourceCode",
+    "@id": `${siteUrl}/#software`,
+    name: "Storyteller",
+    alternateName: "@lovelaces-io/storyteller",
+    description,
+    url: siteUrl,
+    codeRepository: "https://github.com/lovelaces-io/storyteller",
+    programmingLanguage: "TypeScript",
+    runtimePlatform: "Node.js",
+    license: "https://opensource.org/licenses/MIT",
+    isAccessibleForFree: true,
+    keywords: "logging, structured logging, TypeScript, zero dependencies, AI agents, NDJSON, observability",
+    author: { "@id": `${siteUrl}/#org` },
+  },
+  { "@type": "Organization", "@id": `${siteUrl}/#org`, name: "Lovelaces", url: "https://lovelaces.io", email: "contact@lovelaces.io", logo: `${siteUrl}/lovelaces-logo.svg` },
+  { "@type": "WebSite", "@id": `${siteUrl}/#site`, url: siteUrl, name: "Storyteller", publisher: { "@id": `${siteUrl}/#org` } },
+  ...schema,
+];
+const jsonLd = JSON.stringify({ "@context": "https://schema.org", "@graph": graph });
 ---
 
 <!doctype html>
@@ -59,6 +85,8 @@ const ogImageUrl = `${siteUrl}/og-image.png`;
     <link rel="icon" type="image/svg+xml" href="/lovelaces-logo.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="sitemap" href="/sitemap-index.xml" />
+
+    <script type="application/ld+json" set:html={jsonLd} />
   </head>
   <body>
     <div class="container">
@@ -101,13 +129,14 @@ const ogImageUrl = `${siteUrl}/og-image.png`;
           <div>
             <p class="footer-heading">machines</p>
             <a href="/llms.txt">llms.txt</a>
+            <a href="/llms-full.txt">llms-full.txt</a>
             <a href="https://github.com/lovelaces-io/storyteller/blob/main/AGENTS.md">AGENTS.md</a>
             <a href="https://github.com/lovelaces-io/storyteller/blob/main/snippets/agents-section.md">Agent snippet</a>
           </div>
           <div>
             <p class="footer-heading">lovelaces</p>
             <a href="https://lovelaces.io">lovelaces.io</a>
-            <a href="mailto:hello@lovelaces.io">hello@lovelaces.io</a>
+            <a href="mailto:contact@lovelaces.io">contact@lovelaces.io</a>
           </div>
         </div>
         <p>Zero dependencies. One record per story. Happy logging.</p>

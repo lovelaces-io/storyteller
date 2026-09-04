@@ -1,0 +1,96 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is Storyteller?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "A zero-dependency TypeScript logging library. You report beats of work as they happen; when the work is done, finish() emits one structured JSON record that tells the whole story — who did it, what happened in order, how long it took, how it ended. Optionally, each beat streams live as it happens."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it really have zero dependencies?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. npm install @lovelaces-io/storyteller installs one package and nothing else. For comparison, winston and pino each declare 11 direct dependencies. Check any of these with npm view <package> dependencies."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How is it different from pino or winston?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Those are line loggers: every call produces one line, and reconstructing what happened means correlating many lines afterwards. Storyteller’s unit is the story — one record per operation, with the beats inside it, in order. It is closer to a trace than a log, but with human-readable semantics and no collector to run. Pino is faster at raw line throughput; if you need a million lines a second, use pino. If you need to know what happened, one operation at a time, use this."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is it for AI agents or for people?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Both, and that is the point. An agent’s automated run and a developer’s manual debugging session produce the same record in the same shape, so one question — “what happened to billing yesterday?” — returns both. Agents get npx storyteller init, a guidance block for AGENTS.md, llms.txt, and NDJSON output. People get live narration in the terminal and a readable report."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does it work in the browser?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "The core does — it has no Node-only imports and guards every process access. The console audience uses %c styling in browsers. The storyteller init CLI and the NDJSON audience’s stdout default are Node-only."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What does it cost?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Nothing. MIT licensed, free forever, including for commercial use. There is no hosted service and no paid tier."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is the old tell() / warn() / oops() API going away?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Deprecated in 0.3, removed at 1.0. They still work identically in the meantime. Use finish(title, { level }) and report() for new code; see migrating from 0.2."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I send stories to Discord, Slack, or my database?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes — an audience is an object with a name and a hear function. A Discord webhook audience is about fifteen lines; see Audiences. A database audience is built in."
+      }
+    }
+  ]
+};
+---
+
+<DocsLayout title="FAQ" description="Short, honest answers: what Storyteller is, how it compares to pino and winston, whether it works in the browser, what it costs, and whether AI agents can use it." path="/docs/faq">
+  <h1>Questions people ask</h1>
+  <p class="lede">Short answers. Every one of them is checkable.</p>
+  <h2>What is Storyteller?</h2>
+  <p>A zero-dependency TypeScript logging library. You report beats of work as they happen; when the work is done, <code>finish()</code> emits one structured JSON record that tells the whole story — who did it, what happened in order, how long it took, how it ended. Optionally, each beat streams live as it happens.</p>
+  <h2>Does it really have zero dependencies?</h2>
+  <p>Yes. <code>npm install @lovelaces-io/storyteller</code> installs one package and nothing else. For comparison, <code>winston</code> and <code>pino</code> each declare 11 direct dependencies. Check any of these with <code>npm view &lt;package&gt; dependencies</code>.</p>
+  <h2>How is it different from pino or winston?</h2>
+  <p>Those are line loggers: every call produces one line, and reconstructing what happened means correlating many lines afterwards. Storyteller’s unit is the <em>story</em> — one record per operation, with the beats inside it, in order. It is closer to a trace than a log, but with human-readable semantics and no collector to run. Pino is faster at raw line throughput; if you need a million lines a second, use pino. If you need to know what happened, one operation at a time, use this.</p>
+  <h2>Is it for AI agents or for people?</h2>
+  <p>Both, and that is the point. An agent’s automated run and a developer’s manual debugging session produce the same record in the same shape, so one question — “what happened to billing yesterday?” — returns both. Agents get <code>npx storyteller init</code>, a guidance block for <code>AGENTS.md</code>, <code>llms.txt</code>, and NDJSON output. People get live narration in the terminal and a readable report.</p>
+  <h2>Does it work in the browser?</h2>
+  <p>The core does — it has no Node-only imports and guards every <code>process</code> access. The console audience uses <code>%c</code> styling in browsers. The <code>storyteller init</code> CLI and the NDJSON audience’s stdout default are Node-only.</p>
+  <h2>What does it cost?</h2>
+  <p>Nothing. MIT licensed, free forever, including for commercial use. There is no hosted service and no paid tier.</p>
+  <h2>Is the old tell() / warn() / oops() API going away?</h2>
+  <p>Deprecated in 0.3, removed at 1.0. They still work identically in the meantime. Use <code>finish(title, &#123; level &#125;)</code> and <code>report()</code> for new code; see <a href="/docs/migration">migrating from 0.2</a>.</p>
+  <h2>Can I send stories to Discord, Slack, or my database?</h2>
+  <p>Yes — an audience is an object with a name and a <code>hear</code> function. A Discord webhook audience is about fifteen lines; see <a href="/docs/audiences">Audiences</a>. A database audience is built in.</p>
+</DocsLayout>
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify(faqSchema)} />
