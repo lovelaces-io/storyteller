@@ -39,3 +39,6 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Build site
+        run: npm ci --prefix site && npm run build --prefix site
