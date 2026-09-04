@@ -1,6 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
 import Terminal from '../components/Terminal.astro';
+import Transform from "../components/Transform.astro";
+import { liveCode, anythingCode, discordCode } from "../content/samples";
 
 const beforeCode = `<span class="comment">[14:30:00]</span> User clicked checkout
 <span class="comment">[14:30:00]</span> Validating cart...
@@ -35,17 +37,30 @@ story.audience.<span class="function">add</span>(
   <span class="function">dbAudience</span>(<span class="keyword">async</span> (event) => <span class="keyword">await</span> db.<span class="function">insert</span>(<span class="string">"logs"</span>, event))
 );
 
-<span class="comment">// Collect notes as the operation progresses</span>
-story.<span class="function">note</span>(<span class="string">"User submitted payment"</span>, <span class="punctuation">{</span>
+<span class="comment">// Report each beat as it happens</span>
+story.<span class="function">report</span>(<span class="string">"User submitted payment"</span>, <span class="punctuation">{</span>
   who: <span class="punctuation">{</span> id: <span class="string">"user:413"</span> <span class="punctuation">}</span>,
   what: <span class="punctuation">{</span> amount: <span class="type">49.99</span>, currency: <span class="string">"USD"</span> <span class="punctuation">}</span>,
 <span class="punctuation">}</span>);
 
-story.<span class="function">note</span>(<span class="string">"Charging card"</span>, <span class="punctuation">{</span> where: <span class="string">"stripe"</span> <span class="punctuation">}</span>);
-story.<span class="function">note</span>(<span class="string">"Payment approved"</span>);
+story.<span class="function">report</span>(<span class="string">"Charging card"</span>, <span class="punctuation">{</span> where: <span class="string">"stripe"</span> <span class="punctuation">}</span>);
+story.<span class="function">report</span>(<span class="keyword">await</span> gateway.<span class="function">charge</span>(payment));
 
-<span class="comment">// Tell the story — one record, delivered to all audiences</span>
-story.<span class="function">tell</span>(<span class="string">"Payment completed"</span>);`;
+<span class="comment">// Finish — one record, delivered to every audience</span>
+story.<span class="function">finish</span>(<span class="string">"Payment completed"</span>);`;
+
+const heroBefore = [
+  '<span class="comment">[14:30:00]</span> User clicked checkout',
+  '<span class="comment">[14:30:00]</span> Validating cart...',
+  '<span class="comment">[14:30:01]</span> Cart valid',
+  '<span class="comment">[14:30:01]</span> Charging card...',
+  '<span class="comment">[14:30:03]</span> <span class="level-oops">ERROR: gateway timeout</span>',
+  '<span class="comment">[14:30:03]</span> Retrying...',
+  '<span class="comment">[14:30:04]</span> Charge succeeded',
+  '<span class="comment">[14:30:04]</span> Order confirmed',
+];
+
+
 ---
 
 <Base title="Storyteller — Your logs should tell a story" path="/">
@@ -56,16 +71,28 @@ story.<span class="function">tell</span>(<span class="string">"Payment completed
     <p style="font-family: var(--font-mono); color: var(--green); font-size: 0.9rem; margin-bottom: 1rem;">@lovelaces-io/storyteller</p>
     <h1>Your logs should tell a story<span class="cursor"></span></h1>
     <p style="font-size: 1.2rem; color: var(--text-muted); max-width: 600px; margin: 1.5rem auto;">
-      Collect notes as things happen. Emit one structured record when the story is complete. Zero dependencies.
+      Report work as it happens. Get one clean record when it's done. For the humans and the agents doing the work — with zero dependencies.
     </p>
-    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem;">
+
+    <div style="max-width: 720px; margin: 2.5rem auto 0; text-align: left;">
+      <Transform before={heroBefore} after={afterCode} />
+    </div>
+
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2.5rem;">
       <div class="install-cmd">
-        <span class="prompt">$</span> npm install @lovelaces-io/storyteller
+        <span class="prompt">$</span> npx storyteller init
+        <button class="copy-btn" type="button" data-copy="npx storyteller init">copy</button>
       </div>
     </div>
     <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
       <a href="/docs" class="btn btn-primary">Get Started</a>
       <a href="https://github.com/lovelaces-io/storyteller" class="btn btn-ghost">GitHub</a>
+    </div>
+    <div class="stats-line">
+      <span>0 dependencies</span>
+      <span>TypeScript-first</span>
+      <span>ESM + CJS</span>
+      <span>MIT</span>
     </div>
   </div>
 </section>
@@ -73,6 +100,7 @@ story.<span class="function">tell</span>(<span class="string">"Payment completed
 <!-- The Problem -->
 <section>
   <div class="container">
+    <span class="section-label comment">before / after</span>
     <h2>Ever stared at scattered logs trying to figure out what happened?</h2>
     <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
       Traditional logging gives you a pile of disconnected lines. Storyteller gives you one record that tells the whole story.
@@ -92,27 +120,69 @@ story.<span class="function">tell</span>(<span class="string">"Payment completed
   </div>
 </section>
 
+<!-- Live narration -->
+<section>
+  <div class="container">
+    <span class="section-label">STORYTELLER_NARRATION=live</span>
+    <h2>Or watch it happen</h2>
+    <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
+      Collecting the whole story and emitting it at the end is right for an audit record. It's wrong when the work takes forty seconds and someone — a person, or an agent — wants to know what's going on <em>right now</em>.
+    </p>
+
+    <div style="margin-top: 2rem;">
+      <div class="install-cmd" style="margin-bottom: 1.5rem;">
+        <span class="prompt">$</span> STORYTELLER_NARRATION=live node sync.js
+      </div>
+      <Terminal title="live" code={liveCode} live={true} />
+    </div>
+
+    <p style="color: var(--text-muted); margin-top: 1.5rem; max-width: 650px;">
+      Every beat carries a <code>storyId</code> and a gap-free <code>sequence</code>, so whoever holds the stream can rebuild exactly the record the collected mode would have produced. Nothing is lost either way.
+    </p>
+  </div>
+</section>
+
+<!-- Feed it anything -->
+<section>
+  <div class="container">
+    <span class="section-label comment">report(anything)</span>
+    <h2>Hand it anything</h2>
+    <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
+      No pre-flattening. No defensive stringifying. <code>report()</code> takes any value and stores clean JSON.
+    </p>
+
+    <div style="margin-top: 2rem;">
+      <Terminal title="anything.ts" code={anythingCode} />
+    </div>
+
+    <p style="color: var(--text-muted); margin-top: 1.5rem; max-width: 650px;">
+      Errors keep their <code>cause</code> chain. Circular references become <code>[Circular → path]</code>. Oversized values get an explicit truncation marker instead of vanishing. Secret-looking keys are redacted. The normalizer never throws — a hostile object can't break your logging.
+    </p>
+  </div>
+</section>
+
 <!-- How It Works -->
 <section>
   <div class="container">
+    <span class="section-label comment">how it works</span>
     <h2>How it works</h2>
     <p style="color: var(--text-muted); margin-top: 0.5rem;">Three steps. That's it.</p>
 
     <div class="steps">
       <div class="step">
         <div class="step-number">1</div>
-        <h3>Collect notes</h3>
-        <p>Add timestamped notes as things happen. Attach context — who, what, where, errors.</p>
+        <h3>Report the work</h3>
+        <p>Call <code>report()</code> as things happen. Pass anything — a message, an error, an API response.</p>
       </div>
       <div class="step">
         <div class="step-number">2</div>
-        <h3>Tell the story</h3>
-        <p>Call <code>tell()</code>, <code>warn()</code>, or <code>oops()</code> when the operation is done.</p>
+        <h3>Finish the story</h3>
+        <p>Call <code>finish()</code> when the operation ends. Everything reported becomes one record.</p>
       </div>
       <div class="step">
         <div class="step-number">3</div>
-        <h3>One record, anywhere</h3>
-        <p>Audiences hear the story — console prints it, database stores it, your custom handler does whatever you need.</p>
+        <h3>Anyone can listen</h3>
+        <p>Audiences hear the story — console prints it, your database stores it, your own listener does whatever you need in fifteen lines.</p>
       </div>
     </div>
   </div>
@@ -121,17 +191,27 @@ story.<span class="function">tell</span>(<span class="string">"Payment completed
 <!-- Code Example -->
 <section>
   <div class="container">
+    <span class="section-label">cat checkout.ts</span>
     <h2>See it in action</h2>
     <p style="color: var(--text-muted); margin-top: 0.5rem; margin-bottom: 2rem;">A real-world example: tracking a payment flow.</p>
 
     <Terminal title="checkout.ts" code={checkoutCode} />
+
+    <p style="color: var(--text-muted); margin-top: 3rem; margin-bottom: 1rem;">
+      Audiences are small. Here's one that posts only the failures to a Discord channel — fifteen lines, no dependency, and <code>accepts</code> does the filtering.
+    </p>
+    <Terminal title="discord.ts" code={discordCode} />
   </div>
 </section>
 
 <!-- Features -->
 <section>
   <div class="container">
-    <h2>Built for developers who care about their logs</h2>
+    <span class="section-label comment">for humans and agents</span>
+    <h2>One log for the humans and the agents</h2>
+    <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
+      An agent's automated run and a developer's manual debugging session produce the same record, in the same shape. Ask what happened and get both.
+    </p>
 
     <div class="features-grid">
       <div class="feature-card">
@@ -153,14 +233,22 @@ story.<span class="function">tell</span>(<span class="string">"Payment completed
       <div class="feature-card">
         <h3>Three Levels</h3>
         <p>
-          <span class="level-dot tell"></span><span class="level-tell">tell</span> — all good.
+          <span class="level-dot tell"></span><span class="level-tell">info</span> — all good.
           <span class="level-dot warn"></span><span class="level-warn">warn</span> — heads up.
           <span class="level-dot oops"></span><span class="level-oops">oops</span> — something broke.
         </p>
       </div>
       <div class="feature-card">
-        <h3>AI-Friendly</h3>
-        <p>Structured JSON output, clear types, <a href="/llms.txt">llms.txt</a> included. Built for humans and agents alike.</p>
+        <h3>Nested Work</h3>
+        <p>Agents spawn subtasks. <code>chapter()</code> keeps each a complete story, linked to its parent, so a whole run rebuilds as a tree.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Machine-Readable</h3>
+        <p>One JSON object per line with <code>ndjsonAudience</code>. Pipe it to <code>jq</code>, a log shipper, or another agent. <a href="/llms.txt">llms.txt</a> included.</p>
+      </div>
+      <div class="feature-card">
+        <h3>No Code Changes</h3>
+        <p>Switch between human and machine output with an environment variable. <code>STORYTELLER_NARRATION=live</code> and you're watching.</p>
       </div>
     </div>
   </div>
@@ -169,11 +257,12 @@ story.<span class="function">tell</span>(<span class="string">"Payment completed
 <!-- Install -->
 <section style="text-align: center;">
   <div class="container">
+    <span class="section-label">npx storyteller init</span>
     <h2>Ready to tell better stories?</h2>
-    <p style="color: var(--text-muted); margin-top: 0.5rem; margin-bottom: 2rem;">Install and start logging in under a minute.</p>
+    <p style="color: var(--text-muted); margin-top: 0.5rem; margin-bottom: 2rem;">One command. Installs the library, writes a configured storyteller, and teaches your agents to use it.</p>
 
     <div class="install-cmd" style="font-size: 1.1rem;">
-      <span class="prompt">$</span> npm install @lovelaces-io/storyteller
+      <span class="prompt">$</span> npx storyteller init
     </div>
 
     <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">

@@ -1,7 +1,10 @@
 export * from "./storyteller";
+export * from "./normalize";
 export * from "./formatting";
 export * from "./useStoryteller";
 export * from "./audiences/consoleAudience";
 export * from "./audiences/dbAudience";
+export * from "./audiences/ndjsonAudience";
+export * from "./environment";
 export * from "./report/writeStoryReport";
-export { ANSI, getLevelColor, formatOrigin } from "./utils";
+export { ANSI, getLevelColor, formatOrigin, summarizeContext } from "./utils";

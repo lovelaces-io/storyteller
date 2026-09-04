@@ -1,73 +1,106 @@
 # Storyteller
 
-> Lightweight TypeScript logging library that treats logs as stories: grouped notes emitted as a single structured event.
+> Lightweight TypeScript logging library that treats logs as stories: beats reported as they happen, emitted as a single structured record.
 
 ## What it does
 
-Storyteller collects timestamped notes during an operation and emits them as a single structured story event at one of three levels: tell (info), warn, or oops (error). Events are delivered to pluggable audiences — a console audience prints colorized reports, a DB audience stores JSON records. Zero production dependencies.
+Storyteller collects timestamped beats during an operation and emits them as one structured story record. Two narration modes: `collected` buffers the beats and emits one record at the end (the default), `live` emits each beat the moment it happens and still delivers the record. Records go to pluggable audiences — console prints colorized output, NDJSON writes one JSON object per line, a DB audience stores records. Zero production dependencies.
 
 ## Quick start
 
 ```bash
+npx storyteller init      # installs, writes a configured storyteller, teaches your agents
+# or
 npm install @lovelaces-io/storyteller
 ```
 
 ```typescript
 import { Storyteller } from "@lovelaces-io/storyteller";
 
-const story = new Storyteller({ origin: { who: "my-service" } });
-story.note("Connected to database");
-story.note("Loaded 42 records");
-story.tell("Startup complete");
+const story = new Storyteller({
+  origin: { who: "my-service" },
+  narration: "live",
+});
+
+story.report("Connected to database");
+story.report("Loaded records", { what: { count: 42 } });
+story.finish("Startup complete");
 ```
 
 ## Key concepts
 
-- **Stories** — a group of notes emitted as one event with a title and level
-- **Notes** — timestamped log entries with optional context (who, what, where, error)
-- **Levels** — `tell` (info), `warn` (warning), `oops` (error)
-- **Audiences** — pluggable listeners that receive story events (console, DB, or custom)
-- **Reports** — human-readable formatted text output from story events
+- **Story** — a group of beats emitted as one record with a title, level, and `storyId`
+- **Beat** — a timestamped entry with optional context (who, what, where, error, level)
+- **Narration** — `collected` (buffer, emit once) or `live` (emit each beat as it happens)
+- **Emission** — what an audience hears: `kind: "note"` or `kind: "story"`
+- **Correlation** — every beat carries `storyId` and a gap-free `sequence`, so streamed beats reassemble into exactly the record collected narration would have produced
+- **Chapters** — nested stories linked by `parentStoryId`; a run reconstructs as a tree
+- **Audiences** — pluggable listeners; `hears` defaults to `["story"]`
+- **Reports** — human-readable formatted text output from story records
 - **Origin** — optional who/what/where metadata attached to every story from an instance
 
 ## API surface
 
-- `Storyteller` — core class; collects notes and emits story events
-  - `.note(text, context?)` — add a timestamped note with optional who/what/where/error
-  - `.tell(title)` — emit story at info level
-  - `.warn(title)` — emit story at warning level
-  - `.oops(title, error?)` — emit story at error level with optional error object
-  - `.reset()` — clear accumulated notes without emitting
-  - `.summarize(options?)` — preview current notes as formatted summary without emitting
+- `Storyteller` — core class
+  - `.report(input, context?)` — report a beat; accepts any value; returns `this`
+  - `.finish(title, options?)` — emit the collected story; returns a `.to()` handle
+  - `.narrate(mode)` — switch narration at runtime
+  - `.chapter(options?)` — a child storyteller for nested work, linked by `parentStoryId`
+  - `.reset()` — clear beats without emitting, start a new story id
+  - `.summarize(options?)` — preview current beats as a formatted report
+  - `.currentStoryId` — the id beats are currently tagged with
   - `.audience` — registry to add/remove/query audience members
-    - `.audience.has(name)` — check if an audience member is registered by name
-    - `.audience.names()` — list all registered audience member names
-  - `.to(...names)` — target specific audiences (call synchronously after tell/warn/oops)
+    - `.audience.has(name)` / `.audience.names()`
+  - `.to(...names)` — target specific audiences (call synchronously after `finish()`)
+  - Deprecated, removed at 1.0: `.note()` (use `.report()`), `.tell()` / `.warn()` / `.oops()` (use `.finish()`)
 - `useStoryteller(options?)` — get or create a shared singleton instance
-- `formatStory(event, options?)` — format a single story event as a human-readable report
-- `writeStoryReport(stories[], options?)` — format multiple story events grouped by day
-- `consoleAudience()` — audience that prints color-coded stories to the console (registered by default)
-- `dbAudience(insert)` — audience that persists warn/oops events via a provided insert function
-- `ANSI` — ANSI color code constants
-- `getLevelColor(level)` — get the ANSI color for a story level
-- `formatOrigin(origin?)` — format an origin object as a readable string
-- `formatDuration(ms)` — format a duration in milliseconds as a human-readable string
+- `normalizeValue(input, options?)` — turn any value into a JSON-safe structure
+- `normalizeError(error, options?)` — turn any thrown value into a serializable error
+- `formatStory(event, options?)` — format a story record as human-readable text
+- `writeStoryReport(stories[], options?)` — format multiple records grouped by day
+- `consoleAudience(options?)` — compact line per beat, grouped block per story (default)
+- `ndjsonAudience(options?)` — one JSON object per line, for machine consumption
+- `dbAudience(insert)` — persists warn/oops stories via a provided insert function
+- `storyteller init` — CLI that sets a project up in one command; safe to re-run
+- `ANSI` / `getLevelColor(level)` / `formatOrigin(origin?)` / `summarizeContext(note)` / `formatDuration(ms)`
 
+## Configuration
 
-### Types
+Constructor: `{ origin, narration, format, level, audiences, onAudienceError, maxInFlight }`
+
+Environment variables, applied when the matching option is unset:
+
+- `STORYTELLER_NARRATION` — `collected` | `live`
+- `STORYTELLER_FORMAT` — `text` | `ndjson`
+- `STORYTELLER_LEVEL` — `info` | `warn` | `oops`
+- `STORYTELLER_COLOR` — `0` | `1`
+- `STORYTELLER_DEPRECATION_WARNINGS` — `1`
+
+Unrecognized values fall back to the default rather than throwing.
+
+## Handling arbitrary input
+
+`report()` accepts any value. Errors keep their `cause` chain, dates become ISO strings, Maps and Sets are tagged, class instances get an `@type`, circular references become `[Circular → path]`, and secret-looking keys become `[redacted]`. Oversized values are replaced with an explicit `{ "@truncated": { kind, omitted } }` marker. The normalizer never throws.
+
+## Types
 
 - `StoryLevel` — `"Information" | "Warning" | "Error"`
-- `StoryNote` — timestamped note with optional context
-- `StoryEventBase` — core event structure (timestamp, level, title, origin, notes, durationMs, error)
-- `StoryEvent` — event with attached `.summarize()` method
-- `AudienceMember` — audience interface (name, accepts?, hear)
-- `FormattedReport` — formatted report result (text + structured data)
-- `StoryReport` — structured report data
-- `ReportNote` — a note as it appears in a formatted report
-- `ReportOptions` — options for report formatting (timezone, locale, detail, noteLimit, colors)
-- `PreviewOptions` — options for the `.summarize()` preview method
-- `StoryReportOptions` — options for writeStoryReport
-- Deprecated aliases (still exported for backwards compatibility): `StorySummaryOptions` (use `ReportOptions`), `StorySummary` (use `FormattedReport`), `SummaryNote` (use `ReportNote`)
+- `LevelInput` — any accepted spelling: `"info"`, `"warn"`, `"oops"`, `"error"`, or a `StoryLevel`
+- `JsonValue` — a value that always survives `JSON.stringify`
+- `StoryNote` — a beat: timestamp, sequence, note, optional level and context
+- `StoryEventBase` — the record: timestamp, level, title, storyId, parentStoryId, origin, notes, durationMs, droppedEmissions, error
+- `ChapterOptions` — origin and setting overrides for a child storyteller
+- `AudienceRegistry` — shareable audience registry
+- `StoryEvent` — the record as an emission (`kind: "story"`, with `.summarize()`)
+- `NoteEmission` — a beat as an emission (`kind: "note"`, with storyId, sequence, level, origin)
+- `Emission` — `NoteEmission | StoryEvent`
+- `EmissionKind` — `"note" | "story"`
+- `Narration` — `"collected" | "live"`
+- `AudienceMember` — audience interface (name, hears?, accepts?, hear)
+- `AudienceErrorHandler` — called when an audience throws
+- `NormalizeOptions` — depth, size and redaction limits
+- `FormattedReport` / `StoryReport` / `ReportNote` / `ReportOptions` / `PreviewOptions` / `StoryReportOptions`
+- Deprecated aliases, still exported: `StorySummaryOptions` (use `ReportOptions`), `StorySummary` (use `FormattedReport`), `StorySummaryNote` (use `ReportNote`), `StorySummaryData` (use `StoryReport`), `StoryPreviewOptions` (use `PreviewOptions`)
 
 ## Links
 

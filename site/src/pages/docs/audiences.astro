@@ -1,0 +1,50 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import Terminal from "../../components/Terminal.astro";
+import { dbAudienceCode, ndjsonCode, customAudienceCode, discordDocsCode, targetingCode, audienceManagementCode, robustnessCode } from "../../content/samples";
+---
+
+<DocsLayout title="Audiences" description="Stories are delivered to audiences: console, database, NDJSON, Discord, or fifteen lines of your own. Each decides what it hears." path="/docs/audiences">
+  <h1>Audiences</h1>
+  <p class="lede">Stories are delivered to audiences. Each one is a listener that decides what it wants to hear and what to do with it. Console is included; the rest are a few lines each.</p>
+
+  <h2>Built in</h2>
+  <h3>Console</h3>
+  <p>Registered on every storyteller by default. In live narration it prints one compact line per beat; when a story finishes it prints a grouped, color-coded block. Remove it with <code>story.audience.remove("console")</code> if you'd rather be quiet.</p>
+
+  <h3>Database</h3>
+  <p>Hears finished stories only, and only at <code>warn</code> and <code>oops</code>. That's deliberate — persisting every <code>info</code> story is noise, and persisting beats would double-write content the record already holds.</p>
+  <Terminal title="db.ts" code={dbAudienceCode} />
+
+  <h3>NDJSON</h3>
+  <p>One JSON object per line, every beat and every story, nothing else on the channel. This is the format to hand a program: a log shipper, <code>jq</code>, or an agent reading a subprocess.</p>
+  <Terminal title="ndjson.ts" code={ndjsonCode} />
+
+  <h2>Write your own</h2>
+  <p>An audience is an object with a name and a <code>hear</code> function. That's the whole contract.</p>
+  <Terminal title="custom.ts" code={customAudienceCode} />
+
+  <h3>Only the failures, to Discord</h3>
+  <p>The one people actually want. Create a webhook in the channel's settings, put its URL in <code>DISCORD_WEBHOOK_URL</code>, and:</p>
+  <Terminal title="discord.ts" code={discordDocsCode} />
+  <p><code>accepts</code> keeps everything below <code>Error</code> out of the channel. <code>summarize()</code> turns the record into a short readable block, which Discord renders as code. Swap the URL and the body shape for Slack, Teams, or anything with a webhook.</p>
+
+  <h2>Who hears what</h2>
+  <p>Three levers, from broad to narrow:</p>
+  <ul>
+    <li><strong><code>hears</code></strong> — which <em>kinds</em> an audience wants: <code>["note"]</code>, <code>["story"]</code>, or both. Defaults to stories only, so an audience written before live narration existed keeps working unchanged.</li>
+    <li><strong><code>accepts</code></strong> — a rule about <em>which</em> emissions: by level, by origin, by anything on the record.</li>
+    <li><strong><code>.to()</code></strong> — name the audiences for <em>this one</em> story or beat.</li>
+  </ul>
+  <Terminal title="targeting.ts" code={targetingCode} />
+  <p>Per beat, it's an option: <code>story.report("Urgent", {'{ to: ["discord"] }'})</code>.</p>
+  <div class="callout"><p><code>.to()</code> on <code>finish()</code> must be called synchronously — delivery happens on the next microtask. Don't store the handle and call it after an <code>await</code>.</p></div>
+
+  <h3>Managing</h3>
+  <Terminal title="registry.ts" code={audienceManagementCode} />
+
+  <h2>When an audience fails</h2>
+  <p>A logging library that loses records in silence is worse than one that complains. When an audience throws or rejects, the failure goes to <code>onAudienceError</code> — never into your code. Without a handler, you get one throttled console warning per audience.</p>
+  <p>When an audience is too <em>slow</em>, live narration would otherwise pile up promises without limit. Deliveries in flight are capped per audience; past the cap, beats are dropped and <strong>counted on the closing story</strong> as <code>droppedEmissions</code>. The record itself still holds every beat — back-pressure costs you the stream, never the story.</p>
+  <Terminal title="robust.ts" code={robustnessCode} />
+</DocsLayout>

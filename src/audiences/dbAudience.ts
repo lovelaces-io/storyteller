@@ -1,8 +1,11 @@
-import type { AudienceMember, StoryEvent } from "../storyteller";
+import type { AudienceMember, Emission, StoryEvent } from "../storyteller";
 
 /**
  * Create an audience that stores warn and oops stories via your insert function.
  * Tell-level events are filtered out to reduce noise — only warnings and errors are persisted.
+ *
+ * Hears stories only. Live notes are not persisted: the story record already contains
+ * every note, so storing both would double-write the same content.
  *
  * Note: if the insert function throws, the error is silently caught by the delivery
  * pipeline (Promise.allSettled). Wrap your insert with try/catch to handle failures.
@@ -21,9 +24,13 @@ import type { AudienceMember, StoryEvent } from "../storyteller";
 export function dbAudience(insert: (event: StoryEvent) => Promise<void> | void): AudienceMember {
   return {
     name: "db",
-    accepts: (event) => event.level === "Warning" || event.level === "Error",
-    hear: async (event) => {
-      await insert(event);
+    hears: ["story"],
+    accepts: (emission: Emission) =>
+      emission.kind === "story" &&
+      (emission.level === "Warning" || emission.level === "Error"),
+    hear: async (emission: Emission) => {
+      if (emission.kind !== "story") return;
+      await insert(emission);
     },
   };
 }

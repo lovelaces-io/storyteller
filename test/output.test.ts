@@ -25,7 +25,7 @@ function captureStory(setup: (story: Storyteller) => void): Promise<StoryEvent> 
     story.audience.remove("console");
     story.audience.add({
       name: "capture",
-      hear: (event) => resolve(event),
+      hear: (event) => { if (event.kind === "story") resolve(event); },
     });
     setup(story);
   });
@@ -104,7 +104,7 @@ describe("Story record (what gets stored)", () => {
     const event = await new Promise<StoryEvent>((resolve) => {
       const story = new Storyteller(); // no origin
       story.audience.remove("console");
-      story.audience.add({ name: "capture", hear: (e) => resolve(e) });
+      story.audience.add({ name: "capture", hear: (e) => { if (e.kind === "story") resolve(e); } });
       story.note("Response slow", { what: { latencyMs: 2500 } });
       story.warn("Slow API response");
     });
@@ -123,7 +123,7 @@ describe("Story record (what gets stored)", () => {
     const event = await new Promise<StoryEvent>((resolve) => {
       const story = new Storyteller();
       story.audience.remove("console");
-      story.audience.add({ name: "capture", hear: (e) => resolve(e) });
+      story.audience.add({ name: "capture", hear: (e) => { if (e.kind === "story") resolve(e); } });
       story.tell("App started");
     });
 
@@ -134,7 +134,17 @@ describe("Story record (what gets stored)", () => {
     console.log("=== END ===\n");
 
     // The absolute minimum shape
-    expect(Object.keys(record).sort()).toEqual(["level", "notes", "timestamp", "title"]);
+    // `kind` and `storyId` are now part of every record: they make an emission
+    // self-describing on a mixed channel (NDJSON carries notes and stories together)
+    // and let streamed notes be grouped back into their story.
+    expect(Object.keys(record).sort()).toEqual([
+      "kind",
+      "level",
+      "notes",
+      "storyId",
+      "timestamp",
+      "title",
+    ]);
     expect(record.level).toBe("Information");
     expect(record.notes).toEqual([]);
   });

@@ -51,6 +51,11 @@ const ogImageUrl = `${siteUrl}/og-image.png`;
     <meta name="keywords" content="logging, TypeScript, structured logging, storyteller, developer tools, zero dependencies, npm package" />
     <meta name="author" content="Lovelaces" />
 
+    <!-- Fonts: preconnect first, then a non-blocking stylesheet. Was a CSS @import, which blocks twice. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" />
+
     <link rel="icon" type="image/svg+xml" href="/lovelaces-logo.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="sitemap" href="/sitemap-index.xml" />
@@ -76,15 +81,58 @@ const ogImageUrl = `${siteUrl}/og-image.png`;
 
     <footer>
       <div class="container">
-        <div class="footer-links">
-          <a href="https://github.com/lovelaces-io/storyteller">GitHub</a>
-          <a href="https://www.npmjs.com/package/@lovelaces-io/storyteller">npm</a>
-          <a href="/docs">Documentation</a>
-          <a href="https://lovelaces.io">lovelaces.io</a>
+        <div class="footer-grid">
+          <div>
+            <p class="footer-heading">docs</p>
+            <a href="/docs">Getting started</a>
+            <a href="/docs/narration">Collected &amp; live</a>
+            <a href="/docs/audiences">Audiences</a>
+            <a href="/docs/agents">For agents</a>
+            <a href="/docs/api">API reference</a>
+          </div>
+          <div>
+            <p class="footer-heading">project</p>
+            <a href="https://github.com/lovelaces-io/storyteller">GitHub</a>
+            <a href="https://www.npmjs.com/package/@lovelaces-io/storyteller">npm</a>
+            <a href="https://github.com/lovelaces-io/storyteller/blob/main/CHANGELOG.md">Changelog</a>
+            <a href="https://github.com/lovelaces-io/storyteller/issues">Issues</a>
+            <a href="https://github.com/lovelaces-io/storyteller/blob/main/LICENSE">MIT license</a>
+          </div>
+          <div>
+            <p class="footer-heading">machines</p>
+            <a href="/llms.txt">llms.txt</a>
+            <a href="https://github.com/lovelaces-io/storyteller/blob/main/AGENTS.md">AGENTS.md</a>
+            <a href="https://github.com/lovelaces-io/storyteller/blob/main/snippets/agents-section.md">Agent snippet</a>
+          </div>
+          <div>
+            <p class="footer-heading">lovelaces</p>
+            <a href="https://lovelaces.io">lovelaces.io</a>
+            <a href="mailto:hello@lovelaces.io">hello@lovelaces.io</a>
+          </div>
         </div>
-        <p>Happy logging!</p>
+        <p>Zero dependencies. One record per story. Happy logging.</p>
       </div>
     </footer>
+
+    <script>
+      // Every copy button on the site. In the markup regardless; inert without JS.
+      for (const button of document.querySelectorAll<HTMLButtonElement>(".copy-btn")) {
+        const idle = button.textContent;
+        button.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(button.dataset.copy ?? "");
+            button.textContent = "copied";
+            button.classList.add("copied");
+            setTimeout(() => {
+              button.textContent = idle;
+              button.classList.remove("copied");
+            }, 1500);
+          } catch {
+            // Clipboard can be unavailable; the text is still readable on the page
+          }
+        });
+      }
+    </script>
   </body>
 </html>
 

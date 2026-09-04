@@ -10,6 +10,9 @@ import {
   writeStoryReport,
   consoleAudience,
   dbAudience,
+  ndjsonAudience,
+  normalizeValue,
+  normalizeError,
   formatDuration,
 } from "@lovelaces-io/storyteller";
 ```
@@ -24,16 +27,27 @@ The core class. Collects notes and emits them as structured story events.
 
 ```ts
 new Storyteller(options?: {
-  origin?: {
-    who?: string | Record<string, unknown>;
-    what?: string | Record<string, unknown>;
-    where?: string | Record<string, unknown>;
-  };
+  origin?: { who?: unknown; what?: unknown; where?: unknown };
   audiences?: AudienceMember[];
+  narration?: "collected" | "live";
+  format?: "text" | "ndjson";
+  level?: LevelInput;
+  onAudienceError?: (error, member, emission) => void;
+  maxInFlight?: number;
 })
 ```
 
-The `origin` is attached to every story emitted by this instance. A `consoleAudience` is registered by default. Additional audiences passed here are added on top.
+The `origin` is attached to every story emitted by this instance, and is normalized like any other context. Additional audiences passed here are added on top of the default.
+
+| Option | Default | Environment variable |
+|---|---|---|
+| `narration` | `"collected"` | `STORYTELLER_NARRATION` |
+| `format` | `"text"` | `STORYTELLER_FORMAT` |
+| `level` | `"Information"` | `STORYTELLER_LEVEL` |
+| `onAudienceError` | throttled console warning | — |
+| `maxInFlight` | `1000` | — |
+
+The `format` option decides which default audience is registered: `consoleAudience()` for `text`, `ndjsonAudience()` for `ndjson`. Unrecognized environment values fall back to the default rather than throwing.
 
 ```ts
 const story = new Storyteller({
@@ -45,7 +59,114 @@ const story = new Storyteller({
 
 ---
 
+### story.report(input, context?)
+
+Report a beat of the current story. Returns `this` for chaining.
+
+```ts
+story.report(input: unknown, context?: {
+  who?: unknown;
+  what?: unknown;
+  where?: unknown;
+  error?: unknown;
+  level?: LevelInput;
+  live?: boolean;
+  to?: string[];
+}): this
+```
+
+In `collected` narration the beat is buffered and leaves with the story. In `live` narration it is emitted immediately, and still appears in the story record at the end.
+
+`input` accepts any value. A string is its own text; anything else is normalized, with the note text derived from a `message` / `title` / `name` / `summary` field or the value's type.
+
+```ts
+story.report("Card charged", { what: { amount: "$42" }, where: "stripe" });
+story.report(await response.json());
+story.report(caughtError);
+story.report("Retrying", { level: "warn" });
+story.report("Urgent", { live: true, to: ["ndjson"] });
+```
+
+`level` accepts `"info"`, `"warn"`, `"oops"`, `"error"`, or a stored `StoryLevel` label. It is omitted from the record when it is the default `Information`.
+
+---
+
+### story.finish(title, options?)
+
+Emit everything collected so far as one story record, then start a fresh story.
+
+```ts
+story.finish(title: string, options?: {
+  level?: LevelInput;
+  error?: unknown;
+}): { to: (...audienceNames: string[]) => void }
+```
+
+```ts
+story.finish("Sync complete");
+story.finish("Sync slow", { level: "warn" });
+story.finish("Sync failed", { level: "oops", error }).to("db");
+```
+
+Delivery is microtask-scheduled so `.to()` can override the audience list synchronously. See [.to()](#toaudiencenames--targeting-audiences).
+
+---
+
+### story.narrate(mode)
+
+Switch narration at runtime. Takes effect on the next `report()`; already-buffered beats are not replayed. Returns `this`.
+
+```ts
+story.narrate("live");
+story.narrate("collected");
+```
+
+---
+
+### story.chapter(options?)
+
+Start a chapter: a child `Storyteller` whose stories link back to this one by `parentStoryId`.
+
+```ts
+story.chapter(options?: {
+  origin?: StoryOriginInput;      // merged over the parent's
+  narration?: Narration;
+  level?: LevelInput;
+  onAudienceError?: AudienceErrorHandler;
+  maxInFlight?: number;
+}): Storyteller
+```
+
+```ts
+for (const account of accounts) {
+  const chapter = story.chapter({ origin: { what: account.id } });
+  chapter.report("Fetching invoices");
+  chapter.finish(`Synced ${account.id}`);
+}
+```
+
+The child **shares the parent's audience registry**, so audiences added to the parent later reach the chapter too, and removing one removes it for chapters as well. Settings are inherited unless overridden.
+
+`parentStoryId` is captured when the chapter is created, so a parent that finishes first does not orphan its chapters. Chapters emit their own records — they are not folded into the parent's notes.
+
+---
+
+### story.currentStoryId
+
+The id currently being stamped on beats and on the next story record. Read-only.
+
+```ts
+const id = story.currentStoryId;
+```
+
+---
+
 ### story.note(text, data?)
+
+> **Deprecated.** Use [`story.report()`](#storyreportinput-context). Removed at 1.0.
+
+<!-- docs-check: allow-deprecated -->
+
 
 Add a timestamped note to the current story.
 
@@ -61,9 +182,9 @@ note(text: string, data?: {
 Returns `this` for chaining.
 
 ```ts
-story.note("User submitted form");
+story.report("User submitted form");
 
-story.note("Validation failed", {
+story.report("Validation failed", {
   who: { id: "user:42", role: "admin" },
   what: { field: "email", reason: "invalid format" },
   where: { component: "SignupForm" },
@@ -72,14 +193,19 @@ story.note("Validation failed", {
 
 // Chaining
 story
-  .note("Step 1")
-  .note("Step 2")
-  .note("Step 3");
+  .report("Step 1")
+  .report("Step 2")
+  .report("Step 3");
 ```
 
 ---
 
 ### story.tell(title)
+
+> **Deprecated.** Use `story.finish(title)`. Removed at 1.0.
+
+<!-- docs-check: allow-deprecated -->
+
 
 Emit a story at the `"tell"` level (success / informational).
 
@@ -90,9 +216,9 @@ tell(title: string): { to: (...audienceNames: string[]) => void }
 Collects all accumulated notes, emits the story to all audiences, and clears the notes.
 
 ```ts
-story.note("Page rendered");
-story.note("Data loaded");
-story.tell("Dashboard ready");
+story.report("Page rendered");
+story.report("Data loaded");
+story.finish("Dashboard ready");
 // notes are now cleared for the next story
 ```
 
@@ -100,14 +226,19 @@ story.tell("Dashboard ready");
 
 ### story.warn(title)
 
-Emit a story at the `"warn"` level.
+> **Deprecated.** Use `story.finish(title, { level: "warn" })`. Removed at 1.0.
+
+<!-- docs-check: allow-deprecated -->
+
+
+Emit a story at the `Warning` level.
 
 ```ts
 warn(title: string): { to: (...audienceNames: string[]) => void }
 ```
 
 ```ts
-story.note("Response took 4200ms");
+story.report("Response took 4200ms");
 story.warn("API response slow");
 ```
 
@@ -115,7 +246,12 @@ story.warn("API response slow");
 
 ### story.oops(title, error?)
 
-Emit a story at the `"oops"` level (error). Optionally attach an error object.
+> **Deprecated.** Use `story.finish(title, { level: "oops", error })`. Removed at 1.0.
+
+<!-- docs-check: allow-deprecated -->
+
+
+Emit a story at the `Error` level. Optionally attach an error object.
 
 ```ts
 oops(title: string, error?: unknown): { to: (...audienceNames: string[]) => void }
@@ -125,8 +261,8 @@ oops(title: string, error?: unknown): { to: (...audienceNames: string[]) => void
 try {
   await saveProfile(data);
 } catch (error) {
-  story.note("Write failed", { where: "primary-db", error });
-  story.oops("Failed to save profile", error);
+  story.report("Write failed", { where: "primary-db", error });
+  story.finish("Failed to save profile", { level: "oops", error });
 }
 ```
 
@@ -138,13 +274,13 @@ try {
 
 ```ts
 // Deliver to all audiences (default)
-story.tell("Page loaded");
+story.finish("Page loaded");
 
 // Deliver only to "console" and "db"
-story.oops("Critical failure", error).to("console", "db");
+story.finish("Critical failure", { level: "oops", error }).to("console", "db");
 
 // Deliver only to "db" (skip console)
-story.warn("Slow query").to("db");
+story.finish("Slow query", { level: "warn" }).to("db");
 ```
 
 If `.to()` is not called, the story is delivered to all audiences via microtask.
@@ -174,8 +310,8 @@ Returns `{ text: string, data: StoryReport }`.
 > **Deprecated aliases:** `StorySummaryData` is a deprecated alias for `StoryReport`. `FormattedReport` was previously named `StorySummary`.
 
 ```ts
-story.note("User opened page");
-story.note("Widgets loaded", { what: { count: 6 } });
+story.report("User opened page");
+story.report("Widgets loaded", { what: { count: 6 } });
 
 const summary = story.summarize({
   title: "Dashboard status",
@@ -187,7 +323,7 @@ console.log(summary.text);  // Formatted, colorized text block
 console.log(summary.data);  // Structured StoryReport object
 
 // Notes are still here — summarize doesn't clear them
-story.tell("Dashboard ready");  // This story includes the same notes
+story.finish("Dashboard ready");  // This story includes the same notes
 ```
 
 ---
@@ -201,8 +337,8 @@ reset(): Storyteller
 ```
 
 ```ts
-story.note("Starting process");
-story.note("Cancelled by user");
+story.report("Starting process");
+story.report("Cancelled by user");
 story.reset();  // discard notes, start fresh
 ```
 
@@ -222,7 +358,7 @@ story.audience.add({
 // Add with filtering
 story.audience.add({
   name: "slack",
-  accepts: (event) => event.level === "oops",
+  accepts: (event) => event.level === "Error",
   hear: async (event) => postToSlack(event),
 });
 
@@ -316,10 +452,83 @@ story.audience.add(
 );
 
 // "Information" events are filtered out — only "Warning" and "Error" persist
-story.tell("Page loaded");           // NOT sent to db
-story.warn("Slow response");         // Sent to db
-story.oops("Crash", new Error());    // Sent to db
+story.finish("Page loaded");           // NOT sent to db
+story.finish("Slow response", { level: "warn" });   // Sent to db
+story.finish("Crash", { level: "oops", error });    // Sent to db
 ```
+
+---
+
+### ndjsonAudience(options?)
+
+An audience that writes one JSON object per line — every beat and every story, nothing else on the channel. This is the format to hand a program: a log shipper, `jq`, or another agent reading a subprocess.
+
+```ts
+ndjsonAudience(options?: {
+  stream?: { write: (chunk: string) => unknown };
+  name?: string;
+  level?: LevelInput;
+}): AudienceMember
+```
+
+```ts
+story.audience.remove("console");
+story.audience.add(ndjsonAudience({ stream: process.stderr }));
+```
+
+Defaults to `process.stdout` in Node and `console.log` elsewhere. Hears both notes and stories. Registered automatically when `format` is `"ndjson"` or `STORYTELLER_FORMAT=ndjson`.
+
+Serialization can never throw: a value that resists `JSON.stringify` is normalized first, and failing that, replaced with a marker line.
+
+---
+
+## normalizeValue(input, options?)
+
+Turn any value into a JSON-safe structure. Called for you on everything passed to `report()`, and exported for when you need it directly.
+
+```ts
+normalizeValue(input: unknown, options?: {
+  maxDepth?: number;          // 6
+  maxArrayLength?: number;    // 100
+  maxProperties?: number;     // 100
+  maxStringLength?: number;   // 8000
+  redactKeys?: string[];
+  redact?: boolean;           // true
+}): JsonValue
+```
+
+| Input | Output |
+|---|---|
+| `Error` (incl. `AggregateError`, `cause` chain) | `StoryError`, chain preserved and depth-capped |
+| `Date` | ISO string, or `"[Invalid Date]"` |
+| `Map` | `{ "@type": "Map", entries: {…} }` |
+| `Set` | `{ "@type": "Set", values: […] }` |
+| `RegExp`, `URL` | string |
+| TypedArray, `Buffer`, `ArrayBuffer` | `{ "@type", byteLength, preview }` |
+| class instance | plain object tagged `"@type": ClassName` |
+| function | `"[Function: name]"` |
+| circular reference | `"[Circular → path]"` |
+| throwing getter | `"[Unreadable: message]"` |
+| `BigInt`, `Symbol`, `NaN`, `Infinity` | string |
+| object with `toJSON()` | the result of calling it |
+
+Values dropped for size become an explicit `{ "@truncated": { kind, omitted } }` marker, so a consumer can tell truncation from absence.
+
+Keys matching `password`, `token`, `secret`, `apiKey`, `authorization`, `cookie`, `sessionId`, `privateKey` and similar are replaced with `"[redacted]"`. Matching ignores case and separators, so `apiKey`, `api_key` and `API-KEY` all match. This is best-effort defense in depth, not a guarantee — it matches key names, not values.
+
+**The function never throws.**
+
+---
+
+## normalizeError(error, options?)
+
+Turn any thrown value into a serializable `StoryError`, following the `cause` chain (capped at 5 levels) and collecting `AggregateError` members.
+
+```ts
+normalizeError(rawError: unknown, options?: NormalizeOptions): StoryError
+```
+
+Error-shaped plain objects — the kind that arrive across a serialization boundary — are recognized by their `name` and `message` fields.
 
 ---
 
@@ -330,8 +539,9 @@ Implement the `AudienceMember` interface to create your own audience.
 ```ts
 type AudienceMember = {
   name: string;
-  accepts?: (event: StoryEvent) => boolean;
-  hear: (event: StoryEvent) => void | Promise<void>;
+  hears?: EmissionKind[];          // Defaults to ["story"]
+  accepts?(emission: Emission): boolean;
+  hear(emission: Emission): void | Promise<void>;
 };
 ```
 
@@ -339,7 +549,7 @@ type AudienceMember = {
 // Example: Slack webhook audience for errors only
 const slackAudience: AudienceMember = {
   name: "slack",
-  accepts: (event) => event.level === "oops",
+  accepts: (event) => event.level === "Error",
   hear: async (event) => {
     const summary = event.summarize({ colors: false, detail: "brief" });
     await fetch(SLACK_WEBHOOK_URL, {
@@ -480,7 +690,8 @@ type StoryError = {
   name?: string;
   message?: string;
   stack?: string;
-  cause?: unknown;
+  cause?: JsonValue;               // Normalized, so the chain survives storage
+  errors?: StoryError[];           // AggregateError members
 };
 ```
 
@@ -489,7 +700,9 @@ type StoryError = {
 ```ts
 type StoryNote = {
   timestamp: string;             // ISO 8601 timestamp
+  sequence?: number;             // Position in the story, gap-free from 0
   note: string;                  // The note text
+  level?: StoryLevel;            // Omitted when Information
   who?: StoryContextValue;
   what?: StoryContextValue;
   where?: StoryContextValue;
@@ -504,14 +717,13 @@ type StoryEventBase = {
   timestamp: string;
   level: StoryLevel;               // "Information", "Warning", or "Error"
   title: string;
-  origin?: {
-    who?: StoryContextValue;
-    what?: StoryContextValue;
-    where?: StoryContextValue;
-  };
+  storyId?: string;                // Correlates beats with their story
+  parentStoryId?: string;          // Set on a chapter; absent at top level
+  origin?: StoryOrigin;
   notes: StoryNote[];
   error?: StoryError;
   durationMs?: number;             // Computed from first to last note (undefined if < 2 notes)
+  droppedEmissions?: number;       // Present only when back-pressure dropped something
 };
 ```
 
@@ -521,6 +733,7 @@ Extends `StoryEventBase` with a `summarize()` method. This is what audience memb
 
 ```ts
 type StoryEvent = StoryEventBase & {
+  kind: "story";
   summarize: (options?: ReportOptions) => FormattedReport;
 };
 ```
@@ -580,15 +793,81 @@ A formatted note within a `StoryReport`.
 
 Options passed to `story.summarize()`. Same shape as `ReportOptions`.
 
+### EmissionKind
+
+```ts
+type EmissionKind = "note" | "story";
+```
+
+---
+
+### NoteEmission
+
+A beat as delivered to an audience.
+
+```ts
+type NoteEmission = StoryNote & {
+  kind: "note";
+  storyId: string;
+  sequence: number;
+  level: StoryLevel;
+  origin?: StoryOrigin;
+};
+```
+
+---
+
+### Emission
+
+```ts
+type Emission = NoteEmission | StoryEvent;
+```
+
+---
+
+### Narration
+
+```ts
+type Narration = "collected" | "live";
+```
+
+`"both"` is accepted as a deprecated alias of `"live"`.
+
+---
+
+### LevelInput
+
+```ts
+type LevelInput = StoryLevel | "info" | "information" | "warn" | "warning" | "oops" | "error";
+```
+
+---
+
+### JsonValue
+
+```ts
+type JsonValue =
+  | string | number | boolean | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+```
+
+---
+
 ### AudienceMember
 
 ```ts
 type AudienceMember = {
   name: string;
-  accepts?: (event: StoryEvent) => boolean;
-  hear: (event: StoryEvent) => void | Promise<void>;
+  hears?: EmissionKind[];          // Defaults to ["story"]
+  accepts?(emission: Emission): boolean;
+  hear(emission: Emission): void | Promise<void>;
 };
 ```
+
+Declared with method syntax so an audience written as `hear: (event: StoryEvent) => void`
+still compiles. Such an audience only ever receives stories, because `hears` defaults to
+`["story"]`.
 
 ---
 
@@ -612,25 +891,25 @@ const story = new Storyteller({
 });
 
 // Collect notes as the operation progresses
-story.note("User submitted payment", {
+story.report("User submitted payment", {
   who: { id: "user:413" },
   what: { amount: 49.99, currency: "USD" },
 });
 
-story.note("Charging card", {
+story.report("Charging card", {
   what: "stripe:charge",
   where: { service: "payments" },
 });
 
 // Happy path
-story.tell("Payment completed");
+story.finish("Payment completed");
 
 // Or if something goes wrong
-story.note("Gateway timed out after 5000ms", {
+story.report("Gateway timed out after 5000ms", {
   what: { gateway: "stripe", timeout: 5000 },
   error: new Error("gateway timeout"),
 });
-story.oops("Payment failed", new Error("gateway timeout")).to("console", "db");
+story.finish("Payment failed", { level: "oops", error }).to("console", "db");
 
 // Later, generate a report from stored events
 const events = await db.query("SELECT * FROM logs WHERE timestamp > ?", [yesterday]);
