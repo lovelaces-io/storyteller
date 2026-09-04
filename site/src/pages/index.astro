@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import Terminal from '../components/Terminal.astro';
 import Transform from "../components/Transform.astro";
+import AgentLinks from "../components/AgentLinks.astro";
 import { liveCode, anythingCode, discordCode } from "../content/samples";
 
 const beforeCode = `<span class="comment">[14:30:00]</span> User clicked checkout
@@ -97,29 +98,6 @@ const heroBefore = [
   </div>
 </section>
 
-<!-- The Problem -->
-<section>
-  <div class="container">
-    <span class="section-label comment">before / after</span>
-    <h2>Ever stared at scattered logs trying to figure out what happened?</h2>
-    <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
-      Traditional logging gives you a pile of disconnected lines. Storyteller gives you one record that tells the whole story.
-    </p>
-
-    <div class="comparison">
-      <div>
-        <p class="comparison-label level-oops">Before: scattered logs</p>
-        <Terminal title="console" code={beforeCode} />
-      </div>
-
-      <div>
-        <p class="comparison-label level-tell">After: one story</p>
-        <Terminal title="story record" code={afterCode} />
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- Live narration -->
 <section>
   <div class="container">
@@ -188,68 +166,63 @@ const heroBefore = [
   </div>
 </section>
 
-<!-- Code Example -->
+<!-- Examples -->
 <section>
   <div class="container">
-    <span class="section-label">cat checkout.ts</span>
-    <h2>See it in action</h2>
-    <p style="color: var(--text-muted); margin-top: 0.5rem; margin-bottom: 2rem;">A real-world example: tracking a payment flow.</p>
-
-    <Terminal title="checkout.ts" code={checkoutCode} />
-
-    <p style="color: var(--text-muted); margin-top: 3rem; margin-bottom: 1rem;">
-      Audiences are small. Here's one that posts only the failures to a Discord channel — fifteen lines, no dependency, and <code>accepts</code> does the filtering.
+    <span class="section-label">cat checkout.ts discord.ts</span>
+    <h2>Two files, the whole idea</h2>
+    <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
+      One narrates a payment. The other decides which stories reach a Discord channel — fifteen lines, no dependency, <code>accepts</code> does the filtering.
     </p>
-    <Terminal title="discord.ts" code={discordCode} />
+    <div class="examples">
+      <div>
+        <p class="example-caption">report as it happens, finish once</p>
+        <Terminal title="checkout.ts" code={checkoutCode} />
+      </div>
+      <div>
+        <p class="example-caption">only the failures, to a channel</p>
+        <Terminal title="discord.ts" code={discordCode} />
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- Features -->
+<!-- For humans, for agents -->
 <section>
   <div class="container">
     <span class="section-label comment">for humans and agents</span>
-    <h2>One log for the humans and the agents</h2>
+    <h2>One log, whoever did the work</h2>
     <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
       An agent's automated run and a developer's manual debugging session produce the same record, in the same shape. Ask what happened and get both.
     </p>
 
-    <div class="features-grid">
-      <div class="feature-card">
-        <h3>Zero Dependencies</h3>
-        <p>Nothing to install besides Storyteller. Lightweight by design, stays out of your way.</p>
+    <div class="split">
+      <div class="split-col">
+        <p class="split-heading">for the humans</p>
+        <ul class="split-list">
+          <li><strong>Watch it live.</strong> <code>STORYTELLER_NARRATION=live</code> and every beat prints as it happens — one compact line each.</li>
+          <li><strong>Read one record, not forty lines.</strong> Who, what, in what order, how long, how it ended.</li>
+          <li><strong>Send it where you look.</strong> Console, your database, a Discord channel. An audience is fifteen lines.</li>
+          <li><strong>Hand it anything.</strong> An error, an API response, a Map. It becomes clean JSON and never throws.</li>
+        </ul>
       </div>
-      <div class="feature-card">
-        <h3>TypeScript-First</h3>
-        <p>Full type safety, declaration files, and IntelliSense. Dual ESM + CJS builds.</p>
+      <div class="split-col">
+        <p class="split-heading">for the agents</p>
+        <ul class="split-list">
+          <li><strong>One command to adopt.</strong> <code>npx @lovelaces-io/storyteller init</code> installs, wires, and teaches every agent in the repo.</li>
+          <li><strong>Guidance where agents look.</strong> <code>AGENTS.md</code>, <code>llms.txt</code>, and the snippet ship inside the package.</li>
+          <li><strong>Output a program can parse.</strong> <code>STORYTELLER_FORMAT=ndjson</code> — one JSON object per line, nothing else on the channel.</li>
+          <li><strong>Nested work stays a tree.</strong> <code>chapter()</code> links each subtask's record to its parent.</li>
+        </ul>
       </div>
-      <div class="feature-card">
-        <h3>One Record Per Story</h3>
-        <p>Every beat you report becomes part of one structured JSON record. Store it, search it, read it.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Pluggable Audiences</h3>
-        <p>Console, database, Slack, custom — stories go where you need them. Add your own in 5 lines.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Three Levels</h3>
-        <p>
-          <span class="level-dot tell"></span><span class="level-tell">info</span> — all good.
-          <span class="level-dot warn"></span><span class="level-warn">warn</span> — heads up.
-          <span class="level-dot oops"></span><span class="level-oops">oops</span> — something broke.
-        </p>
-      </div>
-      <div class="feature-card">
-        <h3>Nested Work</h3>
-        <p>Agents spawn subtasks. <code>chapter()</code> keeps each a complete story, linked to its parent, so a whole run rebuilds as a tree.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Machine-Readable</h3>
-        <p>One JSON object per line with <code>ndjsonAudience</code>. Pipe it to <code>jq</code>, a log shipper, or another agent. <a href="/llms.txt">llms.txt</a> included.</p>
-      </div>
-      <div class="feature-card">
-        <h3>No Code Changes</h3>
-        <p>Switch between human and machine output with an environment variable. <code>STORYTELLER_NARRATION=live</code> and you're watching.</p>
-      </div>
+    </div>
+
+    <div class="stats-line" style="justify-content: flex-start; margin-top: 2rem;">
+      <span>0 dependencies</span>
+      <span>TypeScript-first</span>
+      <span>ESM + CJS</span>
+      <span>MIT</span>
+      <span>~11 KB gzipped</span>
     </div>
   </div>
 </section>
@@ -257,17 +230,22 @@ const heroBefore = [
 <!-- Install -->
 <section style="text-align: center;">
   <div class="container">
-    <span class="section-label">npx @lovelaces-io/storyteller init</span>
+    <span class="section-label" style="display: inline-block;">npx @lovelaces-io/storyteller init</span>
     <h2>Ready to tell better stories?</h2>
     <p style="color: var(--text-muted); margin-top: 0.5rem; margin-bottom: 2rem;">One command. Installs the library, writes a configured storyteller, and teaches your agents to use it.</p>
 
-    <div class="install-cmd" style="font-size: 1.1rem;">
+    <div class="install-cmd" style="font-size: 1.05rem;">
       <span class="prompt">$</span> npx @lovelaces-io/storyteller init
+      <button class="copy-btn" type="button" data-copy="npx @lovelaces-io/storyteller init">copy</button>
     </div>
 
     <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
       <a href="/docs" class="btn btn-primary">Read the Docs</a>
       <a href="https://github.com/lovelaces-io/storyteller" class="btn btn-ghost">View on GitHub</a>
+    </div>
+
+    <div style="max-width: 640px; margin: 2.5rem auto 0; text-align: left;">
+      <AgentLinks label="Or hand it to an agent" />
     </div>
   </div>
 </section>
