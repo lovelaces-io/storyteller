@@ -119,7 +119,7 @@ Each chapter is a complete record of its own, carrying `parentStoryId`. Follow t
 
 ## Teach Your Agents
 
-Run `npx storyteller init` to set up a project in one command — it installs the package, writes a configured storyteller, and adds the block below to your `AGENTS.md`.
+Run `npx @lovelaces-io/storyteller init` to set up a project in one command — it installs the package, writes a configured storyteller, and adds the block below to your `AGENTS.md`.
 
 Or paste it yourself. Every agent that works in the repo will read it:
 

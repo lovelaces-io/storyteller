@@ -415,7 +415,7 @@ Each chapter is a complete record of its own, carrying `parentStoryId`. Follow t
 
 Agents don't browse npm; they use what's in front of them. So:
 
-- **`npx storyteller init`** sets a project up in one command and adds a guidance block to your `AGENTS.md`, so every agent working in the repo knows how to narrate.
+- **`npx @lovelaces-io/storyteller init`** sets a project up in one command and adds a guidance block to your `AGENTS.md`, so every agent working in the repo knows how to narrate.
 - **`STORYTELLER_FORMAT=ndjson`** turns output into one JSON object per line — for `jq`, a log shipper, or another agent reading a subprocess.
 - **`llms.txt` and `AGENTS.md` ship inside the package**, so an agent finds guidance in `node_modules` without being told.
 
@@ -441,7 +441,7 @@ And the record is the same shape whoever did the work — an agent's automated r
 | **Hand it anything** | `report()` takes any value and stores clean JSON; never throws |
 | **Chapters** | Nested work as linked records, reconstructable as a tree |
 | **Machine-readable** | NDJSON output, `llms.txt`, and `AGENTS.md` shipped in the package |
-| **One command** | `npx storyteller init` |
+| **One command** | `npx @lovelaces-io/storyteller init` |
 | **Human + machine readable** | Clear field names, consistent structure, no abbreviations |
 
 ---
