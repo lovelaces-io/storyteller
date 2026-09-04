@@ -2,28 +2,29 @@
 import DocsLayout from "../../layouts/DocsLayout.astro";
 import Terminal from "../../components/Terminal.astro";
 import { apiRequestCode, backgroundJobCode, chapterCode, discordDocsCode, jqCode } from "../../content/samples";
+const sections = [{"id": "an-api-request", "label": "An API request"}, {"id": "a-background-job", "label": "A background job"}, {"id": "a-nested-sync-narrated-live", "label": "A nested sync, narrated live"}, {"id": "failures-to-discord", "label": "Failures to Discord"}, {"id": "a-stream-piped-to-jq", "label": "A stream, piped to jq"}];
 ---
 
-<DocsLayout title="Examples" description="Real shapes of work, narrated: an API request, a background job, a nested sync, failures to Discord, and a stream piped to jq." path="/docs/examples">
+<DocsLayout title="Examples" description="Real shapes of work, narrated: an API request, a background job, a nested sync, failures to Discord, and a stream piped to jq." path="/docs/examples" sections={sections}>
   <h1>Examples</h1>
   <p class="lede">Real shapes of work. Copy the one that looks like yours.</p>
 
-  <h2>An API request</h2>
+  <h2 id="an-api-request">An API request<a class="heading-anchor" href="#an-api-request" aria-label="Link to this section">#</a></h2>
   <p>One story per request. The failure path finishes with the error attached; the record carries the whole lifecycle either way.</p>
   <Terminal title="middleware.ts" code={apiRequestCode} />
 
-  <h2>A background job</h2>
+  <h2 id="a-background-job">A background job<a class="heading-anchor" href="#a-background-job" aria-label="Link to this section">#</a></h2>
   <p>Report progress as you go; pick the level at the end based on what actually happened.</p>
   <Terminal title="sync-job.ts" code={backgroundJobCode} />
 
-  <h2>A nested sync, narrated live</h2>
+  <h2 id="a-nested-sync-narrated-live">A nested sync, narrated live<a class="heading-anchor" href="#a-nested-sync-narrated-live" aria-label="Link to this section">#</a></h2>
   <p>One chapter per account. Each becomes its own record, linked to the parent, while the console shows every beat as it happens.</p>
   <Terminal title="sync.ts" code={chapterCode} />
 
-  <h2>Failures to Discord</h2>
+  <h2 id="failures-to-discord">Failures to Discord<a class="heading-anchor" href="#failures-to-discord" aria-label="Link to this section">#</a></h2>
   <Terminal title="discord.ts" code={discordDocsCode} />
 
-  <h2>A stream, piped to jq</h2>
+  <h2 id="a-stream-piped-to-jq">A stream, piped to jq<a class="heading-anchor" href="#a-stream-piped-to-jq" aria-label="Link to this section">#</a></h2>
   <p>Same code as above. Only the environment changes.</p>
   <Terminal title="terminal" code={jqCode} />
 </DocsLayout>

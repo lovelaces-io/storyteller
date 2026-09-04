@@ -1,5 +1,6 @@
 ---
 import Analytics from "@vercel/analytics/astro";
+import Search from "../components/Search.astro";
 
 interface Props {
   title: string;
@@ -94,12 +95,13 @@ const jsonLd = JSON.stringify({ "@context": "https://schema.org", "@graph": grap
   </head>
   <body>
     <div class="container">
-      <nav>
+      <nav class="site-nav" aria-label="Site">
         <a href="/" class="logo">
           <img src="/storyteller-logo.svg" alt="" width="28" height="28" />
           Storyteller
         </a>
         <div class="nav-links">
+          <Search />
           <a href="/docs">Docs</a>
           <a href="https://github.com/lovelaces-io/storyteller">GitHub</a>
           <a href="https://www.npmjs.com/package/@lovelaces-io/storyteller">npm</a>

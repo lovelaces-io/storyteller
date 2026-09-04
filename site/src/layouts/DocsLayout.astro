@@ -6,121 +6,82 @@ interface Props {
   title: string;
   description?: string;
   path: string;
+  /** The page's h2 sections, for the right rail. Static, so it reads without JS. */
+  sections?: { id: string; label: string }[];
 }
 
-const { title, description, path } = Astro.props;
+const { title, description, path, sections = [] } = Astro.props;
 
-const sections = [
-  {
-    heading: "start here",
-    pages: [
-      { href: "/docs", label: "Getting started" },
-      { href: "/docs/narration", label: "Collected & live" },
-      { href: "/docs/reporting", label: "Reporting & context" },
-    ],
-  },
-  {
-    heading: "deliver",
-    pages: [
-      { href: "/docs/audiences", label: "Audiences" },
-      { href: "/docs/chapters", label: "Chapters" },
-    ],
-  },
-  {
-    heading: "for agents",
-    pages: [{ href: "/docs/agents", label: "Agents & init" }],
-  },
-  {
-    heading: "reference",
-    pages: [
-      { href: "/docs/api", label: "API" },
-      { href: "/docs/examples", label: "Examples" },
-      { href: "/docs/migration", label: "Migrating from 0.2" },
-      { href: "/docs/faq", label: "FAQ" },
-    ],
-  },
+const groups = [
+  { heading: "start here", pages: [
+    { href: "/docs", label: "Getting started" },
+    { href: "/docs/narration", label: "Collected & live" },
+    { href: "/docs/reporting", label: "Reporting & context" },
+  ] },
+  { heading: "deliver", pages: [
+    { href: "/docs/audiences", label: "Audiences" },
+    { href: "/docs/chapters", label: "Chapters" },
+  ] },
+  { heading: "for agents", pages: [
+    { href: "/docs/agents", label: "Agents & init" },
+  ] },
+  { heading: "reference", pages: [
+    { href: "/docs/api", label: "API" },
+    { href: "/docs/examples", label: "Examples" },
+    { href: "/docs/migration", label: "Migrating from 0.2" },
+    { href: "/docs/faq", label: "FAQ" },
+  ] },
 ];
 
-const flat = sections.flatMap((section) => section.pages);
-const current = flat.find((page) => page.href === path);
+const flat = groups.flatMap((group) => group.pages);
+const index = flat.findIndex((page) => page.href === path);
+const current = index >= 0 ? flat[index] : undefined;
+const previous = index > 0 ? flat[index - 1] : undefined;
+const next = index >= 0 && index < flat.length - 1 ? flat[index + 1] : undefined;
+
 const siteUrl = "https://storyteller.lovelaces.io";
 const schema = [
   { "@type": "TechArticle", headline: title, description, url: `${siteUrl}${path}`, about: { "@id": `${siteUrl}/#software` }, author: { "@id": `${siteUrl}/#org` }, isPartOf: { "@id": `${siteUrl}/#site` } },
   { "@type": "BreadcrumbList", itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Storyteller", item: siteUrl },
-      { "@type": "ListItem", position: 2, name: "Docs", item: `${siteUrl}/docs` },
-      ...(current && path !== "/docs" ? [{ "@type": "ListItem", position: 3, name: current.label, item: `${siteUrl}${path}` }] : []),
+    { "@type": "ListItem", position: 1, name: "Storyteller", item: siteUrl },
+    { "@type": "ListItem", position: 2, name: "Docs", item: `${siteUrl}/docs` },
+    ...(current && path !== "/docs" ? [{ "@type": "ListItem", position: 3, name: current.label, item: `${siteUrl}${path}` }] : []),
   ] },
 ];
-const currentIndex = flat.findIndex((page) => page.href === path);
-const previous = currentIndex > 0 ? flat[currentIndex - 1] : undefined;
-const next = currentIndex >= 0 && currentIndex < flat.length - 1 ? flat[currentIndex + 1] : undefined;
 ---
 
 <Base title={`${title} — Storyteller`} description={description} path={path} schema={schema}>
-  <div class="container docs-layout">
-    <aside class="docs-sidebar">
-      <div id="docs-search" class="docs-search"></div>
-      {sections.map((section) => (
+  <div class="container docs">
+    <nav class="docs-nav" aria-label="Documentation">
+      {groups.map((group) => (
         <div class="docs-nav-group">
-          <p class="docs-nav-heading">{section.heading}</p>
-          {section.pages.map((page) => (
-            <a href={page.href} class={page.href === path ? "active" : undefined} aria-current={page.href === path ? "page" : undefined}>
-              {page.label}
-            </a>
+          <p class="docs-nav-heading">{group.heading}</p>
+          {group.pages.map((page) => (
+            <a href={page.href} class={page.href === path ? "active" : undefined} aria-current={page.href === path ? "page" : undefined}>{page.label}</a>
           ))}
         </div>
       ))}
       <div class="docs-nav-group">
-        <p class="docs-nav-heading">more</p>
+        <p class="docs-nav-heading">machine-readable</p>
         <a href="/llms.txt">llms.txt</a>
-        <a href="https://github.com/lovelaces-io/storyteller/blob/main/CHANGELOG.md">Changelog</a>
-        <a href="https://github.com/lovelaces-io/storyteller/issues">Issues</a>
+        <a href="/llms-full.txt">llms-full.txt</a>
       </div>
-    </aside>
+    </nav>
 
     <article class="docs-content" data-pagefind-body>
       <slot />
-
       <AgentLinks />
-
       <nav class="docs-prev-next" aria-label="Pagination">
-        {previous ? <a href={previous.href}>← {previous.label}</a> : <span />}
-        {next ? <a href={next.href}>{next.label} →</a> : <span />}
+        {previous ? <a href={previous.href}><span class="docs-prev-next-label">previous</span>{previous.label}</a> : <span />}
+        {next ? <a href={next.href} class="next"><span class="docs-prev-next-label">next</span>{next.label}</a> : <span />}
       </nav>
     </article>
-  </div>
 
-  <link rel="stylesheet" href="/pagefind/pagefind-ui.css" />
-  <script is:inline src="/pagefind/pagefind-ui.js"></script>
-  <script is:inline>
-    // Search over the built docs. Pagefind indexes dist/ after the build; in dev
-    // the assets are absent and the box simply does not appear.
-    window.addEventListener("DOMContentLoaded", () => {
-      if (window.PagefindUI) new window.PagefindUI({ element: "#docs-search", showSubResults: true, showImages: false, resetStyles: false });
-      else document.getElementById("docs-search")?.remove();
-    });
-  </script>
-  <script>
-    // Heading anchors and an on-this-page list. Runs on load; the sidebar and
-    // prev/next are server-rendered, so nothing essential depends on this.
-    const headings = [...document.querySelectorAll<HTMLHeadingElement>(".docs-content h2")];
-    const slug = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    for (const heading of headings) {
-      heading.id ||= slug(heading.textContent ?? "");
-      const anchor = document.createElement("a");
-      anchor.href = `#${heading.id}`;
-      anchor.className = "heading-anchor";
-      anchor.setAttribute("aria-label", "Link to this section");
-      anchor.textContent = "#";
-      heading.append(anchor);
-    }
-    if (headings.length > 2) {
-      const toc = document.createElement("nav");
-      toc.className = "on-this-page";
-      toc.setAttribute("aria-label", "On this page");
-      toc.innerHTML = `<p class="docs-nav-heading">on this page</p>` + headings.map((h) => `<a href="#${h.id}">${h.firstChild?.textContent ?? h.textContent}</a>`).join("");
-      document.querySelector(".docs-sidebar")?.append(toc);
-    }
-  </script>
+    {sections.length > 1 && (
+      <aside class="docs-rail" aria-label="On this page">
+        <p class="docs-nav-heading">on this page</p>
+        {sections.map((section) => <a href={`#${section.id}`}>{section.label}</a>)}
+      </aside>
+    )}
+  </div>
 </Base>

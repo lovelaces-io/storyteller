@@ -2,17 +2,18 @@
 import DocsLayout from "../../layouts/DocsLayout.astro";
 import Terminal from "../../components/Terminal.astro";
 import { liveCode, liveOptionsCode } from "../../content/samples";
+const sections = [{"id": "collected-the-default", "label": "Collected \u2014 the default"}, {"id": "live", "label": "Live"}, {"id": "nothing-is-lost", "label": "Nothing is lost"}, {"id": "configuration", "label": "Configuration"}];
 ---
 
-<DocsLayout title="Collected & live" description="Two ways to hear the same story: one record at the end, or every beat as it happens. Nothing is lost either way." path="/docs/narration">
+<DocsLayout title="Collected & live" description="Two ways to hear the same story: one record at the end, or every beat as it happens. Nothing is lost either way." path="/docs/narration" sections={sections}>
   <h1>Collected &amp; live</h1>
   <p class="lede">Two ways to hear the same story. Collected gives you one record when the work ends. Live gives you every beat the moment it happens — and still gives you the record.</p>
 
-  <h2>Collected — the default</h2>
+  <h2 id="collected-the-default">Collected — the default<a class="heading-anchor" href="#collected-the-default" aria-label="Link to this section">#</a></h2>
   <p>Beats are kept until you call <code>finish()</code>, then emitted together as one record. This is the right shape for an audit log: one row per operation, complete and self-contained.</p>
   <p>It's the wrong shape when the work takes forty seconds and someone — a person or an agent — wants to know what's going on <em>right now</em>.</p>
 
-  <h2>Live</h2>
+  <h2 id="live">Live<a class="heading-anchor" href="#live" aria-label="Link to this section">#</a></h2>
   <p>Set narration to <code>live</code> and each <code>report()</code> is emitted immediately. The console prints one compact line per beat:</p>
   <div class="install-cmd" style="margin-bottom: 1rem;"><span class="prompt">$</span> STORYTELLER_NARRATION=live node sync.js</div>
   <Terminal title="live" code={liveCode} live={true} />
@@ -22,12 +23,12 @@ import { liveCode, liveOptionsCode } from "../../content/samples";
   <Terminal title="narration.ts" code={liveOptionsCode} />
   <p>The environment variable wins when nothing is set in code, so you can switch a deployed process to live narration without touching it.</p>
 
-  <h2>Nothing is lost</h2>
+  <h2 id="nothing-is-lost">Nothing is lost<a class="heading-anchor" href="#nothing-is-lost" aria-label="Link to this section">#</a></h2>
   <p>Every beat carries the <code>storyId</code> of the story it belongs to, and a <code>sequence</code> number assigned the instant you call <code>report()</code> — gap-free from zero.</p>
   <p>That means whoever holds the streamed beats can order and group them back into exactly the record collected narration would have produced. Neither mode is the lesser one. This is the guarantee the whole design rests on, and it's enforced by tests.</p>
   <div class="callout"><p><strong>Order by <code>sequence</code>, never by arrival time.</strong> Audiences are asynchronous, and a slow one lands late.</p></div>
 
-  <h2>Configuration</h2>
+  <h2 id="configuration">Configuration<a class="heading-anchor" href="#configuration" aria-label="Link to this section">#</a></h2>
   <p>Every option can come from the environment, so the same file behaves differently for a person at a terminal and a program reading a pipe.</p>
   <table>
     <thead><tr><th>Variable</th><th>Values</th><th>Effect</th></tr></thead>
