@@ -78,10 +78,9 @@ const jsonLd = JSON.stringify({ "@context": "https://schema.org", "@graph": grap
     <meta name="keywords" content="logging, TypeScript, structured logging, storyteller, developer tools, zero dependencies, npm package" />
     <meta name="author" content="Lovelaces" />
 
-    <!-- Fonts: preconnect first, then a non-blocking stylesheet. Was a CSS @import, which blocks twice. -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" />
+    <!-- Type is self-hosted; preload the two faces used above the fold -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/inter-400.woff2" />
+    <link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/ibm-plex-mono-400.woff2" />
 
     <!-- Versioned: browsers cache favicons regardless of cache headers, so a new
          mark needs a new URL or the old icon lingers in the tab indefinitely -->
