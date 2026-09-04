@@ -97,6 +97,24 @@ story.report({ message: "Job queued", jobId: 7 });
 
 Circular references become `[Circular → path]`. Secret-looking keys become `[redacted]`. Oversized values get an explicit `{ "@truncated": … }` marker rather than disappearing. The normalizer never throws — a hostile object cannot break your logging.
 
+## Nested Work
+
+Real work nests. `chapter()` gives you a child storyteller whose stories link back to the parent:
+
+```ts
+story.report("Starting sync");
+
+for (const account of accounts) {
+  const chapter = story.chapter({ origin: { what: account.id } });
+  chapter.report("Fetching invoices");
+  chapter.finish(`Synced ${account.id}`);
+}
+
+story.finish("Sync complete");
+```
+
+Each chapter is a complete record of its own, carrying `parentStoryId`. Follow that field to rebuild the whole run as a tree. Chapters share the parent's audiences and inherit its settings.
+
 ## Two Axes, Not One
 
 **Story vs report** is *what the output looks like*. **Collected vs live** is *when it comes out*. They combine freely:
@@ -180,6 +198,7 @@ Every option can also come from the environment, so you can change behavior with
 | `report(input, context?)` | `this` | Report a beat — any value, optional who/what/where/error/level |
 | `finish(title, options?)` | `{ to }` | Emit the collected story |
 | `narrate(mode)` | `this` | Switch narration at runtime |
+| `chapter(options?)` | `Storyteller` | A child storyteller, linked by `parentStoryId` |
 | `reset()` | `this` | Clear beats without emitting |
 | `summarize(options?)` | `FormattedReport` | Preview current beats as a formatted report |
 | `currentStoryId` | `string` | The id beats are being tagged with |

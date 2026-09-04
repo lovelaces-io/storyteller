@@ -123,6 +123,34 @@ story.narrate("collected");
 
 ---
 
+### story.chapter(options?)
+
+Start a chapter: a child `Storyteller` whose stories link back to this one by `parentStoryId`.
+
+```ts
+story.chapter(options?: {
+  origin?: StoryOriginInput;      // merged over the parent's
+  narration?: Narration;
+  level?: LevelInput;
+  onAudienceError?: AudienceErrorHandler;
+  maxInFlight?: number;
+}): Storyteller
+```
+
+```ts
+for (const account of accounts) {
+  const chapter = story.chapter({ origin: { what: account.id } });
+  chapter.report("Fetching invoices");
+  chapter.finish(`Synced ${account.id}`);
+}
+```
+
+The child **shares the parent's audience registry**, so audiences added to the parent later reach the chapter too, and removing one removes it for chapters as well. Settings are inherited unless overridden.
+
+`parentStoryId` is captured when the chapter is created, so a parent that finishes first does not orphan its chapters. Chapters emit their own records — they are not folded into the parent's notes.
+
+---
+
 ### story.currentStoryId
 
 The id currently being stamped on beats and on the next story record. Read-only.
@@ -690,6 +718,7 @@ type StoryEventBase = {
   level: StoryLevel;               // "Information", "Warning", or "Error"
   title: string;
   storyId?: string;                // Correlates beats with their story
+  parentStoryId?: string;          // Set on a chapter; absent at top level
   origin?: StoryOrigin;
   notes: StoryNote[];
   error?: StoryError;

@@ -46,6 +46,27 @@ Every beat carries `storyId` and `sequence`. Beats from one story share its `sto
 
 That means a consumer holding the streamed beats can order and group them back into exactly the `notes` array the story record would have contained. **Order by `sequence`, never by arrival time** — audiences are async and a slow one lands late.
 
+## Nested work: chapters
+
+Real work nests. An agent spawns subtasks; a batch runs per-item operations. Use `chapter()` so each piece is a complete story in its own right while the whole run stays reconstructable:
+
+```typescript
+story.report("Starting sync");
+
+for (const account of accounts) {
+  const chapter = story.chapter({ origin: { what: account.id } });
+  chapter.report("Fetching invoices");
+  chapter.report("Reconciling");
+  chapter.finish(`Synced ${account.id}`);
+}
+
+story.finish("Sync complete");
+```
+
+Each chapter emits its own record carrying `parentStoryId`. Follow that field to rebuild the tree. A chapter shares the parent's audiences — including any added later — and inherits narration, level and delivery settings; pass options to override.
+
+Chapters are **not** folded into the parent's notes. One record per story stays true, and a nested story is still a story.
+
 ## Report anything
 
 `report()` takes any value, not just a string. Do not pre-flatten your data:
@@ -125,6 +146,7 @@ These are different axes and it matters that you keep them straight:
 story.report(input, context?)   // a beat; returns `this` for chaining
 story.finish(title, options?)   // emit the collected story; returns a `.to()` handle
 story.narrate(mode)             // switch narration at runtime
+story.chapter(options?)         // a child storyteller, linked by parentStoryId
 story.reset()                   // drop the notes, start a new story id
 story.summarize(options?)       // preview without emitting
 story.currentStoryId            // the id beats are being tagged with
