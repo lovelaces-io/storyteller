@@ -9,36 +9,58 @@
 import { copyFileSync, readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 
-const manifest = JSON.parse(readFileSync("packages/core/package.json", "utf8"));
+/**
+ * One entry per published package: the manifest to inspect, which
+ * dependency fields it may not have, and what its tarball may contain.
+ * The DOM view is as strict as core — it renders text nodes, nothing else.
+ */
+const PACKAGES = [
+  {
+    name: "@lovelaces-io/storyteller",
+    dir: "packages/core",
+    copies: ["README.md", "LICENSE"],
+    allowed: /^(dist\/|snippets\/agents-section\.md$|llms\.txt$|AGENTS\.md$|README\.md$|LICENSE$|package\.json$)/,
+    required: ["README.md", "LICENSE", "package.json", "dist/cli.cjs", "llms.txt", "AGENTS.md"],
+  },
+  {
+    name: "@lovelaces-io/storyteller-view",
+    dir: "packages/view",
+    copies: ["LICENSE"],
+    allowed: /^(dist\/|README\.md$|LICENSE$|package\.json$)/,
+    required: ["README.md", "LICENSE", "package.json", "dist/index.js", "dist/index.cjs", "dist/index.d.ts", "dist/story-view.css"],
+  },
+];
+
 const failures = [];
+const summary = [];
 
-for (const field of ["dependencies", "peerDependencies", "optionalDependencies"]) {
-  const entries = Object.keys(manifest[field] ?? {});
-  if (entries.length) failures.push(`packages/core/package.json has ${field}: ${entries.join(", ")}`);
-}
-if (manifest.name !== "@lovelaces-io/storyteller") failures.push(`unexpected package name ${manifest.name}`);
-if (manifest.private) failures.push("core is marked private");
+for (const pkg of PACKAGES) {
+  const manifest = JSON.parse(readFileSync(`${pkg.dir}/package.json`, "utf8"));
+  for (const field of ["dependencies", "peerDependencies", "optionalDependencies"]) {
+    const entries = Object.keys(manifest[field] ?? {});
+    if (entries.length) failures.push(`${pkg.dir}/package.json has ${field}: ${entries.join(", ")}`);
+  }
+  if (manifest.name !== pkg.name) failures.push(`${pkg.dir} has unexpected package name ${manifest.name}`);
+  if (manifest.private) failures.push(`${pkg.name} is marked private`);
 
-const allowed = /^(dist\/|snippets\/agents-section\.md$|llms\.txt$|AGENTS\.md$|README\.md$|LICENSE$|package\.json$)/;
-
-// The build has already run by the time this check does, so pack without
-// scripts — a prepack build would print ahead of the JSON. README and LICENSE
-// are what prepack copies in; copy them the same way so the list is complete.
-for (const name of ["README.md", "LICENSE"]) copyFileSync(name, `packages/core/${name}`);
-const output = execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts", "-w", "@lovelaces-io/storyteller"], { encoding: "utf8" });
-const pack = JSON.parse(output.slice(output.indexOf("[")));
-const files = pack[0].files.map((file) => file.path);
-for (const required of ["README.md", "LICENSE", "package.json"]) {
-  if (!files.includes(required)) failures.push(`tarball is missing ${required}`);
+  // The build has already run by the time this check does, so pack without
+  // scripts — a prepack build would print ahead of the JSON. README and LICENSE
+  // are what prepack copies in; copy them the same way so the list is complete.
+  for (const name of pkg.copies) copyFileSync(name, `${pkg.dir}/${name}`);
+  const output = execFileSync("npm", ["pack", "--dry-run", "--json", "--ignore-scripts", "-w", pkg.name], { encoding: "utf8" });
+  const pack = JSON.parse(output.slice(output.indexOf("[")));
+  const files = pack[0].files.map((file) => file.path);
+  for (const required of pkg.required) {
+    if (!files.includes(required)) failures.push(`${pkg.name} tarball is missing ${required}`);
+  }
+  for (const file of files) {
+    if (!pkg.allowed.test(file)) failures.push(`${pkg.name} tarball contains an unexpected file: ${file}`);
+  }
+  summary.push(`${pkg.name} ${files.length} files`);
 }
-for (const file of files) {
-  if (!allowed.test(file)) failures.push(`tarball contains an unexpected file: ${file}`);
-}
-if (!files.includes("dist/cli.cjs")) failures.push("tarball is missing dist/cli.cjs (the bin)");
-if (!files.includes("llms.txt") || !files.includes("AGENTS.md")) failures.push("tarball is missing the machine-readable files");
 
 if (failures.length) {
   console.error(`Package check failed:\n  - ${failures.join("\n  - ")}`);
   process.exit(1);
 }
-console.log(`Package check passed — zero dependencies, ${files.length} files, all intended.`);
+console.log(`Package check passed — zero dependencies, all intended files (${summary.join("; ")}).`);

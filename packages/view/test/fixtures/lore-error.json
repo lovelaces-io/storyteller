@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-09-04T08:38:07.412Z",
+  "level": "Error",
+  "title": "The app shell crashed",
+  "storyId": "st_01J6YV3PQ8K2N4M7R9T1W3X5Z7",
+  "origin": {
+    "who": { "userId": "d061a841-a243-44d0-9a5b-463e5e6184ed" },
+    "where": "global-error-boundary"
+  },
+  "notes": [
+    {
+      "timestamp": "2026-09-04T08:38:07.394Z",
+      "sequence": 0,
+      "note": "Client error context",
+      "what": {
+        "digest": "a1b2c3d4e5",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Claude/1.40609.1 Chrome/148.0.7778.280 Safari/537.36",
+        "errorMessage": "preview"
+      }
+    },
+    {
+      "timestamp": "2026-09-04T08:38:07.410Z",
+      "sequence": 1,
+      "note": "Render failed",
+      "level": "Error",
+      "error": {
+        "name": "TypeError",
+        "message": "Cannot read properties of undefined (reading 'preview')",
+        "stack": "TypeError: Cannot read properties of undefined (reading 'preview')\n    at Shell (app/layout.tsx:42:13)\n    at renderWithHooks (react-dom.development.js:16305:18)"
+      }
+    }
+  ],
+  "durationMs": 18,
+  "error": {
+    "name": "TypeError",
+    "message": "Cannot read properties of undefined (reading 'preview')"
+  }
+}

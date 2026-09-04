@@ -9,7 +9,8 @@ packages/core/       @lovelaces-io/storyteller — the library. Zero dependencie
   AGENTS.md          the guide that ships in the package, for agents using the library
   llms.txt           the compressed version
   snippets/          the block `storyteller init` writes into a consumer's AGENTS.md
-packages/            add-on packages with real dependencies land here (sqlite, mcp)
+packages/view/       @lovelaces-io/storyteller-view — renders stories for humans (DOM + text). Zero dependencies.
+packages/            further add-ons land here; ones with real dependencies (sqlite, mcp) are opt-in
 site/                storyteller.lovelaces.io — Astro, deployed by Vercel from this folder
 docs/                API reference and the narrative guide
 scripts/             repo-level checks (docs drift, snippet sync, package contents)
@@ -17,7 +18,7 @@ scripts/             repo-level checks (docs drift, snippet sync, package conten
 
 ## The one rule
 
-`packages/core` has zero runtime dependencies and must stay that way. `npm run check:package`
+`packages/core` has zero runtime dependencies and must stay that way (so does `packages/view`). `npm run check:package`
 fails CI if its `package.json` gains a dependency or its tarball gains an unexpected file.
 Anything that needs a dependency is a separate package under `packages/`, opt-in, never
 imported by core.
@@ -26,10 +27,10 @@ imported by core.
 
 ```
 npm ci                 install everything (workspaces)
-npm run typecheck      core
+npm run typecheck      every package
 npm run lint           whole repo
-npm test               core suites
-npm run build          core → packages/core/dist
+npm test               every package's suites
+npm run build          every package → packages/*/dist
 npm run check:docs     no deprecated verbs in docs or site samples
 npm run check:snippet  the guidance block is identical everywhere it appears
 npm run check:package  zero dependencies, intended files only
