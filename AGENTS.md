@@ -2,187 +2,231 @@
 
 ## Overview
 
-Storyteller (`@lovelaces-io/storyteller`) is a lightweight TypeScript logging library with zero production dependencies. It treats logs as stories: you collect timestamped notes during an operation, then emit them as a single structured event at one of three levels — `tell` (info), `warn` (warning), or `oops` (error). Events are delivered to pluggable audiences.
+Storyteller (`@lovelaces-io/storyteller`) is a lightweight TypeScript logging library with zero production dependencies. You report beats of work as they happen; it keeps them and emits them as one structured record when the work finishes. Records go to pluggable audiences.
 
-Version: 0.1.0 (pre-1.0, API may change). Dual output: ESM + CJS.
+Version: 0.2.0 (pre-1.0, API may change). Dual output: ESM + CJS.
 
-## How to use it correctly
+## Narrate your work
 
-### Always create with an origin
-
-Every Storyteller instance should have an origin that identifies where logs come from:
-
-```typescript
-const story = new Storyteller({
-  origin: { who: "payment-service", what: "checkout" },
-});
-```
-
-### Collect notes, then emit
-
-The pattern is: accumulate notes during an operation, then emit once with `tell()`, `warn()`, or `oops()`. Notes are cleared after emission.
-
-```typescript
-story.note("Validated cart items");
-story.note("Applied discount code", { what: "SAVE20" });
-story.note("Charged payment method");
-story.tell("Checkout completed");
-```
-
-### Use .to() for audience targeting
-
-Call `.to()` synchronously and immediately after `tell()`, `warn()`, or `oops()` to target specific audiences. Delivery is microtask-scheduled, so `.to()` must be called in the same synchronous block — not after an `await` or in a callback.
-
-```typescript
-story.warn("Payment retry needed").to("db");
-story.tell("Health check passed").to("console");
-```
-
-### Error handling with oops
-
-Pass the caught error as the second argument to `oops()`. Storyteller normalizes it into a serializable object automatically.
-
-```typescript
-try {
-  await processPayment();
-  story.tell("Payment processed");
-} catch (error) {
-  story.oops("Payment failed", error);
-}
-```
-
-## Two output modes
-
-### Story (JSON record)
-
-The `StoryEvent` object is a clean JSON-serializable structure. `JSON.stringify(event)` gives you a DB row. This is what `dbAudience` stores.
-
-### Report (formatted text)
-
-`formatStory()` and `writeStoryReport()` produce colorized, human-readable text for console or file output. This is what `consoleAudience` prints.
-
-Keep these concerns separate. Storage audiences should receive the raw event. Presentation audiences should use the formatting utilities.
-
-## Architecture
-
-```
-src/
-  storyteller.ts       — core Storyteller class, types, event building, delivery
-  formatting.ts        — formatStory(), presentation logic
-  useStoryteller.ts    — singleton pattern (useStoryteller)
-  utils.ts             — shared utilities: ANSI codes, getLevelColor, formatOrigin
-  audiences/
-    consoleAudience.ts — prints color-coded grouped output to console
-    dbAudience.ts      — persists warn/oops events via insert callback
-  report/
-    writeStoryReport.ts — multi-story report formatter, grouped by day
-  index.ts             — public API barrel export
-```
-
-All types are defined in `storyteller.ts`. Formatting utilities live in `utils.ts` — do not duplicate them elsewhere.
-
-## Code standards
-
-This repo follows [Lovelaces](https://lovelaces.io) coding standards:
-
-- **Descriptive names** — no abbreviations. Use `options` not `opts`, `error` not `err`, `timestamp` not `ts`.
-- **No single-letter variables** — names should read like plain English.
-- **JSDoc on every public export** — brief comment explaining the function's purpose.
-- **No `as any` casts** — use proper type narrowing.
-- **Comments explain why, not what.**
-- **Zero production dependencies** — this is a hard constraint.
-
-## Common patterns
-
-### Creating a storyteller
+If you are an agent doing a multi-step task, this is the pattern. Report each step as you take it, then finish once:
 
 ```typescript
 import { Storyteller } from "@lovelaces-io/storyteller";
 
 const story = new Storyteller({
-  origin: { who: "api-server", what: "request-handler" },
+  origin: { who: "sync-agent", where: { service: "billing" } },
+  narration: "live",
 });
+
+story.report("Reading config");
+story.report("Fetching invoices", { what: { source: "stripe", page: 1 } });
+story.report("Rate limited, backing off", { level: "warn" });
+story.report("Retry succeeded", { what: { attempt: 2 } });
+
+story.finish("Sync complete");
 ```
 
-### Adding audiences
+In `live` narration each `report()` is emitted the moment you call it, so whoever is watching sees the work in progress. The full record still lands at `finish()`. Nothing is lost either way.
+
+## Choosing a narration mode
+
+| You want | Use |
+|---|---|
+| One record per operation, for storage or audit | `collected` (the default) |
+| Progress visible while the work runs | `live` |
+| To decide without touching the code | leave it unset, set `STORYTELLER_NARRATION=live` |
+
+`live` never removes an emission — it adds the beats and still delivers the story. A consumer that wants only beats says so with `hears: ["note"]`, rather than silencing the record.
+
+Switch at runtime with `story.narrate("live")`, or push a single urgent beat out of an otherwise collected story with `story.report("...", { live: true })`.
+
+## Streaming loses nothing
+
+Every beat carries `storyId` and `sequence`. Beats from one story share its `storyId`, and `sequence` is gap-free from 0, assigned at the moment you call `report()`.
+
+That means a consumer holding the streamed beats can order and group them back into exactly the `notes` array the story record would have contained. **Order by `sequence`, never by arrival time** — audiences are async and a slow one lands late.
+
+## Report anything
+
+`report()` takes any value, not just a string. Do not pre-flatten your data:
 
 ```typescript
-import { dbAudience } from "@lovelaces-io/storyteller";
-
-story.audience.add(
-  dbAudience(async (event) => {
-    await db.insert("logs", event);
-  })
-);
+story.report(await response.json());
+story.report(caughtError);
+story.report(new Map([["region", "us-east"]]));
+story.report({ message: "Job queued", jobId: 7 });   // "message" becomes the note text
 ```
 
-The console audience is registered by default. Remove it explicitly if unwanted:
+Whatever you pass is normalized into something storable: errors keep their `cause` chain, dates become ISO strings, class instances get an `@type` tag, circular references become `[Circular → path]`, and secret-looking keys (`password`, `apiKey`, `token`, …) become `[redacted]`.
+
+Values dropped for size are replaced with an explicit `{ "@truncated": { kind, omitted } }` marker, so you can tell "this was empty" from "this was too big".
+
+The normalizer never throws. A hostile object cannot break the pipeline.
+
+## Output a program can read
+
+For machine consumption, use NDJSON — one JSON object per line, nothing else on the channel:
 
 ```typescript
+import { ndjsonAudience } from "@lovelaces-io/storyteller";
+
 story.audience.remove("console");
+story.audience.add(ndjsonAudience({ stream: process.stderr }));
 ```
 
-### Singleton usage
+Or set `STORYTELLER_FORMAT=ndjson` and change no code at all.
 
-```typescript
-import { useStoryteller } from "@lovelaces-io/storyteller";
+## Environment variables
 
-const story = useStoryteller({ origin: { who: "worker" } });
-```
+| Variable | Values | Effect |
+|---|---|---|
+| `STORYTELLER_NARRATION` | `collected` \| `live` | Whether beats stream |
+| `STORYTELLER_FORMAT` | `text` \| `ndjson` | Which default audience is registered |
+| `STORYTELLER_LEVEL` | `info` \| `warn` \| `oops` | Minimum level delivered |
+| `STORYTELLER_COLOR` | `0` \| `1` | Force colors off or on |
+| `STORYTELLER_DEPRECATION_WARNINGS` | `1` | Warn when deprecated methods are called |
 
-### Error handling pattern
+Unrecognized values fall back to the default rather than throwing.
+
+## Error handling
+
+Pass the caught value to `finish()`. It is normalized automatically:
 
 ```typescript
 const story = new Storyteller({ origin: { who: "sync-job" } });
 
-story.note("Starting sync");
+story.report("Starting sync");
 try {
-  const records = await fetchRecords();
-  story.note(`Fetched ${records.length} records`);
+  const records = await getRecords();
+  story.report("Retrieved records", { what: { count: records.length } });
   await writeRecords(records);
-  story.note("Write complete");
-  story.tell("Sync finished");
+  story.finish("Sync finished");
 } catch (error) {
-  story.oops("Sync failed", error);
+  story.finish("Sync failed", { level: "oops", error });
 }
 ```
 
+## Two output modes, two narration modes
+
+These are different axes and it matters that you keep them straight:
+
+|  | Collected | Live |
+|---|---|---|
+| **Story** (JSON record) | one record at the end | beats stream as JSON, record still lands |
+| **Report** (formatted text) | one grouped block at the end | one compact line per beat |
+
+*Story* vs *report* is **what the output looks like**. *Collected* vs *live* is **when it comes out**.
+
+`JSON.stringify(event)` gives you the story record — a complete DB row, no assembly required. `formatStory(event)` gives you the human-readable report.
+
+## API
+
+```typescript
+story.report(input, context?)   // a beat; returns `this` for chaining
+story.finish(title, options?)   // emit the collected story; returns a `.to()` handle
+story.narrate(mode)             // switch narration at runtime
+story.reset()                   // drop the notes, start a new story id
+story.summarize(options?)       // preview without emitting
+story.currentStoryId            // the id beats are being tagged with
+story.audience.add/remove/has/names
+```
+
+`context`: `{ who, what, where, error, level, live, to }`
+`options`: `{ level, error }`
+`level` accepts `"info"`, `"warn"`, `"oops"`, `"error"`, or the stored labels.
+
+### Deprecated — removed at 1.0
+
+| Old | New |
+|---|---|
+| `note(text, context?)` | `report(input, context?)` |
+| `tell(title)` | `finish(title)` |
+| `warn(title)` | `finish(title, { level: "warn" })` |
+| `oops(title, error?)` | `finish(title, { level: "oops", error })` |
+
+The aliases behave identically. `tell` will not be reintroduced with a new meaning.
+
+## Audiences
+
+An audience declares which emission kinds it wants. **`hears` defaults to `["story"]`**, so an audience written before live narration existed keeps hearing only stories:
+
+```typescript
+story.audience.add({
+  name: "metrics",
+  hears: ["note"],                      // beats only
+  accepts: (emission) => emission.level !== "Information",
+  hear: (emission) => send(emission),
+});
+```
+
+Built in: `consoleAudience()` (notes and stories, registered by default), `dbAudience(insert)` (stories only, warn and oops), `ndjsonAudience(options)` (notes and stories).
+
+When an audience throws, the failure is reported through `onAudienceError` rather than swallowed, and never propagates into your code. When an audience is too slow, emissions past `maxInFlight` are dropped and counted in `droppedEmissions` on the closing story — so the loss shows up in the record instead of vanishing.
+
+## Architecture
+
+```
+src/
+  storyteller.ts       — core class, types, event building, delivery
+  normalize.ts         — turns any value into something storable
+  environment.ts       — env-var config, level resolution
+  formatting.ts        — formatStory(), presentation logic
+  useStoryteller.ts    — singleton pattern
+  utils.ts             — ANSI codes, getLevelColor, formatOrigin, summarizeContext
+  audiences/
+    consoleAudience.ts — compact line per beat, grouped block per story
+    dbAudience.ts      — persists warn/oops stories via insert callback
+    ndjsonAudience.ts  — one JSON object per line
+  report/
+    writeStoryReport.ts — multi-story report, grouped by day
+  index.ts             — public API barrel export
+```
+
+Types are defined in `storyteller.ts` and `normalize.ts`. Formatting utilities live in `utils.ts` — do not duplicate them elsewhere.
+
+## Code standards
+
+This repo follows [Lovelaces](https://lovelaces.io) coding standards:
+
+- **Descriptive names** — no abbreviations. `options` not `opts`, `error` not `err`, `timestamp` not `ts`.
+- **No single-letter variables.**
+- **JSDoc on every public export.**
+- **No `as any` casts** — use proper type narrowing.
+- **Comments explain why, not what.**
+- **Zero production dependencies** — a hard constraint.
+
 ## Anti-patterns
+
+### Do not order streamed beats by arrival time
+
+Audiences are async. Two beats can land out of order. `sequence` is assigned synchronously and is the only correct ordering key.
+
+### Do not pre-stringify your data
+
+`report()` normalizes anything you give it. `JSON.stringify`-ing first loses structure and can throw on a circular reference before Storyteller ever sees it.
 
 ### Do not store the .to() return value
 
-The object returned by `tell()`, `warn()`, and `oops()` is a one-shot delivery handle. Do not store it or call `.to()` later — delivery happens on the next microtask.
+The object returned by `finish()` is a one-shot delivery handle. Delivery happens on the next microtask, so `.to()` must be called immediately and synchronously — not after an `await`.
 
 ```typescript
 // Wrong — delivery may have already happened
-const handle = story.tell("Done");
+const handle = story.finish("Done");
 await someAsyncWork();
 handle.to("db");
 
-// Correct — call .to() immediately and synchronously
-story.tell("Done").to("db");
+// Correct
+story.finish("Done").to("db");
 ```
 
 ### Do not mix presentation with storage
 
-Audiences that store events (like `dbAudience`) should receive the raw `StoryEvent` object. Do not format or summarize before storing. Formatting is for human-facing output only.
+Storage audiences should receive the raw emission. Do not format before storing — format when reading.
 
-```typescript
-// Wrong — storing formatted text in the database
-dbAudience(async (event) => {
-  await db.insert("logs", { text: event.summarize().text });
-});
+### Do not create a Storyteller per step
 
-// Correct — store the raw event, format when reading
-dbAudience(async (event) => {
-  await db.insert("logs", event);
-});
-```
+One instance per logical operation. Multiple instances fragment your work across disconnected stories with different `storyId`s. Use `useStoryteller()` for shared access, or pass one instance through the call chain.
 
-### Do not call note() after tell/warn/oops
+### Do not report after finishing
 
-Emitting a story clears all accumulated notes. Notes added after emission belong to the next story. If you need notes in a specific story, add them before emitting.
-
-### Do not create multiple Storyteller instances for the same logical component
-
-Use `useStoryteller()` for shared/singleton access, or pass a single instance through your call chain. Multiple instances fragment your story across disconnected events.
+`finish()` clears the notes and starts a new story id. Beats reported afterwards belong to the next story.

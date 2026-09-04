@@ -67,12 +67,12 @@ const story = new Storyteller({
 Each note captures a moment. Add context about who, what, where, and any errors.
 
 ```ts
-story.note("User submitted payment", {
+story.report("User submitted payment", {
   who: { id: "user:413" },
   what: { amount: 49.99, currency: "USD" },
 });
 
-story.note("Charging card", {
+story.report("Charging card", {
   what: "stripe:charge",
   where: { service: "payments" },
 });
@@ -84,16 +84,43 @@ When the operation is done, tell the story. All the notes get bundled into a sin
 
 ```ts
 // Happy path
-story.tell("Payment completed");
+story.finish("Payment completed");
 
 // Something concerning
-story.warn("Payment slow but succeeded");
+story.finish("Payment slow but succeeded", { level: "warn" });
 
 // Something broke
-story.oops("Payment failed", new Error("gateway timeout"));
+story.finish("Payment failed", { level: "oops", error });
 ```
 
 That's it. Notes are cleared after telling, so the next story starts fresh.
+
+---
+
+## Or Watch It Happen
+
+Collecting the whole story and emitting it at the end is the right shape for an audit record. It is the wrong shape when the work takes forty seconds and someone — a person, or an agent — wants to know what is going on right now.
+
+So you can tune in:
+
+```ts
+const story = new Storyteller({
+  origin: { who: "sync-agent" },
+  narration: "live",
+});
+
+story.report("Fetching invoices");
+story.report("Rate limited, backing off", { level: "warn" });
+story.finish("Sync complete");
+```
+
+Each beat is emitted the moment you report it. The story record still lands at the end — live narration *adds* emissions, it never removes them.
+
+The trick that makes this safe is correlation. Every beat carries the `storyId` of the story it belongs to, and a `sequence` number assigned the instant you call `report()`. So whoever is holding the stream can order and group the beats back into exactly the record collected narration would have produced.
+
+That is the guarantee the whole design rests on: **however you tune in, you can recover the same story.** Neither mode is the lesser one.
+
+Order by `sequence`, never by arrival time — audiences are asynchronous, and a slow one lands late.
 
 ---
 
@@ -101,7 +128,7 @@ That's it. Notes are cleared after telling, so the next story starts fresh.
 
 | Level | Method | Meaning |
 |-------|--------|---------|
-| **tell** | `story.tell()` | Everything worked. A story worth recording. |
+| **tell** | `story.finish()` | Everything worked. A story worth recording. |
 | **warn** | `story.warn()` | It worked, but something was off. Pay attention. |
 | **oops** | `story.oops()` | Something broke. Here's exactly what happened. |
 
@@ -116,7 +143,7 @@ Every note can carry structured context through three dimensions:
 - **where** — The component, service, or location in the system
 
 ```ts
-story.note("Permission check failed", {
+story.report("Permission check failed", {
   who: { id: "user:99", role: "viewer" },
   what: { action: "delete", resource: "project:42" },
   where: { component: "ProjectSettings", service: "auth" },
@@ -149,13 +176,13 @@ The console audience is included by default. The db audience only listens to `wa
 
 ```ts
 // Goes to all audiences
-story.tell("Page loaded");
+story.finish("Page loaded");
 
 // Only goes to console and db
-story.oops("Critical failure", error).to("console", "db");
+story.finish("Critical failure", { level: "oops", error }).to("console", "db");
 
 // Only goes to db (skip console noise)
-story.warn("Background job slow").to("db");
+story.finish("Background job slow", { level: "warn" }).to("db");
 ```
 
 ### Build your own audience
@@ -165,7 +192,7 @@ An audience is just a name, an optional filter, and a handler:
 ```ts
 story.audience.add({
   name: "slack",
-  accepts: (event) => event.level === "oops",
+  accepts: (event) => event.level === "Error",
   hear: async (event) => {
     const summary = event.summarize({ colors: false });
     await postToSlack(summary.text);
@@ -182,9 +209,9 @@ Now every `oops` story automatically posts to Slack — with full context, struc
 Every story can generate a formatted summary on demand — for logging, alerting, or display.
 
 ```ts
-story.note("User opened dashboard");
-story.note("Loaded 6 widgets");
-story.note("Dashboard ready");
+story.report("User opened dashboard");
+story.report("Loaded 6 widgets");
+story.report("Dashboard ready");
 
 const summary = story.summarize({
   title: "Dashboard loaded",
@@ -218,16 +245,16 @@ In a real app, the user's journey spans multiple components and services. `useSt
 // In your auth service
 import { useStoryteller } from "@lovelaces-io/storyteller";
 const story = useStoryteller();
-story.note("Session validated", { who: { id: "user:42" } });
+story.report("Session validated", { who: { id: "user:42" } });
 
 // In your API layer
 const story = useStoryteller();  // same instance
-story.note("Fetched dashboard data", { what: { widgets: 6 } });
+story.report("Fetched dashboard data", { what: { widgets: 6 } });
 
 // In your UI component
 const story = useStoryteller();  // still the same instance
-story.note("Rendered dashboard");
-story.tell("Dashboard loaded");
+story.report("Rendered dashboard");
+story.finish("Dashboard loaded");
 // All three notes are in this story
 ```
 
@@ -282,25 +309,25 @@ const story = new Storyteller({
 });
 
 // User action
-story.note("User updated email", {
+story.report("User updated email", {
   who: { id: "user:99", role: "member" },
   what: { field: "email", value: "new@example.com" },
   where: { component: "ProfileForm" },
 });
 
 // Validation
-story.note("Validation passed", { what: "email format check" });
+story.report("Validation passed", { what: "email format check" });
 
 // Database write fails
 try {
   await db.update("users", { email: "new@example.com" });
-  story.tell("Profile updated");
+  story.finish("Profile updated");
 } catch (error) {
-  story.note("Write failed", {
+  story.report("Write failed", {
     where: "primary-db",
     error,
   });
-  story.oops("Failed to save profile", error);
+  story.finish("Failed to save profile", { level: "oops", error });
 }
 ```
 
@@ -374,8 +401,8 @@ npm install @lovelaces-io/storyteller
 import { Storyteller } from "@lovelaces-io/storyteller";
 
 const story = new Storyteller();
-story.note("Hello, world");
-story.tell("First story");
+story.report("Hello, world");
+story.finish("First story");
 ```
 
 Your logs have a story to tell. Let them.

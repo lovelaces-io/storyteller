@@ -53,6 +53,7 @@
     "test": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint .",
+    "check:docs": "node ./scripts/checkDocs.mjs",
     "prepack": "npm run build"
   },
   "devDependencies": {
