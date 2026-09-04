@@ -1,74 +1,21 @@
 {
-  "name": "@lovelaces-io/storyteller",
-  "version": "0.3.1",
-  "description": "Zero-dependency TypeScript logging for humans and AI agents. Report work as it happens, get one clean structured record when it's done.",
+  "name": "storyteller-workspace",
+  "private": true,
+  "description": "Workspace for @lovelaces-io/storyteller (packages/core) and its add-on packages.",
   "license": "MIT",
-  "private": false,
-  "type": "module",
-  "sideEffects": false,
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "publishConfig": {
-    "registry": "https://registry.npmjs.org/",
-    "access": "public"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/lovelaces-io/storyteller.git"
-  },
-  "author": "Lovelaces <contact@lovelaces.io> (https://lovelaces.io)",
-  "homepage": "https://storyteller.lovelaces.io",
-  "bugs": {
-    "url": "https://github.com/lovelaces-io/storyteller/issues"
-  },
-  "keywords": [
-    "logging",
-    "logger",
-    "structured-logging",
-    "storyteller",
-    "events",
-    "observability",
-    "typescript",
-    "story-logging",
-    "structured-events",
-    "zero-dependencies",
-    "audit-log",
-    "context-logging",
-    "ai-agents",
-    "agents",
-    "llm",
-    "live-logging",
-    "log-streaming",
-    "ndjson",
-    "mcp",
-    "agent-observability",
-    "cli"
-  ],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    },
-    "./package.json": "./package.json"
-  },
-  "files": [
-    "dist",
-    "snippets",
-    "llms.txt",
-    "AGENTS.md"
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "test:console": "npm run build && node ./scripts/consoleTest.mjs",
-    "test": "vitest",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "npm run build -w @lovelaces-io/storyteller",
+    "test": "npm run test -w @lovelaces-io/storyteller",
+    "typecheck": "npm run typecheck -w @lovelaces-io/storyteller",
+    "test:console": "npm run test:console -w @lovelaces-io/storyteller",
     "lint": "eslint .",
     "check:docs": "node ./scripts/checkDocs.mjs",
     "check:snippet": "node ./scripts/checkSnippet.mjs",
-    "prepack": "npm run build"
+    "check:package": "node ./scripts/checkPackage.mjs",
+    "release": "npm publish -w @lovelaces-io/storyteller --access public"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -78,8 +25,5 @@
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.57.1",
     "vitest": "^2.0.0"
-  },
-  "bin": {
-    "storyteller": "dist/cli.cjs"
   }
 }

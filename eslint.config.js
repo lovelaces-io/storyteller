@@ -5,7 +5,7 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    ignores: ["dist/", "scripts/", "site/"],
+    ignores: ["**/dist/", "scripts/", "packages/*/scripts/", "site/"],
   },
   {
     rules: {
