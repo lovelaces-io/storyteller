@@ -96,7 +96,7 @@ Unrecognized values fall back to the default rather than throwing.
 - `Emission` — `NoteEmission | StoryEvent`
 - `EmissionKind` — `"note" | "story"`
 - `Narration` — `"collected" | "live"`
-- `AudienceMember` — audience interface (name, hears?, accepts?, hear)
+- `AudienceMember<Kind = "story">` — audience interface (name, hears?, accepts?, hear); callbacks receive `StoryEvent` by default, `NoteEmission` for `hears: ["note"]`, the union for both
 - `AudienceErrorHandler` — called when an audience throws
 - `NormalizeOptions` — depth, size and redaction limits
 - `FormattedReport` / `StoryReport` / `ReportNote` / `ReportOptions` / `PreviewOptions` / `StoryReportOptions`

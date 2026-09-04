@@ -860,17 +860,17 @@ type JsonValue =
 ### AudienceMember
 
 ```ts
-type AudienceMember = {
+type AudienceMember<Kind extends EmissionKind = "story"> = {
   name: string;
-  hears?: EmissionKind[];          // Defaults to ["story"]
-  accepts?(emission: Emission): boolean;
-  hear(emission: Emission): void | Promise<void>;
+  hears?: Kind[];                              // Defaults to ["story"]
+  accepts?(emission: EmissionOf<Kind>): boolean;
+  hear(emission: EmissionOf<Kind>): void | Promise<void>;
 };
 ```
 
-Declared with method syntax so an audience written as `hear: (event: StoryEvent) => void`
-still compiles. Such an audience only ever receives stories, because `hears` defaults to
-`["story"]`.
+Typed by what it hears. With no `hears`, `accepts` and `hear` receive a `StoryEvent` — an
+audience written before live narration compiles unchanged. `hears: ["note"]` gives a
+`NoteEmission`; `["note", "story"]` gives the `Emission` union, and you narrow on `kind`.
 
 ---
 

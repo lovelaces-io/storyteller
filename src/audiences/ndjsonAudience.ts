@@ -1,4 +1,4 @@
-import type { AudienceMember, Emission, StoryLevel } from "../storyteller";
+import type { AudienceMember, Emission, EmissionKind, StoryLevel } from "../storyteller";
 import { meetsLevel, resolveMinimumLevel } from "../environment";
 import { normalizeValue } from "../normalize";
 
@@ -32,7 +32,7 @@ export type NdjsonAudienceOptions = {
  * story.audience.add(ndjsonAudience({ stream: process.stderr }));
  * ```
  */
-export function ndjsonAudience(options: NdjsonAudienceOptions = {}): AudienceMember {
+export function ndjsonAudience(options: NdjsonAudienceOptions = {}): AudienceMember<EmissionKind> {
   const writer = options.stream ?? createDefaultWriter();
   const minimumLevel = resolveMinimumLevel(options.level);
 

@@ -1,4 +1,4 @@
-import type { AudienceMember, Emission, StoryEvent } from "../storyteller";
+import type { AudienceMember, StoryEvent } from "../storyteller";
 
 /**
  * Create an audience that stores warn and oops stories via your insert function.
@@ -25,12 +25,9 @@ export function dbAudience(insert: (event: StoryEvent) => Promise<void> | void):
   return {
     name: "db",
     hears: ["story"],
-    accepts: (emission: Emission) =>
-      emission.kind === "story" &&
-      (emission.level === "Warning" || emission.level === "Error"),
-    hear: async (emission: Emission) => {
-      if (emission.kind !== "story") return;
-      await insert(emission);
+    accepts: (event) => event.level === "Warning" || event.level === "Error",
+    hear: async (event) => {
+      await insert(event);
     },
   };
 }

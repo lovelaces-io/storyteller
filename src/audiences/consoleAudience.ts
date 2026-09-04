@@ -1,4 +1,4 @@
-import type { AudienceMember, Emission, NoteEmission, StoryEvent, StoryLevel } from "../storyteller";
+import type { AudienceMember, Emission, EmissionKind, NoteEmission, StoryEvent, StoryLevel } from "../storyteller";
 import { resolveColors } from "../environment";
 import { ANSI, getLevelColor, formatOrigin, summarizeContext } from "../utils";
 
@@ -37,7 +37,7 @@ export type ConsoleAudienceOptions = {
  * story.audience.add(consoleAudience());
  * ```
  */
-export function consoleAudience(options: ConsoleAudienceOptions = {}): AudienceMember {
+export function consoleAudience(options: ConsoleAudienceOptions = {}): AudienceMember<EmissionKind> {
   const colors = resolveColors(options.colors);
 
   return {
