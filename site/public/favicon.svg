@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 68 68" role="img" aria-label="Storyteller">
+  <!-- A terminal that speaks: a prompt window with a speech-bubble tail -->
+  <path d="M18 4h28a14 14 0 0 1 14 14v24a14 14 0 0 1-14 14H31l-13 9v-9a14 14 0 0 1-14-14V18A14 14 0 0 1 18 4z" fill="#0f1a0f" stroke="#4ade80" stroke-width="3.5" stroke-linejoin="round"/>
+  <path d="M19 19l12 10-12 10" fill="none" stroke="#4ade80" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="35" y="35.5" width="12" height="5.5" rx="1.75" fill="#33ff33"/>
+</svg>

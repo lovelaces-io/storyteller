@@ -828,3 +828,7 @@ h2:hover .heading-anchor { opacity: 1; color: var(--green-dim); }
   .docs-search { flex: 0 0 100%; margin-bottom: 0.5rem; }
   .on-this-page { display: none; }
 }
+
+footer .footer-by { margin-top: 0.75rem; }
+footer .footer-by a { display: inline-flex; align-items: center; gap: 0.4rem; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.8rem; }
+footer .footer-by a:hover { color: var(--green); }
