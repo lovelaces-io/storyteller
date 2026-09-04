@@ -401,3 +401,29 @@ footer .footer-links {
     padding: 3rem 0;
   }
 }
+
+/* Live narration: beats arrive one at a time, because that is the whole point */
+pre.live-output.is-animating .live-line {
+  display: inline-block;
+  opacity: 0;
+  animation: beat-arrives 0.35s ease-out forwards;
+}
+
+@keyframes beat-arrives {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Without JS or with reduced motion the lines are simply already there */
+@media (prefers-reduced-motion: reduce) {
+  pre.live-output.is-animating .live-line {
+    opacity: 1;
+    animation: none;
+  }
+}

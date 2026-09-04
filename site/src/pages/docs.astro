@@ -10,9 +10,9 @@ const quickStartCode = `<span class="keyword">import</span> <span class="punctua
   origin: <span class="punctuation">{</span> who: <span class="string">"my-service"</span> <span class="punctuation">}</span>,
 <span class="punctuation">}</span>);
 
-story.<span class="function">note</span>(<span class="string">"User clicked checkout"</span>);
-story.<span class="function">note</span>(<span class="string">"Cart validated"</span>, <span class="punctuation">{</span> what: <span class="punctuation">{</span> items: <span class="type">3</span> <span class="punctuation">}</span> <span class="punctuation">}</span>);
-story.<span class="function">tell</span>(<span class="string">"Checkout started"</span>);`;
+story.<span class="function">report</span>(<span class="string">"User clicked checkout"</span>);
+story.<span class="function">report</span>(<span class="string">"Cart validated"</span>, <span class="punctuation">{</span> what: <span class="punctuation">{</span> items: <span class="type">3</span> <span class="punctuation">}</span> <span class="punctuation">}</span>);
+story.<span class="function">finish</span>(<span class="string">"Checkout started"</span>);`;
 
 const outputCode = `<span class="punctuation">{</span>
   <span class="keyword">"timestamp"</span>: <span class="string">"2026-03-31T14:30:00.000Z"</span>,
@@ -26,13 +26,13 @@ const outputCode = `<span class="punctuation">{</span>
   <span class="punctuation">]</span>
 <span class="punctuation">}</span>`;
 
-const contextCode = `story.<span class="function">note</span>(<span class="string">"Card charged"</span>, <span class="punctuation">{</span>
+const contextCode = `story.<span class="function">report</span>(<span class="string">"Card charged"</span>, <span class="punctuation">{</span>
   who: <span class="punctuation">{</span> id: <span class="string">"user:413"</span>, role: <span class="string">"member"</span> <span class="punctuation">}</span>,
   what: <span class="punctuation">{</span> amount: <span class="string">"$49.99"</span>, method: <span class="string">"visa"</span> <span class="punctuation">}</span>,
   where: <span class="string">"stripe-api"</span>,
 <span class="punctuation">}</span>);
 
-story.<span class="function">note</span>(<span class="string">"Write failed"</span>, <span class="punctuation">{</span>
+story.<span class="function">report</span>(<span class="string">"Write failed"</span>, <span class="punctuation">{</span>
   where: <span class="string">"primary-db"</span>,
   error: <span class="keyword">new</span> <span class="function">Error</span>(<span class="string">"connection timeout"</span>),
 <span class="punctuation">}</span>);`;
@@ -55,10 +55,10 @@ const customAudienceCode = `story.audience.<span class="function">add</span>(<sp
 <span class="punctuation">}</span>);`;
 
 const targetingCode = `<span class="comment">// Send this story only to the database, not the console</span>
-story.<span class="function">warn</span>(<span class="string">"Slow query detected"</span>).<span class="function">to</span>(<span class="string">"db"</span>);
+story.<span class="function">finish</span>(<span class="string">"Slow query detected"</span>, <span class="punctuation">{</span> level: <span class="string">"warn"</span> <span class="punctuation">}</span>).<span class="function">to</span>(<span class="string">"db"</span>);
 
 <span class="comment">// Send to multiple specific audiences</span>
-story.<span class="function">oops</span>(<span class="string">"Critical failure"</span>, error).<span class="function">to</span>(<span class="string">"db"</span>, <span class="string">"slack"</span>);`;
+story.<span class="function">finish</span>(<span class="string">"Critical failure"</span>, <span class="punctuation">{</span> level: <span class="string">"oops"</span>, error <span class="punctuation">}</span>).<span class="function">to</span>(<span class="string">"db"</span>, <span class="string">"slack"</span>);`;
 
 const audienceManagementCode = `story.audience.<span class="function">has</span>(<span class="string">"console"</span>);    <span class="comment">// true</span>
 story.audience.<span class="function">names</span>();           <span class="comment">// ["console", "db"]</span>
@@ -110,21 +110,21 @@ const apiRequestCode = `<span class="keyword">const</span> story = <span class="
   origin: <span class="punctuation">{</span> who: <span class="string">"api"</span>, where: <span class="punctuation">{</span> service: <span class="string">"users"</span> <span class="punctuation">}</span> <span class="punctuation">}</span>,
 <span class="punctuation">}</span>);
 
-story.<span class="function">note</span>(<span class="string">"Request received"</span>, <span class="punctuation">{</span> what: <span class="punctuation">{</span> method: <span class="string">"POST"</span>, path: <span class="string">"/users"</span> <span class="punctuation">}</span> <span class="punctuation">}</span>);
+story.<span class="function">report</span>(<span class="string">"Request received"</span>, <span class="punctuation">{</span> what: <span class="punctuation">{</span> method: <span class="string">"POST"</span>, path: <span class="string">"/users"</span> <span class="punctuation">}</span> <span class="punctuation">}</span>);
 
 <span class="keyword">try</span> <span class="punctuation">{</span>
   <span class="keyword">const</span> user = <span class="keyword">await</span> <span class="function">createUser</span>(body);
-  story.<span class="function">note</span>(<span class="string">"User created"</span>, <span class="punctuation">{</span> what: <span class="punctuation">{</span> id: user.id <span class="punctuation">}</span> <span class="punctuation">}</span>);
-  story.<span class="function">tell</span>(<span class="string">"User registration complete"</span>);
+  story.<span class="function">report</span>(<span class="string">"User created"</span>, <span class="punctuation">{</span> what: <span class="punctuation">{</span> id: user.id <span class="punctuation">}</span> <span class="punctuation">}</span>);
+  story.<span class="function">finish</span>(<span class="string">"User registration complete"</span>);
 <span class="punctuation">}</span> <span class="keyword">catch</span> (error) <span class="punctuation">{</span>
-  story.<span class="function">oops</span>(<span class="string">"User registration failed"</span>, error);
+  story.<span class="function">finish</span>(<span class="string">"User registration failed"</span>, <span class="punctuation">{</span> level: <span class="string">"oops"</span>, error <span class="punctuation">}</span>);
 <span class="punctuation">}</span>`;
 
 const backgroundJobCode = `<span class="keyword">const</span> story = <span class="keyword">new</span> <span class="function">Storyteller</span>(<span class="punctuation">{</span> origin: <span class="punctuation">{</span> who: <span class="string">"sync-worker"</span> <span class="punctuation">}</span> <span class="punctuation">}</span>);
 
-story.<span class="function">note</span>(<span class="string">"Starting daily sync"</span>);
+story.<span class="function">report</span>(<span class="string">"Starting daily sync"</span>);
 <span class="keyword">const</span> records = <span class="keyword">await</span> <span class="function">fetchRecords</span>();
-story.<span class="function">note</span>(<span class="string">\`Fetched \$&#123;records.length&#125; records\`</span>);
+story.<span class="function">report</span>(<span class="string">\`Fetched \$&#123;records.length&#125; records\`</span>);
 
 <span class="keyword">let</span> failures = <span class="type">0</span>;
 <span class="keyword">for</span> (<span class="keyword">const</span> record <span class="keyword">of</span> records) <span class="punctuation">{</span>
@@ -135,12 +135,12 @@ story.<span class="function">note</span>(<span class="string">\`Fetched \$&#123;
   <span class="punctuation">}</span>
 <span class="punctuation">}</span>
 
-story.<span class="function">note</span>(<span class="string">\`Processed with \$&#123;failures&#125; failures\`</span>);
+story.<span class="function">report</span>(<span class="string">\`Processed with \$&#123;failures&#125; failures\`</span>);
 
 <span class="keyword">if</span> (failures > <span class="type">0</span>) <span class="punctuation">{</span>
-  story.<span class="function">warn</span>(<span class="string">"Sync completed with errors"</span>);
+  story.<span class="function">finish</span>(<span class="string">"Sync completed with errors"</span>, <span class="punctuation">{</span> level: <span class="string">"warn"</span> <span class="punctuation">}</span>);
 <span class="punctuation">}</span> <span class="keyword">else</span> <span class="punctuation">{</span>
-  story.<span class="function">tell</span>(<span class="string">"Sync completed"</span>);
+  story.<span class="function">finish</span>(<span class="string">"Sync completed"</span>);
 <span class="punctuation">}</span>`;
 ---
 
@@ -172,7 +172,7 @@ story.<span class="function">note</span>(<span class="string">\`Processed with \
       <h3>Step 1: Install</h3>
       <Terminal title="terminal" code={installCode} />
 
-      <h3>Step 2: Tell a story</h3>
+      <h3>Step 2: Report, then finish</h3>
       <Terminal title="app.ts" code={quickStartCode} />
 
       <h3>Step 3: See the output</h3>
@@ -224,23 +224,23 @@ story.<span class="function">note</span>(<span class="string">\`Processed with \
     <!-- Story Levels -->
     <section id="story-levels">
       <h2>Story levels</h2>
-      <p>Three levels. Pick the one that fits.</p>
+      <p>Three levels. Works on individual beats too: <code>story.report("Retrying", {'{ level: "warn" }'})</code>.</p>
 
       <div class="features-grid" style="grid-template-columns: repeat(3, 1fr);">
         <div class="feature-card">
-          <h3><span class="level-dot tell"></span> tell</h3>
-          <p>Everything went well. Informational. The happy path.</p>
-          <code style="font-size: 0.85rem; color: var(--tell);">story.tell("Checkout completed")</code>
+          <h3><span class="level-dot tell"></span> info</h3>
+          <p>Everything went well. The default. The happy path.</p>
+          <code style="font-size: 0.85rem; color: var(--tell);">story.finish("Checkout completed")</code>
         </div>
         <div class="feature-card">
           <h3><span class="level-dot warn"></span> warn</h3>
           <p>Something was off but it's handled. Worth knowing about.</p>
-          <code style="font-size: 0.85rem; color: var(--warn);">story.warn("Payment retried")</code>
+          <code style="font-size: 0.85rem; color: var(--warn);">story.finish("Payment retried", {'{ level: "warn" }'})</code>
         </div>
         <div class="feature-card">
           <h3><span class="level-dot oops"></span> oops</h3>
-          <p>Something broke. Pass the error for automatic normalization.</p>
-          <code style="font-size: 0.85rem; color: var(--oops);">story.oops("Failed", error)</code>
+          <p>Something broke. Pass the error and it's normalized, cause chain and all.</p>
+          <code style="font-size: 0.85rem; color: var(--oops);">story.finish("Failed", {'{ level: "oops", error }'})</code>
         </div>
       </div>
     </section>
@@ -284,14 +284,24 @@ story.<span class="function">note</span>(<span class="string">\`Processed with \
           <tr><th>Method</th><th>Returns</th><th>Description</th></tr>
         </thead>
         <tbody>
-          <tr><td><code>note(text, context?)</code></td><td><code>this</code></td><td>Add a timestamped note with optional who/what/where/error</td></tr>
-          <tr><td><code>tell(title)</code></td><td><code>{'{ to }'}</code></td><td>Tell a success story</td></tr>
-          <tr><td><code>warn(title)</code></td><td><code>{'{ to }'}</code></td><td>Tell a cautionary story</td></tr>
-          <tr><td><code>oops(title, error?)</code></td><td><code>{'{ to }'}</code></td><td>Tell an error story</td></tr>
-          <tr><td><code>reset()</code></td><td><code>this</code></td><td>Clear accumulated notes without telling a story</td></tr>
-          <tr><td><code>summarize(options?)</code></td><td><code>FormattedReport</code></td><td>Preview current notes as a formatted report</td></tr>
+          <tr><td><code>report(input, context?)</code></td><td><code>this</code></td><td>Report a beat. Any value. Context: who, what, where, error, level, live, to</td></tr>
+          <tr><td><code>finish(title, options?)</code></td><td><code>{'{ to }'}</code></td><td>Emit the collected story. Options: level, error</td></tr>
+          <tr><td><code>narrate(mode)</code></td><td><code>this</code></td><td>Switch between <code>collected</code> and <code>live</code> at runtime</td></tr>
+          <tr><td><code>chapter(options?)</code></td><td><code>Storyteller</code></td><td>A child storyteller for nested work, linked by <code>parentStoryId</code></td></tr>
+          <tr><td><code>reset()</code></td><td><code>this</code></td><td>Clear collected beats without emitting, start a new story id</td></tr>
+          <tr><td><code>summarize(options?)</code></td><td><code>FormattedReport</code></td><td>Preview current beats as a formatted report</td></tr>
+          <tr><td><code>currentStoryId</code></td><td><code>string</code></td><td>The id beats are being tagged with</td></tr>
         </tbody>
       </table>
+
+      <!-- docs-check: allow-deprecated -->
+      <p style="color: var(--text-muted); margin-top: 1rem; font-size: 0.9rem;">
+        <strong>Deprecated, removed at 1.0:</strong> <code>note()</code> → <code>report()</code>,
+        <code>tell()</code> → <code>finish()</code>,
+        <code>warn()</code> → <code>finish(title, {'{ level: "warn" }'})</code>,
+        <code>oops()</code> → <code>finish(title, {'{ level: "oops", error }'})</code>.
+        The old names still work identically. <code>tell</code> will not be reintroduced with a new meaning.
+      </p>
 
       <h3>Audience registry</h3>
       <table class="api-table">

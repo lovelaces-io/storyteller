@@ -14,6 +14,14 @@ const FILES = [
   "docs/HOW-IT-WORKS.md",
 ];
 
+/**
+ * Site pages keep their code in highlighted template strings rather than fenced
+ * blocks, so they are scanned whole. Calls appear either bare or wrapped in a
+ * syntax-highlighting span: `story.tell(` or `<span class="function">tell</span>(`.
+ */
+const SITE_FILES = ["site/src/pages/index.astro", "site/src/pages/docs.astro"];
+const SITE_DEPRECATED = /(?:\.|>)(note|tell|warn|oops)(?:<\/span>)?\(/g;
+
 const DEPRECATED = [
   { pattern: /\.note\(/, replacement: "report()" },
   { pattern: /\.tell\(/, replacement: "finish()" },
@@ -79,9 +87,34 @@ for (const file of FILES) {
   }
 }
 
+for (const file of SITE_FILES) {
+  let text;
+  try {
+    text = readFileSync(file, "utf8");
+  } catch {
+    continue;
+  }
+
+  // Same opt-out as the markdown files: the marker suppresses checking until
+  // the next heading or section, so a migration note can name the old verbs
+  let allowed = false;
+  text.split("\n").forEach((line, index) => {
+    if (line.includes(ALLOW_MARKER)) {
+      allowed = true;
+      return;
+    }
+    if (/<(h2|h3|section)\b/.test(line)) allowed = false;
+    if (allowed) return;
+    if (/console\.(warn|error|log)/.test(line)) return;
+    for (const match of line.matchAll(SITE_DEPRECATED)) {
+      failures.push(`${file}:${index + 1} uses deprecated ${match[1]}()\n    ${line.trim().slice(0, 100)}`);
+    }
+  });
+}
+
 if (failures.length) {
   console.error(`Documentation uses deprecated methods:\n\n${failures.join("\n")}\n`);
   process.exit(1);
 }
 
-console.log(`Docs check passed — no deprecated methods in ${FILES.length} files.`);
+console.log(`Docs check passed — no deprecated methods in ${FILES.length + SITE_FILES.length} files.`);
