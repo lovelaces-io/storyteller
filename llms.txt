@@ -32,6 +32,7 @@ story.finish("Startup complete");
 - **Narration** — `collected` (buffer, emit once) or `live` (emit each beat as it happens)
 - **Emission** — what an audience hears: `kind: "note"` or `kind: "story"`
 - **Correlation** — every beat carries `storyId` and a gap-free `sequence`, so streamed beats reassemble into exactly the record collected narration would have produced
+- **Chapters** — nested stories linked by `parentStoryId`; a run reconstructs as a tree
 - **Audiences** — pluggable listeners; `hears` defaults to `["story"]`
 - **Reports** — human-readable formatted text output from story records
 - **Origin** — optional who/what/where metadata attached to every story from an instance
@@ -42,6 +43,7 @@ story.finish("Startup complete");
   - `.report(input, context?)` — report a beat; accepts any value; returns `this`
   - `.finish(title, options?)` — emit the collected story; returns a `.to()` handle
   - `.narrate(mode)` — switch narration at runtime
+  - `.chapter(options?)` — a child storyteller for nested work, linked by `parentStoryId`
   - `.reset()` — clear beats without emitting, start a new story id
   - `.summarize(options?)` — preview current beats as a formatted report
   - `.currentStoryId` — the id beats are currently tagged with
@@ -83,7 +85,9 @@ Unrecognized values fall back to the default rather than throwing.
 - `LevelInput` — any accepted spelling: `"info"`, `"warn"`, `"oops"`, `"error"`, or a `StoryLevel`
 - `JsonValue` — a value that always survives `JSON.stringify`
 - `StoryNote` — a beat: timestamp, sequence, note, optional level and context
-- `StoryEventBase` — the record: timestamp, level, title, storyId, origin, notes, durationMs, droppedEmissions, error
+- `StoryEventBase` — the record: timestamp, level, title, storyId, parentStoryId, origin, notes, durationMs, droppedEmissions, error
+- `ChapterOptions` — origin and setting overrides for a child storyteller
+- `AudienceRegistry` — shareable audience registry
 - `StoryEvent` — the record as an emission (`kind: "story"`, with `.summarize()`)
 - `NoteEmission` — a beat as an emission (`kind: "note"`, with storyId, sequence, level, origin)
 - `Emission` — `NoteEmission | StoryEvent`

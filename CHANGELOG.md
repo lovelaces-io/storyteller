@@ -17,6 +17,8 @@ Live narration and agent-first reporting. See [#31](https://github.com/lovelaces
 - **Environment configuration:** `STORYTELLER_NARRATION`, `STORYTELLER_FORMAT`, `STORYTELLER_LEVEL`, `STORYTELLER_COLOR`, `STORYTELLER_DEPRECATION_WARNINGS`.
 - **`onAudienceError`.** Audience failures are reported instead of swallowed. Without a handler, one throttled console warning per audience.
 - **`maxInFlight`.** Bounds in-flight deliveries per audience. Emissions dropped past the bound are counted in `droppedEmissions` on the closing story, so the loss is visible in the record.
+- **Chapters.** `chapter()` returns a child storyteller for nested work — an agent spawning subtasks, a batch running per-item operations. Each chapter emits its own record carrying `parentStoryId`, so a run reconstructs as a tree. Chapters share the parent's audience registry and inherit its settings.
+- **`AudienceRegistry` is exported**, and a registry can be shared between storytellers via the `audience` option.
 - **Level aliases.** `level` accepts `"info"`, `"warn"`, `"oops"`, `"error"`, or a stored label.
 
 ### Changed

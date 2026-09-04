@@ -3,8 +3,9 @@ name: CI
 on:
   push:
     branches: [main]
+  # Every pull request, not only those targeting main — a stacked PR based on
+  # another feature branch was silently getting no build at all
   pull_request:
-    branches: [main]
 
 jobs:
   check:

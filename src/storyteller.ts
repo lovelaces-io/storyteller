@@ -76,6 +76,12 @@ export type StoryEventBase = {
    */
   storyId?: string;
 
+  /**
+   * The story this one is a chapter of. Absent on a top-level story.
+   * Following this field reconstructs the tree of a nested run.
+   */
+  parentStoryId?: string;
+
   origin?: StoryOrigin;
 
   notes: StoryNote[];
@@ -169,6 +175,7 @@ export type EmissionKind = "note" | "story";
 export type NoteEmission = StoryNote & {
   kind: "note";
   storyId: string;
+  parentStoryId?: string;
   sequence: number;
   level: StoryLevel;
   origin?: StoryOrigin;
@@ -227,6 +234,19 @@ export type FinishOptions = {
   error?: unknown;
 };
 
+export type ChapterOptions = {
+  /** Merged over the parent's origin */
+  origin?: StoryOriginInput;
+  /** Defaults to the parent's setting */
+  narration?: NarrationInput;
+  /** Defaults to the parent's setting */
+  level?: LevelInput;
+  /** Defaults to the parent's handler */
+  onAudienceError?: AudienceErrorHandler;
+  /** Defaults to the parent's bound */
+  maxInFlight?: number;
+};
+
 export type StorytellerOptions = {
   origin?: StoryOriginInput;
   audiences?: AudienceMember[];
@@ -237,6 +257,14 @@ export type StorytellerOptions = {
    * program. Defaults to `STORYTELLER_FORMAT`, then `text`.
    */
   format?: OutputFormat;
+  /**
+   * Share another storyteller's audience registry instead of creating one.
+   * Audiences added to it later reach this storyteller too. When given, no
+   * default audience is registered — the registry already has whatever it has.
+   */
+  audience?: AudienceRegistry;
+  /** The story this one is a chapter of. Set by `chapter()`. */
+  parentStoryId?: string;
   /**
    * Drop emissions below this level before they reach any audience.
    * Defaults to `STORYTELLER_LEVEL`, then Information (deliver everything).
@@ -264,7 +292,7 @@ export type AudienceErrorHandler = (
 ) => void;
 
 /** Manages the set of audience members that receive story events */
-class AudienceRegistry {
+export class AudienceRegistry {
   private members = new Map<string, AudienceMember>();
 
   /** Register an audience member, replacing any existing member with the same name */
@@ -313,9 +341,10 @@ class AudienceRegistry {
  * ```
  */
 export class Storyteller {
-  public readonly audience = new AudienceRegistry();
+  public readonly audience: AudienceRegistry;
 
   private readonly origin?: StoryOrigin;
+  private readonly parentStoryId?: string;
   private notes: StoryNote[] = [];
   private narration: Narration;
   private readonly minimumLevel: StoryLevel;
@@ -338,18 +367,30 @@ export class Storyteller {
       this.origin = normalizedOrigin;
     }
 
+    if (options?.parentStoryId !== undefined) {
+      this.parentStoryId = options.parentStoryId;
+    }
+
     this.narration = resolveNarration(options?.narration);
     this.minimumLevel = resolveMinimumLevel(options?.level);
     this.onAudienceError = options?.onAudienceError ?? reportAudienceErrorToConsole;
     this.maxInFlight = options?.maxInFlight ?? DEFAULT_MAX_IN_FLIGHT;
 
-    // Every storyteller gets a default audience. Which one depends on who is
-    // reading: a person at a terminal, or a program parsing the stream.
-    this.audience.add(
-      resolveOutputFormat(options?.format) === "ndjson"
-        ? ndjsonAudience({ level: this.minimumLevel })
-        : consoleAudience()
-    );
+    if (options?.audience) {
+      // A shared registry already holds its audiences, including any the caller
+      // customized. Adding a default here would replace them by name.
+      this.audience = options.audience;
+    } else {
+      this.audience = new AudienceRegistry();
+
+      // Every storyteller gets a default audience. Which one depends on who is
+      // reading: a person at a terminal, or a program parsing the stream.
+      this.audience.add(
+        resolveOutputFormat(options?.format) === "ndjson"
+          ? ndjsonAudience({ level: this.minimumLevel })
+          : consoleAudience()
+      );
+    }
 
     options?.audiences?.forEach((audience) => this.audience.add(audience));
   }
@@ -369,6 +410,46 @@ export class Storyteller {
   /** The id of the story currently being collected */
   get currentStoryId() {
     return this.storyId;
+  }
+
+  /**
+   * Start a chapter: a child storyteller whose stories are linked back to this
+   * one by `parentStoryId`.
+   *
+   * Real work nests — an agent spawns subtasks, a batch runs per-item operations.
+   * A chapter keeps each of those a complete story in its own right while leaving
+   * the run reconstructable as a tree.
+   *
+   * The child shares this storyteller's audience registry, so audiences added
+   * later reach it too, and inherits narration, level and delivery settings.
+   * Its stories are separate records — a chapter is not folded into the parent's
+   * notes.
+   *
+   * @param options - Origin to merge over the parent's, and any setting to override
+   * @returns A child Storyteller
+   *
+   * @example
+   * ```ts
+   * for (const account of accounts) {
+   *   const chapter = story.chapter({ origin: { what: account.id } });
+   *   chapter.report("Fetching invoices");
+   *   chapter.finish(`Synced ${account.id}`);
+   * }
+   * ```
+   */
+  chapter(options: ChapterOptions = {}): Storyteller {
+    const mergedOrigin: StoryOriginInput = { ...this.origin, ...options.origin };
+
+    return new Storyteller({
+      audience: this.audience,
+      // Captured now, so a parent that finishes first does not orphan its chapters
+      parentStoryId: this.storyId,
+      ...(Object.keys(mergedOrigin).length ? { origin: mergedOrigin } : {}),
+      narration: options.narration ?? this.narration,
+      level: options.level ?? this.minimumLevel,
+      onAudienceError: options.onAudienceError ?? this.onAudienceError,
+      maxInFlight: options.maxInFlight ?? this.maxInFlight,
+    });
   }
 
   /**
@@ -445,6 +526,7 @@ export class Storyteller {
       level,
       title,
       storyId: this.storyId,
+      ...(this.parentStoryId !== undefined ? { parentStoryId: this.parentStoryId } : {}),
       ...(this.origin ? { origin: this.origin } : {}),
       notes: [...this.notes],
       ...(error !== undefined ? { error: normalizeError(error) } : {}),
@@ -501,6 +583,7 @@ export class Storyteller {
       ...note,
       kind: "note",
       storyId: this.storyId,
+      ...(this.parentStoryId !== undefined ? { parentStoryId: this.parentStoryId } : {}),
       sequence: note.sequence ?? 0,
       level,
       ...(this.origin ? { origin: this.origin } : {}),
@@ -559,6 +642,7 @@ export class Storyteller {
       level,
       title,
       storyId,
+      ...(this.parentStoryId !== undefined ? { parentStoryId: this.parentStoryId } : {}),
       ...(this.origin ? { origin: this.origin } : {}),
       notes: sortedNotes,
       ...(durationMs != null ? { durationMs } : {}),
