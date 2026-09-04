@@ -51,7 +51,7 @@ const next = currentIndex >= 0 && currentIndex < flat.length - 1 ? flat[currentI
     <aside class="docs-sidebar">
       {sections.map((section) => (
         <div class="docs-nav-group">
-          <h4>{section.heading}</h4>
+          <p class="docs-nav-heading">{section.heading}</p>
           {section.pages.map((page) => (
             <a href={page.href} class={page.href === path ? "active" : undefined} aria-current={page.href === path ? "page" : undefined}>
               {page.label}
@@ -60,7 +60,7 @@ const next = currentIndex >= 0 && currentIndex < flat.length - 1 ? flat[currentI
         </div>
       ))}
       <div class="docs-nav-group">
-        <h4>more</h4>
+        <p class="docs-nav-heading">more</p>
         <a href="/llms.txt">llms.txt</a>
         <a href="https://github.com/lovelaces-io/storyteller/blob/main/CHANGELOG.md">Changelog</a>
         <a href="https://github.com/lovelaces-io/storyteller/issues">Issues</a>
