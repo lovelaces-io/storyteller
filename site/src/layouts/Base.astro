@@ -82,8 +82,9 @@ const jsonLd = JSON.stringify({ "@context": "https://schema.org", "@graph": grap
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" />
 
-    <link rel="icon" type="image/svg+xml" href="/lovelaces-logo.svg" />
-    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="sitemap" href="/sitemap-index.xml" />
 
     <script type="application/ld+json" set:html={jsonLd} />
@@ -92,7 +93,7 @@ const jsonLd = JSON.stringify({ "@context": "https://schema.org", "@graph": grap
     <div class="container">
       <nav>
         <a href="/" class="logo">
-          <img src="/lovelaces-logo.svg" alt="Lovelaces" />
+          <img src="/storyteller-logo.svg" alt="" width="28" height="28" />
           Storyteller
         </a>
         <div class="nav-links">
@@ -140,6 +141,7 @@ const jsonLd = JSON.stringify({ "@context": "https://schema.org", "@graph": grap
           </div>
         </div>
         <p>Zero dependencies. One record per story. Happy logging.</p>
+        <p class="footer-by"><a href="https://lovelaces.io"><img src="/lovelaces-logo.svg" alt="" width="18" height="18" /> by Lovelaces</a></p>
       </div>
     </footer>
 

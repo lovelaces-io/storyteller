@@ -1,3 +1,5 @@
+<p align="left"><img src="site/public/storyteller-logo.svg" alt="" width="56" height="56" /></p>
+
 # Storyteller
 
 [![npm](https://img.shields.io/npm/v/@lovelaces-io/storyteller)](https://www.npmjs.com/package/@lovelaces-io/storyteller)
