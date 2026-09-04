@@ -794,3 +794,37 @@ section p a {
 section p a:hover {
   text-decoration-color: var(--green);
 }
+
+/* Docs: search, on-this-page, heading anchors */
+.docs-search { margin-bottom: 1.25rem; }
+.docs-search .pagefind-ui__search-input {
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius);
+  color: var(--text); font-family: var(--font-mono); font-size: 0.85rem; padding: 0.55rem 0.75rem 0.55rem 2rem; width: 100%;
+}
+.docs-search .pagefind-ui__search-input::placeholder { color: var(--text-muted); }
+.docs-search .pagefind-ui__search-clear { color: var(--text-muted); background: none; }
+.docs-search .pagefind-ui__form::before { opacity: 0.5; }
+.docs-search .pagefind-ui__drawer {
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.75rem; margin-top: 0.5rem; max-height: 60vh; overflow-y: auto; font-size: 0.85rem;
+}
+.docs-search .pagefind-ui__result { border-top: 1px solid var(--border); padding: 0.6rem 0; }
+.docs-search .pagefind-ui__result-link { color: var(--green); }
+.docs-search .pagefind-ui__result-excerpt { color: var(--text-muted); }
+.docs-search .pagefind-ui__result-excerpt mark { background: var(--green-glow); color: var(--green-bright); }
+.docs-search .pagefind-ui__message, .docs-search .pagefind-ui__button { color: var(--text-muted); font-family: var(--font-mono); font-size: 0.78rem; }
+.docs-search .pagefind-ui__button { background: none; border: 1px solid var(--border); border-radius: var(--radius); }
+
+.on-this-page { margin-top: 1.5rem; }
+.on-this-page a { display: block; color: var(--text-muted); padding: 0.2rem 0 0.2rem 0.75rem; border-left: 1px solid var(--border); font-size: 0.82rem; }
+.on-this-page a:hover { color: var(--green); }
+
+.heading-anchor { margin-left: 0.4rem; color: var(--border); text-decoration: none; font-weight: 400; opacity: 0; transition: opacity 0.15s, color 0.15s; }
+h2:hover .heading-anchor { opacity: 1; color: var(--green-dim); }
+.heading-anchor:hover { color: var(--green); }
+.docs-content h2 { scroll-margin-top: 1.5rem; }
+
+@media (max-width: 820px) {
+  .docs-search { flex: 0 0 100%; margin-bottom: 0.5rem; }
+  .on-this-page { display: none; }
+}

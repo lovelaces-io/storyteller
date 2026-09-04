@@ -270,7 +270,7 @@ try {
 
 ### .to(...audienceNames) — Targeting Audiences
 
-`tell()`, `warn()`, and `oops()` all return an object with a `.to()` method. Call it synchronously to deliver the story only to specific audiences instead of all registered ones.
+`finish()` — and the deprecated `tell()`, `warn()`, and `oops()` aliases — return an object with a `.to()` method. Call it synchronously to deliver the story only to specific audiences instead of all registered ones.
 
 ```ts
 // Deliver to all audiences (default)

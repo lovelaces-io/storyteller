@@ -126,11 +126,13 @@ Order by `sequence`, never by arrival time — audiences are asynchronous, and a
 
 ## Three Levels, Three Meanings
 
-| Level | Method | Meaning |
-|-------|--------|---------|
-| **tell** | `story.finish()` | Everything worked. A story worth recording. |
-| **warn** | `story.warn()` | It worked, but something was off. Pay attention. |
-| **oops** | `story.oops()` | Something broke. Here's exactly what happened. |
+| Level | How | Meaning |
+|-------|-----|---------|
+| **info** | `story.finish("Done")` | Everything worked. The default. |
+| **warn** | `story.finish("Done", { level: "warn" })` | It worked, but something was off. Pay attention. |
+| **oops** | `story.finish("Failed", { level: "oops", error })` | Something broke. Here's exactly what happened. |
+
+Levels work on individual beats too: `story.report("Retrying", { level: "warn" })`.
 
 ---
 
@@ -233,7 +235,7 @@ console.log(summary.data);
 // { title, level, when, durationMs, origin, notes, ... }
 ```
 
-Summaries don't clear notes — they're a read-only preview. Call `tell()`, `warn()`, or `oops()` when you're ready to emit and move on.
+Summaries don't clear beats — they're a read-only preview. Call `finish()` when you're ready to emit and move on.
 
 ---
 
@@ -377,7 +379,7 @@ Every field has a clear, unabbreviated name. `timestamp` not `ts`. `error` not `
 | Feature | |
 |---|---|
 | **Zero dependencies** | Nothing to install but Storyteller itself |
-| **Tiny footprint** | ~13KB bundled (ESM) |
+| **Small footprint** | ~11 KB gzipped (ESM), measured on the built output |
 | **Structured events** | Every story is a typed, serializable object |
 | **Flexible context** | `who` / `what` / `where` on every note |
 | **Audience system** | Console, database, Slack, or build your own |

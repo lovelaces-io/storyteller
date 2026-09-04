@@ -2,7 +2,7 @@
 
 All notable changes to Storyteller will be documented in this file.
 
-## Unreleased
+## 0.3.0 — 2026-09-04
 
 Live narration and agent-first reporting. See [#31](https://github.com/lovelaces-io/storyteller/issues/31).
 
