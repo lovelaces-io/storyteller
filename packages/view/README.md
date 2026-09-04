@@ -42,7 +42,7 @@ Options: `colors` (ANSI, default `false`), `stacks` (include stack traces, defau
 
 ## Theming
 
-Override the custom properties on `.stv-story`, `.stv-note`, or any ancestor: `--stv-bg`, `--stv-fg`, `--stv-muted`, `--stv-border`, `--stv-surface`, `--stv-info`, `--stv-warn`, `--stv-error`, `--stv-accent`, `--stv-font`, `--stv-mono`, `--stv-radius`, `--stv-size`. Dark mode follows `prefers-color-scheme`.
+Set the custom properties on `.stv-story`, `.stv-note`, or any ancestor (the stylesheet only reads them, so an ancestor's value is inherited, never shadowed): `--stv-bg`, `--stv-fg`, `--stv-muted`, `--stv-border`, `--stv-surface`, `--stv-info`, `--stv-warn`, `--stv-error`, `--stv-accent`, `--stv-font`, `--stv-mono`, `--stv-radius`, `--stv-size`. Dark mode follows `prefers-color-scheme`.
 
 ## Safety
 
