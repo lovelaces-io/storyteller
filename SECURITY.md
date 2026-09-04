@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability, please report it privately via email:
 
-**security@lovelaces.io**
+**contact@lovelaces.io**
 
 Do not open public GitHub issues for security vulnerabilities.
 
