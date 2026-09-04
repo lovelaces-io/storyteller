@@ -1,0 +1,55 @@
+{
+  "name": "@lovelaces-io/storyteller-view",
+  "version": "0.1.0",
+  "description": "Render Storyteller stories, notes, and reports for humans. Framework-agnostic DOM, zero dependencies.",
+  "keywords": [
+    "storyteller",
+    "logging",
+    "logs",
+    "viewer",
+    "timeline",
+    "json",
+    "agents"
+  ],
+  "license": "MIT",
+  "author": "Lovelaces <contact@lovelaces.io>",
+  "homepage": "https://storyteller.lovelaces.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lovelaces-io/storyteller.git",
+    "directory": "packages/view"
+  },
+  "bugs": "https://github.com/lovelaces-io/storyteller/issues",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./style.css": "./dist/story-view.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepack": "npm run build && cp ../../LICENSE ."
+  },
+  "devDependencies": {
+    "@types/jsdom": "^30.0.0",
+    "jsdom": "^29.1.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0"
+  }
+}

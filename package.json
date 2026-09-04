@@ -1,26 +1,30 @@
 {
   "name": "storyteller-workspace",
   "private": true,
-  "description": "Workspace for @lovelaces-io/storyteller (packages/core) and its add-on packages.",
+  "description": "Workspace for @lovelaces-io/storyteller (packages/core) and its add-on packages (packages/view, ...).",
   "license": "MIT",
+  "type": "module",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @lovelaces-io/storyteller",
-    "test": "npm run test -w @lovelaces-io/storyteller",
-    "typecheck": "npm run typecheck -w @lovelaces-io/storyteller",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
     "test:console": "npm run test:console -w @lovelaces-io/storyteller",
     "lint": "eslint .",
     "check:docs": "node ./scripts/checkDocs.mjs",
     "check:snippet": "node ./scripts/checkSnippet.mjs",
     "check:package": "node ./scripts/checkPackage.mjs",
-    "release": "npm publish -w @lovelaces-io/storyteller --access public"
+    "release": "npm publish -w @lovelaces-io/storyteller --access public",
+    "release:view": "npm publish -w @lovelaces-io/storyteller-view --access public"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/jsdom": "^30.0.0",
     "@types/node": "^26.4.1",
     "eslint": "^10.1.0",
+    "jsdom": "^29.1.1",
     "tsup": "^8.0.0",
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.57.1",
