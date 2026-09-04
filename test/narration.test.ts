@@ -408,3 +408,63 @@ describe("narration from the environment", () => {
     expect(notes().length).toBe(0);
   });
 });
+
+describe("every input is carried as structured data", () => {
+  /** Report one value and read back the note it produced */
+  async function reportAndRead(value: unknown) {
+    const { story, stories } = createListeningStoryteller();
+    story.report(value);
+    story.finish("done");
+    await tick();
+    return stories()[0]!.notes[0]!;
+  }
+
+  it("keeps a number readable as a number", async () => {
+    const note = await reportAndRead(42);
+    expect(note.note).toBe("42");
+    expect(note.what).toBe(42);
+  });
+
+  it("keeps a boolean readable as a boolean", async () => {
+    expect((await reportAndRead(true)).what).toBe(true);
+  });
+
+  it("keeps a date readable as an ISO string", async () => {
+    const note = await reportAndRead(new Date("2026-01-01T00:00:00.000Z"));
+    expect(note.what).toBe("2026-01-01T00:00:00.000Z");
+  });
+
+  it("carries a bigint", async () => {
+    expect((await reportAndRead(10n)).what).toBe("10n");
+  });
+
+  it("leaves a plain string as text alone, with no redundant context", async () => {
+    const note = await reportAndRead("just a message");
+    expect(note.note).toBe("just a message");
+    expect(note.what).toBeUndefined();
+  });
+
+  it("puts an error in the error field rather than duplicating it as context", async () => {
+    const note = await reportAndRead(new Error("disk full"));
+    expect(note.error?.message).toBe("disk full");
+    expect(note.what).toBeUndefined();
+  });
+
+  it("produces a JSON-serializable note for every input type", async () => {
+    class Order { constructor(public id: string) {} }
+    const circular: Record<string, unknown> = {};
+    circular["self"] = circular;
+
+    const inputs: unknown[] = [
+      "text", 42, true, null, [1, 2], { a: 1 }, new Order("o-1"),
+      new Error("boom"), new Map([["k", "v"]]), new Set([1]),
+      new Date(), new Uint8Array([1, 2]), circular, 10n, () => {},
+    ];
+
+    for (const input of inputs) {
+      const note = await reportAndRead(input);
+      expect(() => JSON.stringify(note)).not.toThrow();
+      expect(typeof note.note).toBe("string");
+    }
+  });
+});

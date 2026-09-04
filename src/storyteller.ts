@@ -764,8 +764,10 @@ function describeInput(input: unknown): {
 
   const normalized = normalizeValue(input);
 
+  // A primitive still gets carried as structured data, not only stringified into
+  // the text — otherwise `report(42)` would leave no way to read 42 back as a number
   if (typeof normalized !== "object" || normalized === null) {
-    return { text: String(normalized) };
+    return { text: String(normalized), what: normalized };
   }
 
   if (Array.isArray(normalized)) {
