@@ -21,7 +21,7 @@ import {
 
 ## Storyteller
 
-The core class. Collects notes and emits them as structured story events.
+The core class. You report beats of work as they happen; `finish()` emits them as one structured story record — and in live narration, each beat is emitted the moment it's reported.
 
 ### Constructor
 
@@ -46,6 +46,9 @@ The `origin` is attached to every story emitted by this instance, and is normali
 | `level` | `"Information"` | `STORYTELLER_LEVEL` |
 | `onAudienceError` | throttled console warning | — |
 | `maxInFlight` | `1000` | — |
+| `audience` | — | — |
+
+`audience` shares another storyteller's `AudienceRegistry` instead of creating one; audiences added to it later reach this storyteller too, and no default audience is registered. This is what `chapter()` uses. `AudienceRegistry` is exported.
 
 The `format` option decides which default audience is registered: `consoleAudience()` for `text`, `ndjsonAudience()` for `ndjson`. Unrecognized environment values fall back to the default rather than throwing.
 
@@ -890,7 +893,7 @@ const story = new Storyteller({
   ],
 });
 
-// Collect notes as the operation progresses
+// Report each beat as the operation progresses
 story.report("User submitted payment", {
   who: { id: "user:413" },
   what: { amount: 49.99, currency: "USD" },

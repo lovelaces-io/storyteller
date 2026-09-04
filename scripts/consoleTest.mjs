@@ -1,100 +1,67 @@
-import {
-  Storyteller,
-  ANSI,
-  getLevelColor,
-  colorizeJsonSections,
-} from "../dist/index.js";
+import { Storyteller } from "../dist/index.js";
 
-/** Runs all three demo scenarios (tell, warn, oops) to visually verify console output */
+/**
+ * Runs the demo scenarios to visually verify console output.
+ * `npm run test:console` builds first, then runs this against dist/.
+ */
 class ConsoleTestRunner {
   static run() {
-    ConsoleTestRunner.demoTell();
+    ConsoleTestRunner.demoInfo();
     ConsoleTestRunner.demoWarn();
     ConsoleTestRunner.demoOops();
+    ConsoleTestRunner.demoLive();
   }
 
-  static demoTell() {
-    console.log("\n--- Demo: tell ---");
-    const story = new Storyteller({
-      origin: { where: { app: "web", page: "Dashboard" } },
-    });
+  /** A story that went well */
+  static demoInfo() {
+    console.log("\n--- Demo: info ---");
+    const story = new Storyteller({ origin: { where: { app: "web", page: "Dashboard" } } });
 
-    story.note("User opened dashboard", {
-      who: { id: "user:42" },
-      where: { component: "DashboardPage" },
-    });
-    story.note("Loaded widgets", {
-      what: { count: 6 },
-      where: { component: "WidgetGrid" },
-    });
-    story.note("Dashboard ready", { what: "initial render complete" });
+    story.report("User opened dashboard", { who: { id: "user:42" }, where: { component: "DashboardPage" } });
+    story.report("Loaded widgets", { what: { count: 6 }, where: { component: "WidgetGrid" } });
+    story.report("Dashboard ready", { what: "initial render complete" });
 
-    ConsoleTestRunner.printSummary(story, "Information", "Dashboard loaded");
-    story.tell("Dashboard loaded");
+    story.finish("Dashboard loaded");
   }
 
+  /** A story that worked, with something worth knowing */
   static demoWarn() {
     console.log("\n--- Demo: warn ---");
-    const story = new Storyteller({
-      origin: { where: { app: "checkout", page: "Payment" } },
-    });
+    const story = new Storyteller({ origin: { where: { app: "web", page: "Checkout" } } });
 
-    story.note("User submitted payment", {
-      who: "user:413",
-      where: "CheckoutForm",
-    });
-    story.note("Gateway response slow", {
-      what: "stripe:charge",
-      where: { service: "payments", route: "/charge" },
-    });
-    story.note("Retry scheduled", {
-      what: { strategy: "retry", attempt: 2 },
-      where: { component: "PaymentService" },
-    });
+    story.report("User submitted payment", { who: { id: "user:413" }, what: { amount: 49.99, currency: "USD" } });
+    story.report("Gateway response slow", { what: { latencyMs: 2400 }, where: "payments", level: "warn" });
+    story.report("Retry scheduled", { what: { attempt: 2 } });
 
-    ConsoleTestRunner.printSummary(story, "Warning", "Payment gateway slow");
-    story.warn("Payment gateway slow");
+    story.finish("Payment slow but succeeded", { level: "warn" });
   }
 
+  /** A story that broke, with the error attached */
   static demoOops() {
     console.log("\n--- Demo: oops ---");
-    const story = new Storyteller({
-      origin: { where: { app: "profile", page: "Settings" } },
-    });
+    const story = new Storyteller({ origin: { where: { app: "web", page: "Profile" } } });
 
-    const error = new Error("db timeout");
-    story.note("User updated email", {
-      who: { id: "user:99", role: "member" },
-      what: { field: "email" },
-      where: { component: "ProfileForm" },
-    });
-    story.note("Validation passed", { what: "email format" });
-    story.note("Write failed", {
-      where: "primary-db",
-      error,
-    });
+    story.report("User updated email", { who: { id: "user:99" }, what: { field: "email" } });
+    story.report("Validation passed", { what: "email format" });
+    story.report("Write failed", { where: "primary-db", error: new Error("connection timeout") });
 
-    ConsoleTestRunner.printSummary(story, "Error", "Failed to save profile", error);
-    story.oops("Failed to save profile", error);
+    story.finish("Profile update failed", { level: "oops", error: new Error("db timeout") });
   }
 
-  static printSummary(story, level, title, error) {
-    const summary = story.summarize({
-      title,
-      level,
-      error,
-      detail: "full",
-    });
-    console.log(summary.text);
-    const levelColor = getLevelColor(level);
-    console.log(`${levelColor}Data${ANSI.reset}:`);
-    const json = JSON.stringify(summary.data, null, 2);
-    const colored = colorizeJsonSections(json, {
-      base: ANSI.grayLight,
-      notes: ANSI.grayDark,
-      reset: ANSI.reset,
-    });
-    console.log(colored.join("\n"));
+  /** Live narration: each beat prints as it happens, then the record lands */
+  static demoLive() {
+    console.log("\n--- Demo: live narration ---");
+    const story = new Storyteller({ origin: { who: "sync-agent" }, narration: "live" });
+
+    story.report("Fetching invoices", { what: { source: "stripe", page: 1 } });
+    story.report("Rate limited, backing off", { level: "warn", where: "upstream" });
+    story.report({ message: "Retry succeeded", attempt: 2, apiKey: "sk-live-SHOULD-NOT-APPEAR" });
+
+    const chapter = story.chapter({ origin: { what: "acct-1" } });
+    chapter.report("Reconciling");
+    chapter.finish("Synced acct-1");
+
+    story.finish("Sync complete");
   }
 }
 
