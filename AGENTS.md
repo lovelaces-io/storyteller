@@ -201,8 +201,16 @@ src/
     ndjsonAudience.ts  — one JSON object per line
   report/
     writeStoryReport.ts — multi-story report, grouped by day
+  cli.ts               — `storyteller init`, CommonJS-only so __dirname resolves
   index.ts             — public API barrel export
+snippets/
+  agents-section.md    — the guidance block consumers paste into their AGENTS.md
 ```
+
+`snippets/agents-section.md` is the single source for that block. It is embedded
+verbatim in README.md and written by `storyteller init`, and `npm run check:snippet`
+fails the build if the copies drift or it outgrows its 40-line budget. Edit the
+snippet, never a copy.
 
 Types are defined in `storyteller.ts` and `normalize.ts`. Formatting utilities live in `utils.ts` — do not duplicate them elsewhere.
 

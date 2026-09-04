@@ -31,6 +31,9 @@ jobs:
       - name: Check docs
         run: npm run check:docs
 
+      - name: Check snippet
+        run: npm run check:snippet
+
       - name: Test
         run: npx vitest run
 
