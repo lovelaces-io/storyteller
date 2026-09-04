@@ -33,7 +33,7 @@ const faqSchema = {
       "name": "Is it for AI agents or for people?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Both, and that is the point. An agent’s automated run and a developer’s manual debugging session produce the same record in the same shape, so one question — “what happened to billing yesterday?” — returns both. Agents get npx storyteller init, a guidance block for AGENTS.md, llms.txt, and NDJSON output. People get live narration in the terminal and a readable report."
+        "text": "Both, and that is the point. An agent’s automated run and a developer’s manual debugging session produce the same record in the same shape, so one question — “what happened to billing yesterday?” — returns both. Agents get npx @lovelaces-io/storyteller init, a guidance block for AGENTS.md, llms.txt, and NDJSON output. People get live narration in the terminal and a readable report."
       }
     },
     {
@@ -82,7 +82,7 @@ const faqSchema = {
   <h2>How is it different from pino or winston?</h2>
   <p>Those are line loggers: every call produces one line, and reconstructing what happened means correlating many lines afterwards. Storyteller’s unit is the <em>story</em> — one record per operation, with the beats inside it, in order. It is closer to a trace than a log, but with human-readable semantics and no collector to run. Pino is faster at raw line throughput; if you need a million lines a second, use pino. If you need to know what happened, one operation at a time, use this.</p>
   <h2>Is it for AI agents or for people?</h2>
-  <p>Both, and that is the point. An agent’s automated run and a developer’s manual debugging session produce the same record in the same shape, so one question — “what happened to billing yesterday?” — returns both. Agents get <code>npx storyteller init</code>, a guidance block for <code>AGENTS.md</code>, <code>llms.txt</code>, and NDJSON output. People get live narration in the terminal and a readable report.</p>
+  <p>Both, and that is the point. An agent’s automated run and a developer’s manual debugging session produce the same record in the same shape, so one question — “what happened to billing yesterday?” — returns both. Agents get <code>npx @lovelaces-io/storyteller init</code>, a guidance block for <code>AGENTS.md</code>, <code>llms.txt</code>, and NDJSON output. People get live narration in the terminal and a readable report.</p>
   <h2>Does it work in the browser?</h2>
   <p>The core does — it has no Node-only imports and guards every <code>process</code> access. The console audience uses <code>%c</code> styling in browsers. The <code>storyteller init</code> CLI and the NDJSON audience’s stdout default are Node-only.</p>
   <h2>What does it cost?</h2>

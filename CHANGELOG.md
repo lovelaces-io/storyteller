@@ -17,7 +17,7 @@ Live narration and agent-first reporting. See [#31](https://github.com/lovelaces
 - **Environment configuration:** `STORYTELLER_NARRATION`, `STORYTELLER_FORMAT`, `STORYTELLER_LEVEL`, `STORYTELLER_COLOR`, `STORYTELLER_DEPRECATION_WARNINGS`.
 - **`onAudienceError`.** Audience failures are reported instead of swallowed. Without a handler, one throttled console warning per audience.
 - **`maxInFlight`.** Bounds in-flight deliveries per audience. Emissions dropped past the bound are counted in `droppedEmissions` on the closing story, so the loss is visible in the record.
-- **`npx storyteller init`.** One command to adopt: installs the package, writes a configured storyteller, and adds agent guidance to `AGENTS.md` or `CLAUDE.md`. Idempotent and never destructive.
+- **`npx @lovelaces-io/storyteller init`.** One command to adopt: installs the package, writes a configured storyteller, and adds agent guidance to `AGENTS.md` or `CLAUDE.md`. Idempotent and never destructive.
 - **`snippets/agents-section.md`** — the guidance block to paste into a project's agent instructions, so every agent working in that repo knows how to narrate. Kept in sync by `npm run check:snippet`.
 - **The published package now ships `llms.txt`, `AGENTS.md` and `snippets/`.** Previously only `dist` was published, so the files written for machine readers never reached one — an agent working in a project that installed Storyteller found no guidance in `node_modules`.
 - **Chapters.** `chapter()` returns a child storyteller for nested work — an agent spawning subtasks, a batch running per-item operations. Each chapter emits its own record carrying `parentStoryId`, so a run reconstructs as a tree. Chapters share the parent's audience registry and inherit its settings.
