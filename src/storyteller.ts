@@ -335,9 +335,9 @@ export class AudienceRegistry {
  * @example
  * ```ts
  * const story = new Storyteller({ origin: { who: "api-server" }, narration: "live" });
- * story.note("Request received", { what: { path: "/checkout" } });
- * story.note("Validated cart");
- * story.tell("Checkout started");
+ * story.report("Request received", { what: { path: "/checkout" } });
+ * story.report("Validated cart");
+ * story.finish("Checkout started");
  * ```
  */
 export class Storyteller {

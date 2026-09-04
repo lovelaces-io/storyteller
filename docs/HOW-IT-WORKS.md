@@ -25,7 +25,7 @@ Six lines. No connection between them. No context about *who* did *what* or *whe
 
 ## The Idea
 
-Storyteller treats a sequence of events as a single **story** — not a pile of disconnected lines. You collect notes as things happen, then tell the story when it's done.
+Storyteller treats a sequence of events as a single **story** — not a pile of disconnected lines. You report each beat as it happens, and when the work is done you finish — one record, the whole story. Or tune in live and watch the beats arrive.
 
 One story. One structured event. Full context.
 
@@ -62,7 +62,7 @@ const story = new Storyteller({
 });
 ```
 
-### 2. Collect notes as things happen
+### 2. Report beats as things happen
 
 Each note captures a moment. Add context about who, what, where, and any errors.
 
@@ -78,9 +78,9 @@ story.report("Charging card", {
 });
 ```
 
-### 3. Tell the story
+### 3. Finish the story
 
-When the operation is done, tell the story. All the notes get bundled into a single structured event and delivered to your audiences.
+When the operation is done, finish. Every beat you reported becomes one structured record — stored in the record's `notes` array, in order — and it's delivered to your audiences.
 
 ```ts
 // Happy path
@@ -374,6 +374,55 @@ Every field has a clear, unabbreviated name. `timestamp` not `ts`. `error` not `
 
 ---
 
+## Hand It Anything
+
+`report()` doesn't want a string. It wants whatever you have.
+
+```ts
+story.report(await response.json());          // any API payload
+story.report(caughtError);                     // cause chain preserved
+story.report(new Map([["region", "us-east"]]));
+story.report({ apiKey: "sk-live-abc" });       // → "[redacted]"
+```
+
+Errors keep their `cause` chain. Maps and Sets are tagged. Class instances get an `@type`. A circular reference becomes `[Circular → path]`. Something enormous is truncated with an explicit marker, so you can tell "empty" from "too big." Secret-looking keys are redacted — best effort, by key name, so don't make it your only line of defense.
+
+The normalizer never throws. A hostile object cannot break your logging.
+
+---
+
+## Nested Work: Chapters
+
+Real work nests. An agent spawns subtasks; a batch runs one operation per item. `chapter()` gives you a child storyteller whose records link back to the parent:
+
+```ts
+story.report("Starting sync");
+
+for (const account of accounts) {
+  const chapter = story.chapter({ origin: { what: account.id } });
+  chapter.report("Reconciling");
+  chapter.finish(`Synced ${account.id}`);
+}
+
+story.finish("Sync complete");
+```
+
+Each chapter is a complete record of its own, carrying `parentStoryId`. Follow that field and the whole run comes back as a tree. Chapters share the parent's audiences and inherit its settings.
+
+---
+
+## For the Agents Doing the Work
+
+Agents don't browse npm; they use what's in front of them. So:
+
+- **`npx storyteller init`** sets a project up in one command and adds a guidance block to your `AGENTS.md`, so every agent working in the repo knows how to narrate.
+- **`STORYTELLER_FORMAT=ndjson`** turns output into one JSON object per line — for `jq`, a log shipper, or another agent reading a subprocess.
+- **`llms.txt` and `AGENTS.md` ship inside the package**, so an agent finds guidance in `node_modules` without being told.
+
+And the record is the same shape whoever did the work — an agent's automated run and your manual debugging session land in the same table, correlated by `origin`.
+
+---
+
 ## At a Glance
 
 | Feature | |
@@ -388,6 +437,11 @@ Every field has a clear, unabbreviated name. `timestamp` not `ts`. `error` not `
 | **Batch reports** | Generate day-grouped reports from stored events |
 | **Shared singleton** | `useStoryteller()` for cross-component stories |
 | **TypeScript-first** | Full type safety, exported types for everything |
+| **Live narration** | `narration: "live"` streams each beat as it happens; the record still lands |
+| **Hand it anything** | `report()` takes any value and stores clean JSON; never throws |
+| **Chapters** | Nested work as linked records, reconstructable as a tree |
+| **Machine-readable** | NDJSON output, `llms.txt`, and `AGENTS.md` shipped in the package |
+| **One command** | `npx storyteller init` |
 | **Human + machine readable** | Clear field names, consistent structure, no abbreviations |
 
 ---

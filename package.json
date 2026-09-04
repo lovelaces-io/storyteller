@@ -1,7 +1,7 @@
 {
   "name": "@lovelaces-io/storyteller",
   "version": "0.3.0",
-  "description": "Lightweight TypeScript logging library that treats logs as stories: grouped notes emitted as a single structured event.",
+  "description": "Zero-dependency TypeScript logging for humans and AI agents. Report work as it happens, get one clean structured record when it's done.",
   "license": "MIT",
   "private": false,
   "type": "module",
