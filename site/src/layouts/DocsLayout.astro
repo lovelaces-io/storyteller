@@ -1,0 +1,81 @@
+---
+import Base from "./Base.astro";
+import AgentLinks from "../components/AgentLinks.astro";
+
+interface Props {
+  title: string;
+  description?: string;
+  path: string;
+}
+
+const { title, description, path } = Astro.props;
+
+const sections = [
+  {
+    heading: "start here",
+    pages: [
+      { href: "/docs", label: "Getting started" },
+      { href: "/docs/narration", label: "Collected & live" },
+      { href: "/docs/reporting", label: "Reporting & context" },
+    ],
+  },
+  {
+    heading: "deliver",
+    pages: [
+      { href: "/docs/audiences", label: "Audiences" },
+      { href: "/docs/chapters", label: "Chapters" },
+    ],
+  },
+  {
+    heading: "for agents",
+    pages: [{ href: "/docs/agents", label: "Agents & init" }],
+  },
+  {
+    heading: "reference",
+    pages: [
+      { href: "/docs/api", label: "API" },
+      { href: "/docs/examples", label: "Examples" },
+      { href: "/docs/migration", label: "Migrating from 0.2" },
+    ],
+  },
+];
+
+const flat = sections.flatMap((section) => section.pages);
+const currentIndex = flat.findIndex((page) => page.href === path);
+const previous = currentIndex > 0 ? flat[currentIndex - 1] : undefined;
+const next = currentIndex >= 0 && currentIndex < flat.length - 1 ? flat[currentIndex + 1] : undefined;
+---
+
+<Base title={`${title} — Storyteller`} description={description} path={path}>
+  <div class="container docs-layout">
+    <aside class="docs-sidebar">
+      {sections.map((section) => (
+        <div class="docs-nav-group">
+          <p class="docs-nav-heading">{section.heading}</p>
+          {section.pages.map((page) => (
+            <a href={page.href} class={page.href === path ? "active" : undefined} aria-current={page.href === path ? "page" : undefined}>
+              {page.label}
+            </a>
+          ))}
+        </div>
+      ))}
+      <div class="docs-nav-group">
+        <p class="docs-nav-heading">more</p>
+        <a href="/llms.txt">llms.txt</a>
+        <a href="https://github.com/lovelaces-io/storyteller/blob/main/CHANGELOG.md">Changelog</a>
+        <a href="https://github.com/lovelaces-io/storyteller/issues">Issues</a>
+      </div>
+    </aside>
+
+    <article class="docs-content">
+      <slot />
+
+      <AgentLinks />
+
+      <nav class="docs-prev-next" aria-label="Pagination">
+        {previous ? <a href={previous.href}>← {previous.label}</a> : <span />}
+        {next ? <a href={next.href}>{next.label} →</a> : <span />}
+      </nav>
+    </article>
+  </div>
+</Base>

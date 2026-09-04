@@ -1,0 +1,26 @@
+---
+/**
+ * Hand the page off to an agent. Both links prefill a prompt the reader reviews
+ * before sending; nothing is submitted on their behalf. Kept short and plain so
+ * it survives URL length limits and web application firewalls.
+ */
+interface Props {
+  prompt?: string;
+  label?: string;
+}
+
+const DEFAULT_PROMPT =
+  "Set up this project with Storyteller (@lovelaces-io/storyteller), a zero-dependency TypeScript logging library. " +
+  "Run `npx storyteller init`, then read node_modules/@lovelaces-io/storyteller/AGENTS.md and narrate the project's main workflow with report() and finish(). " +
+  "Show me the plan before changing anything else.";
+
+const { prompt = DEFAULT_PROMPT, label = "Hand this to an agent" } = Astro.props;
+const encoded = encodeURIComponent(prompt);
+---
+
+<div class="agent-links">
+  <span class="agent-links-label">{label}</span>
+  <a class="btn btn-ghost btn-small" href={`https://claude.ai/new?q=${encoded}`} target="_blank" rel="noopener">Open in Claude</a>
+  <a class="btn btn-ghost btn-small" href={`https://chatgpt.com/?q=${encoded}`} target="_blank" rel="noopener">Open in ChatGPT</a>
+  <button class="copy-btn" type="button" data-copy={prompt}>copy prompt</button>
+</div>

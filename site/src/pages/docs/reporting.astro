@@ -1,0 +1,65 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import Terminal from "../../components/Terminal.astro";
+import { anythingCode, contextCode } from "../../content/samples";
+---
+
+<DocsLayout title="Reporting & context" description="report() takes any value and stores clean JSON. Attach who, what, where, an error, or a level to any beat." path="/docs/reporting">
+  <h1>Reporting &amp; context</h1>
+  <p class="lede"><code>report()</code> is the verb you'll call most. It takes anything, structures it safely, and attaches whatever context you give it.</p>
+
+  <h2>Hand it anything</h2>
+  <p>No pre-flattening. No defensive <code>JSON.stringify</code>. Pass the value you have:</p>
+  <Terminal title="anything.ts" code={anythingCode} />
+  <table>
+    <thead><tr><th>You pass</th><th>The record holds</th></tr></thead>
+    <tbody>
+      <tr><td>a string</td><td>the note text, nothing else</td></tr>
+      <tr><td>an <code>Error</code></td><td>name, message, stack, and the full <code>cause</code> chain</td></tr>
+      <tr><td>an object with a <code>message</code> or <code>title</code></td><td>that field as the text, the whole object as <code>what</code></td></tr>
+      <tr><td>a <code>Map</code> or <code>Set</code></td><td>tagged with <code>@type</code>, entries preserved</td></tr>
+      <tr><td>a class instance</td><td>plain object tagged with the class name</td></tr>
+      <tr><td>a circular structure</td><td><code>[Circular → path]</code> at the loop</td></tr>
+      <tr><td>something huge</td><td>truncated, with an explicit <code>@truncated</code> marker so you can tell</td></tr>
+      <tr><td><code>{'{ apiKey, password, token, … }'}</code></td><td><code>[redacted]</code></td></tr>
+    </tbody>
+  </table>
+  <p>The normalizer never throws. A hostile object — a getter that explodes, a Proxy that traps everything — cannot break the pipeline.</p>
+  <div class="callout"><p>Redaction matches <em>key names</em>, not values. It's defense in depth, not a guarantee. Don't rely on it as your only line.</p></div>
+
+  <h2>Context</h2>
+  <p>Any beat can carry context. Use whichever fields make sense; the rest are simply absent from the record.</p>
+  <table>
+    <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>who</code></td><td>Who did it — a user id, a service, a role</td></tr>
+      <tr><td><code>what</code></td><td>What was involved — an amount, a payload, an id</td></tr>
+      <tr><td><code>where</code></td><td>Where it happened — a component, a route, an upstream</td></tr>
+      <tr><td><code>error</code></td><td>Any thrown value, normalized</td></tr>
+      <tr><td><code>level</code></td><td><code>info</code> · <code>warn</code> · <code>oops</code>, for this beat alone</td></tr>
+      <tr><td><code>live</code></td><td>Emit this beat now, even in collected narration</td></tr>
+      <tr><td><code>to</code></td><td>Deliver this beat only to the named audiences</td></tr>
+    </tbody>
+  </table>
+  <Terminal title="context.ts" code={contextCode} />
+
+  <h2>Levels</h2>
+  <p>Three levels, on stories and on individual beats. <code>level</code> accepts the short forms shown here, or the stored labels <code>Information</code>, <code>Warning</code>, <code>Error</code>.</p>
+  <div class="features-grid" style="grid-template-columns: repeat(3, 1fr);">
+    <div class="feature-card">
+      <h3><span class="level-dot tell"></span> info</h3>
+      <p>Everything went well. The default.</p>
+      <code style="font-size: 0.85rem; color: var(--tell);">story.finish("Checkout completed")</code>
+    </div>
+    <div class="feature-card">
+      <h3><span class="level-dot warn"></span> warn</h3>
+      <p>Something was off, but it's handled.</p>
+      <code style="font-size: 0.85rem; color: var(--warn);">story.finish("Retried", {'{ level: "warn" }'})</code>
+    </div>
+    <div class="feature-card">
+      <h3><span class="level-dot oops"></span> oops</h3>
+      <p>Something broke. Pass the error.</p>
+      <code style="font-size: 0.85rem; color: var(--oops);">story.finish("Failed", {'{ level: "oops", error }'})</code>
+    </div>
+  </div>
+</DocsLayout>

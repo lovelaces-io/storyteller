@@ -2,9 +2,11 @@
 interface Props {
   title?: string;
   code: string;
+  /** Reveal lines one at a time, the way live narration actually arrives */
+  live?: boolean;
 }
 
-const { title = "terminal", code } = Astro.props;
+const { title = "terminal", code, live = false } = Astro.props;
 ---
 
 <div class="terminal">
@@ -15,6 +17,25 @@ const { title = "terminal", code } = Astro.props;
     <span class="terminal-title">{title}</span>
   </div>
   <div class="terminal-body">
-    <pre set:html={code} />
+    <pre class={live ? "live-output" : undefined} set:html={code} />
   </div>
 </div>
+
+{live && (
+  <script>
+    // Progressive enhancement only: without JS, or with reduced motion, every
+    // line is already visible and readable. The animation is the point of this
+    // section — beats arriving over time — so it is worth the few lines.
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (!reduceMotion) {
+      for (const block of document.querySelectorAll("pre.live-output")) {
+        const lines = block.innerHTML.split("\n");
+        block.innerHTML = lines
+          .map((line, index) => `<span class="live-line" style="animation-delay:${index * 550}ms">${line}</span>`)
+          .join("\n");
+        block.classList.add("is-animating");
+      }
+    }
+  </script>
+)}

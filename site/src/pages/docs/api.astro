@@ -1,0 +1,96 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import Terminal from "../../components/Terminal.astro";
+import { audienceMemberCode, outputReferenceCode, singletonCode } from "../../content/samples";
+---
+
+<DocsLayout title="API" description="Every method, option, and type on the Storyteller public surface." path="/docs/api">
+  <h1>API reference</h1>
+  <p class="lede">Everything on the public surface. For narrative and examples, start with <a href="/docs">Getting started</a>.</p>
+
+  <h2>Constructor</h2>
+  <table>
+    <thead><tr><th>Option</th><th>Default</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>origin</code></td><td>—</td><td><code>{'{ who, what, where }'}</code>, attached to every story. Normalized like any context.</td></tr>
+      <tr><td><code>narration</code></td><td><code>collected</code></td><td><code>collected</code> or <code>live</code>. Env: <code>STORYTELLER_NARRATION</code></td></tr>
+      <tr><td><code>format</code></td><td><code>text</code></td><td>Which default audience: console for <code>text</code>, NDJSON for <code>ndjson</code>. Env: <code>STORYTELLER_FORMAT</code></td></tr>
+      <tr><td><code>level</code></td><td><code>info</code></td><td>Minimum level delivered. Env: <code>STORYTELLER_LEVEL</code></td></tr>
+      <tr><td><code>audiences</code></td><td><code>[]</code></td><td>Registered on top of the default</td></tr>
+      <tr><td><code>audience</code></td><td>—</td><td>Share another storyteller's registry; no default is added</td></tr>
+      <tr><td><code>onAudienceError</code></td><td>throttled warning</td><td>Called when an audience throws or rejects</td></tr>
+      <tr><td><code>maxInFlight</code></td><td><code>1000</code></td><td>Deliveries in flight per audience before beats are dropped</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Storyteller</h2>
+  <table>
+    <thead><tr><th>Member</th><th>Returns</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>report(input, context?)</code></td><td><code>this</code></td><td>Report a beat. Any value. Context: <code>who</code>, <code>what</code>, <code>where</code>, <code>error</code>, <code>level</code>, <code>live</code>, <code>to</code></td></tr>
+      <tr><td><code>finish(title, options?)</code></td><td><code>{'{ to }'}</code></td><td>Emit the collected story. Options: <code>level</code>, <code>error</code>. Call <code>.to()</code> synchronously.</td></tr>
+      <tr><td><code>narrate(mode)</code></td><td><code>this</code></td><td>Switch narration at runtime</td></tr>
+      <tr><td><code>chapter(options?)</code></td><td><code>Storyteller</code></td><td>A child storyteller linked by <code>parentStoryId</code></td></tr>
+      <tr><td><code>reset()</code></td><td><code>this</code></td><td>Drop collected beats without emitting; new story id</td></tr>
+      <tr><td><code>summarize(options?)</code></td><td><code>FormattedReport</code></td><td>Preview the current beats as a report</td></tr>
+      <tr><td><code>currentStoryId</code></td><td><code>string</code></td><td>The id beats are being tagged with</td></tr>
+      <tr><td><code>audience</code></td><td><code>AudienceRegistry</code></td><td><code>add</code>, <code>remove</code>, <code>has</code>, <code>names</code></td></tr>
+    </tbody>
+  </table>
+  <!-- docs-check: allow-deprecated -->
+  <p style="color: var(--text-muted); font-size: 0.9rem;"><strong>Deprecated, removed at 1.0:</strong> <code>note()</code> → <code>report()</code>, <code>tell()</code> → <code>finish()</code>, <code>warn()</code> → <code>finish(title, {'{ level: "warn" }'})</code>, <code>oops()</code> → <code>finish(title, {'{ level: "oops", error }'})</code>. They behave identically. See <a href="/docs/migration">migrating from 0.2</a>.</p>
+
+  <h2>Audiences</h2>
+  <Terminal title="AudienceMember" code={audienceMemberCode} />
+  <table>
+    <thead><tr><th>Function</th><th>Hears</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>consoleAudience(options?)</code></td><td>notes, stories</td><td>Default. Compact line per beat, grouped block per story</td></tr>
+      <tr><td><code>dbAudience(insert)</code></td><td>stories at warn/oops</td><td>Persists via your insert function</td></tr>
+      <tr><td><code>ndjsonAudience(options?)</code></td><td>notes, stories</td><td>One JSON object per line. Options: <code>stream</code>, <code>name</code>, <code>level</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Shared instance</h2>
+  <p><code>useStoryteller()</code> returns the same instance everywhere in a process — services, middleware, and components contributing to one story.</p>
+  <Terminal title="singleton.ts" code={singletonCode} />
+
+  <h2>Formatting</h2>
+  <table>
+    <thead><tr><th>Function</th><th>Returns</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>formatStory(event, options?)</code></td><td><code>FormattedReport</code></td><td>One story as readable text plus structured data</td></tr>
+      <tr><td><code>writeStoryReport(stories, options?)</code></td><td><code>string</code></td><td>Many stories, grouped by day</td></tr>
+      <tr><td><code>formatDuration(ms)</code></td><td><code>string</code></td><td><code>340ms</code>, <code>3.4s</code>, <code>2:05m</code></td></tr>
+    </tbody>
+  </table>
+  <table>
+    <thead><tr><th>Report option</th><th>Default</th><th></th></tr></thead>
+    <tbody>
+      <tr><td><code>detail</code></td><td><code>"normal"</code></td><td><code>"brief"</code> · <code>"normal"</code> · <code>"full"</code></td></tr>
+      <tr><td><code>colors</code></td><td><code>true</code></td><td>ANSI colors</td></tr>
+      <tr><td><code>noteLimit</code></td><td><code>50</code></td><td>Maximum beats shown</td></tr>
+      <tr><td><code>showData</code></td><td><code>true</code></td><td>Include the JSON block</td></tr>
+      <tr><td><code>timezone</code></td><td>system</td><td>IANA timezone</td></tr>
+      <tr><td><code>locale</code></td><td><code>"en-US"</code></td><td>Date formatting</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Normalization</h2>
+  <p><code>normalizeValue(input, options?)</code> turns any value into JSON-safe data and never throws. <code>report()</code> calls it for you; it's exported for when you need it directly.</p>
+  <table>
+    <thead><tr><th>Option</th><th>Default</th></tr></thead>
+    <tbody>
+      <tr><td><code>maxDepth</code></td><td><code>6</code></td></tr>
+      <tr><td><code>maxArrayLength</code></td><td><code>100</code></td></tr>
+      <tr><td><code>maxProperties</code></td><td><code>100</code></td></tr>
+      <tr><td><code>maxStringLength</code></td><td><code>8000</code></td></tr>
+      <tr><td><code>redactKeys</code></td><td>password, token, secret, apiKey, authorization, cookie, sessionId, privateKey, …</td></tr>
+      <tr><td><code>redact</code></td><td><code>true</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>The record</h2>
+  <p>Exactly what <code>JSON.stringify(event)</code> produces. Every field has a job.</p>
+  <Terminal title="JSON.stringify(event)" code={outputReferenceCode} />
+</DocsLayout>

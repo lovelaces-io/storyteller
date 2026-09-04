@@ -4,7 +4,8 @@
  * Only fenced TypeScript blocks are scanned — prose and migration tables are
  * supposed to name the old verbs, and flagging those would make the check useless.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 const FILES = [
   "README.md",
@@ -13,6 +14,24 @@ const FILES = [
   "docs/API.md",
   "docs/HOW-IT-WORKS.md",
 ];
+
+/**
+ * Site pages keep their code in highlighted template strings rather than fenced
+ * blocks, so they are scanned whole. Calls appear either bare or wrapped in a
+ * syntax-highlighting span: `story.tell(` or `<span class="function">tell</span>(`.
+ */
+/** Every page, layout, component and sample module under the site source tree */
+function walk(directory) {
+  const found = [];
+  for (const entry of readdirSync(directory)) {
+    const path = join(directory, entry);
+    if (statSync(path).isDirectory()) found.push(...walk(path));
+    else if (/\.(astro|ts)$/.test(entry)) found.push(path);
+  }
+  return found;
+}
+const SITE_FILES = walk("site/src");
+const SITE_DEPRECATED = /(?:\.|>)(note|tell|warn|oops)(?:<\/span>)?\(/g;
 
 const DEPRECATED = [
   { pattern: /\.note\(/, replacement: "report()" },
@@ -79,9 +98,34 @@ for (const file of FILES) {
   }
 }
 
+for (const file of SITE_FILES) {
+  let text;
+  try {
+    text = readFileSync(file, "utf8");
+  } catch {
+    continue;
+  }
+
+  // Same opt-out as the markdown files: the marker suppresses checking until
+  // the next heading or section, so a migration note can name the old verbs
+  let allowed = false;
+  text.split("\n").forEach((line, index) => {
+    if (line.includes(ALLOW_MARKER)) {
+      allowed = true;
+      return;
+    }
+    if (/<(h2|h3|section)\b/.test(line)) allowed = false;
+    if (allowed) return;
+    if (/console\.(warn|error|log)/.test(line)) return;
+    for (const match of line.matchAll(SITE_DEPRECATED)) {
+      failures.push(`${file}:${index + 1} uses deprecated ${match[1]}()\n    ${line.trim().slice(0, 100)}`);
+    }
+  });
+}
+
 if (failures.length) {
   console.error(`Documentation uses deprecated methods:\n\n${failures.join("\n")}\n`);
   process.exit(1);
 }
 
-console.log(`Docs check passed — no deprecated methods in ${FILES.length} files.`);
+console.log(`Docs check passed — no deprecated methods in ${FILES.length + SITE_FILES.length} files.`);
