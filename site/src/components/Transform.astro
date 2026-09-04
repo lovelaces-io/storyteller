@@ -1,0 +1,33 @@
+---
+/**
+ * The pitch, running: scattered log lines arrive one at a time, then collapse
+ * into the single clean record. Pure CSS — no JS required — and under
+ * prefers-reduced-motion the finished record is simply shown.
+ */
+interface Props {
+  title?: string;
+  before: string[];
+  after: string;
+}
+
+const { title = "sync.js", before, after } = Astro.props;
+const LINE_STAGGER_MS = 260;
+const collapseAt = before.length * LINE_STAGGER_MS + 700;
+---
+
+<div class="terminal transform" style={`--collapse-at: ${collapseAt}ms`}>
+  <div class="terminal-header">
+    <span class="terminal-dot"></span>
+    <span class="terminal-dot"></span>
+    <span class="terminal-dot"></span>
+    <span class="terminal-title">{title}</span>
+    <span class="transform-badge before-badge">console.log ×{before.length}</span>
+    <span class="transform-badge after-badge">one story</span>
+  </div>
+  <div class="terminal-body">
+    <pre class="transform-before" aria-hidden="true">{before.map((line, index) => (
+      <span class="line" style={`animation-delay: ${index * LINE_STAGGER_MS}ms`} set:html={line} />
+    ))}</pre>
+    <pre class="transform-after" set:html={after} />
+  </div>
+</div>

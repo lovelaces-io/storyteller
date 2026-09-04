@@ -58,6 +58,32 @@ story.<span class="function">report</span>(caughtError);                 <span c
 story.<span class="function">report</span>(<span class="keyword">new</span> <span class="function">Map</span>([[<span class="string">"region"</span>, <span class="string">"us-east"</span>]]));
 story.<span class="function">report</span>(circularObject);              <span class="comment">// marked, never thrown</span>
 story.<span class="function">report</span>(<span class="punctuation">{</span> apiKey: <span class="string">"sk-live-abc"</span> <span class="punctuation">}</span>);      <span class="comment">// → "[redacted]"</span>`;
+const heroBefore = [
+  '<span class="comment">[14:30:00]</span> User clicked checkout',
+  '<span class="comment">[14:30:00]</span> Validating cart...',
+  '<span class="comment">[14:30:01]</span> Cart valid',
+  '<span class="comment">[14:30:01]</span> Charging card...',
+  '<span class="comment">[14:30:03]</span> <span class="level-oops">ERROR: gateway timeout</span>',
+  '<span class="comment">[14:30:03]</span> Retrying...',
+  '<span class="comment">[14:30:04]</span> Charge succeeded',
+  '<span class="comment">[14:30:04]</span> Order confirmed',
+];
+
+const discordCode = `<span class="comment">// Only the failures, straight to your Discord</span>
+story.audience.<span class="function">add</span>(<span class="punctuation">{</span>
+  name: <span class="string">"discord"</span>,
+  accepts: (event) => event.level === <span class="string">"Error"</span>,
+  hear: <span class="keyword">async</span> (event) => <span class="punctuation">{</span>
+    <span class="keyword">await</span> <span class="function">fetch</span>(process.env.<span class="type">DISCORD_WEBHOOK_URL</span>!, <span class="punctuation">{</span>
+      method: <span class="string">"POST"</span>,
+      headers: <span class="punctuation">{</span> <span class="string">"content-type"</span>: <span class="string">"application/json"</span> <span class="punctuation">}</span>,
+      body: <span class="function">JSON.stringify</span>(<span class="punctuation">{</span>
+        content: <span class="string">"\`\`\`\n"</span> + event.<span class="function">summarize</span>(<span class="punctuation">{</span> colors: <span class="keyword">false</span>, detail: <span class="string">"brief"</span> <span class="punctuation">}</span>).text + <span class="string">"\n\`\`\`"</span>,
+      <span class="punctuation">}</span>),
+    <span class="punctuation">}</span>);
+  <span class="punctuation">}</span>,
+<span class="punctuation">}</span>);`;
+
 ---
 
 <Base title="Storyteller — Your logs should tell a story" path="/">
@@ -68,16 +94,28 @@ story.<span class="function">report</span>(<span class="punctuation">{</span> ap
     <p style="font-family: var(--font-mono); color: var(--green); font-size: 0.9rem; margin-bottom: 1rem;">@lovelaces-io/storyteller</p>
     <h1>Your logs should tell a story<span class="cursor"></span></h1>
     <p style="font-size: 1.2rem; color: var(--text-muted); max-width: 600px; margin: 1.5rem auto;">
-      Report work as it happens. Get one structured record when it's done. Built for the humans and the agents doing the work — with zero dependencies.
+      Report work as it happens. Get one clean record when it's done. For the humans and the agents doing the work — with zero dependencies.
     </p>
-    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem;">
+
+    <div style="max-width: 720px; margin: 2.5rem auto 0; text-align: left;">
+      <Transform before={heroBefore} after={afterCode} />
+    </div>
+
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-top: 2.5rem;">
       <div class="install-cmd">
         <span class="prompt">$</span> npx storyteller init
+        <button class="copy-btn" type="button" data-copy="npx storyteller init">copy</button>
       </div>
     </div>
     <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
       <a href="/docs" class="btn btn-primary">Get Started</a>
       <a href="https://github.com/lovelaces-io/storyteller" class="btn btn-ghost">GitHub</a>
+    </div>
+    <div class="stats-line">
+      <span>0 dependencies</span>
+      <span>TypeScript-first</span>
+      <span>ESM + CJS</span>
+      <span>MIT</span>
     </div>
   </div>
 </section>
@@ -85,6 +123,7 @@ story.<span class="function">report</span>(<span class="punctuation">{</span> ap
 <!-- The Problem -->
 <section>
   <div class="container">
+    <span class="section-label comment">before / after</span>
     <h2>Ever stared at scattered logs trying to figure out what happened?</h2>
     <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
       Traditional logging gives you a pile of disconnected lines. Storyteller gives you one record that tells the whole story.
@@ -107,6 +146,7 @@ story.<span class="function">report</span>(<span class="punctuation">{</span> ap
 <!-- Live narration -->
 <section>
   <div class="container">
+    <span class="section-label">STORYTELLER_NARRATION=live</span>
     <h2>Or watch it happen</h2>
     <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
       Collecting the whole story and emitting it at the end is right for an audit record. It's wrong when the work takes forty seconds and someone — a person, or an agent — wants to know what's going on <em>right now</em>.
@@ -128,6 +168,7 @@ story.<span class="function">report</span>(<span class="punctuation">{</span> ap
 <!-- Feed it anything -->
 <section>
   <div class="container">
+    <span class="section-label comment">report(anything)</span>
     <h2>Hand it anything</h2>
     <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
       No pre-flattening. No defensive stringifying. <code>report()</code> takes any value and stores clean JSON.
@@ -146,6 +187,7 @@ story.<span class="function">report</span>(<span class="punctuation">{</span> ap
 <!-- How It Works -->
 <section>
   <div class="container">
+    <span class="section-label comment">how it works</span>
     <h2>How it works</h2>
     <p style="color: var(--text-muted); margin-top: 0.5rem;">Three steps. That's it.</p>
 
@@ -172,16 +214,23 @@ story.<span class="function">report</span>(<span class="punctuation">{</span> ap
 <!-- Code Example -->
 <section>
   <div class="container">
+    <span class="section-label">cat checkout.ts</span>
     <h2>See it in action</h2>
     <p style="color: var(--text-muted); margin-top: 0.5rem; margin-bottom: 2rem;">A real-world example: tracking a payment flow.</p>
 
     <Terminal title="checkout.ts" code={checkoutCode} />
+
+    <p style="color: var(--text-muted); margin-top: 3rem; margin-bottom: 1rem;">
+      Audiences are small. Here's one that posts only the failures to a Discord channel — fifteen lines, no dependency, and <code>accepts</code> does the filtering.
+    </p>
+    <Terminal title="discord.ts" code={discordCode} />
   </div>
 </section>
 
 <!-- Features -->
 <section>
   <div class="container">
+    <span class="section-label comment">for humans and agents</span>
     <h2>One log for the humans and the agents</h2>
     <p style="color: var(--text-muted); margin-top: 0.75rem; max-width: 650px;">
       An agent's automated run and a developer's manual debugging session produce the same record, in the same shape. Ask what happened and get both.
@@ -231,6 +280,7 @@ story.<span class="function">report</span>(<span class="punctuation">{</span> ap
 <!-- Install -->
 <section style="text-align: center;">
   <div class="container">
+    <span class="section-label">npx storyteller init</span>
     <h2>Ready to tell better stories?</h2>
     <p style="color: var(--text-muted); margin-top: 0.5rem; margin-bottom: 2rem;">One command. Installs the library, writes a configured storyteller, and teaches your agents to use it.</p>
 
@@ -244,5 +294,24 @@ story.<span class="function">report</span>(<span class="punctuation">{</span> ap
     </div>
   </div>
 </section>
+
+<script>
+  // The button is in the markup regardless; without JS it is simply inert
+  for (const button of document.querySelectorAll<HTMLButtonElement>(".copy-btn")) {
+    button.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? "");
+        button.textContent = "copied";
+        button.classList.add("copied");
+        setTimeout(() => {
+          button.textContent = "copy";
+          button.classList.remove("copied");
+        }, 1500);
+      } catch {
+        // Clipboard can be unavailable in some contexts; the command is still readable
+      }
+    });
+  }
+</script>
 
 </Base>

@@ -142,6 +142,20 @@ story.<span class="function">report</span>(<span class="string">\`Processed with
 <span class="punctuation">}</span> <span class="keyword">else</span> <span class="punctuation">{</span>
   story.<span class="function">finish</span>(<span class="string">"Sync completed"</span>);
 <span class="punctuation">}</span>`;
+
+const discordDocsCode = `story.audience.<span class="function">add</span>(<span class="punctuation">{</span>
+  name: <span class="string">"discord"</span>,
+  accepts: (event) => event.level === <span class="string">"Error"</span>,
+  hear: <span class="keyword">async</span> (event) => <span class="punctuation">{</span>
+    <span class="keyword">await</span> <span class="function">fetch</span>(process.env.<span class="type">DISCORD_WEBHOOK_URL</span>!, <span class="punctuation">{</span>
+      method: <span class="string">"POST"</span>,
+      headers: <span class="punctuation">{</span> <span class="string">"content-type"</span>: <span class="string">"application/json"</span> <span class="punctuation">}</span>,
+      body: <span class="function">JSON.stringify</span>(<span class="punctuation">{</span>
+        content: <span class="string">"\`\`\`\n"</span> + event.<span class="function">summarize</span>(<span class="punctuation">{</span> colors: <span class="keyword">false</span>, detail: <span class="string">"brief"</span> <span class="punctuation">}</span>).text + <span class="string">"\n\`\`\`"</span>,
+      <span class="punctuation">}</span>),
+    <span class="punctuation">}</span>);
+  <span class="punctuation">}</span>,
+<span class="punctuation">}</span>);`;
 ---
 
 <Base title="Storyteller — Documentation" description="Get started with Storyteller in under a minute. Progressive guide from install to production." path="/docs">
@@ -257,6 +271,10 @@ story.<span class="function">report</span>(<span class="string">\`Processed with
       <Terminal title="database audience" code={dbAudienceCode} />
 
       <h3>Custom audience</h3>
+      <p>A real one people actually want: post only the failures to a Discord channel. Create a webhook in the channel settings, put its URL in <code>DISCORD_WEBHOOK_URL</code>, and:</p>
+      <Terminal title="discord.ts" code={discordDocsCode} />
+      <p style="margin-top: 1rem; color: var(--text-muted);"><code>accepts</code> keeps everything below <code>Error</code> out of the channel. <code>summarize()</code> turns the record into a short readable block, which Discord renders as code. Swap the URL and the body shape for Slack, Teams, or anything with a webhook.</p>
+      <p style="margin-top: 1.5rem;">The general shape:</p>
       <Terminal title="custom audience" code={customAudienceCode} />
 
       <h3>Targeting specific audiences</h3>

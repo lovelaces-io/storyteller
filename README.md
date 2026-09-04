@@ -226,6 +226,24 @@ story.audience.add({
 });
 ```
 
+Audiences are small. Only the failures, straight to a Discord channel — fifteen lines, no dependency:
+
+```ts
+story.audience.add({
+  name: "discord",
+  accepts: (event) => event.level === "Error",
+  hear: async (event) => {
+    await fetch(process.env.DISCORD_WEBHOOK_URL!, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        content: "```\n" + event.summarize({ colors: false, detail: "brief" }).text + "\n```",
+      }),
+    });
+  },
+});
+```
+
 When an audience throws, the failure is reported rather than swallowed, and never reaches your code. When one is too slow, emissions past `maxInFlight` are dropped and counted in `droppedEmissions` on the closing record — visible loss beats silent loss.
 
 ## Configuration
