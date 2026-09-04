@@ -5,11 +5,14 @@ import { Storyteller } from "../dist/index.js";
  * `npm run test:console` builds first, then runs this against dist/.
  */
 class ConsoleTestRunner {
-  static run() {
-    ConsoleTestRunner.demoInfo();
-    ConsoleTestRunner.demoWarn();
-    ConsoleTestRunner.demoOops();
-    ConsoleTestRunner.demoLive();
+  static async run() {
+    // Story delivery is microtask-scheduled, so give each demo a tick to land
+    // before the next one prints its header — otherwise the records all arrive
+    // after the last demo and the output is unreadable.
+    for (const demo of [this.demoInfo, this.demoWarn, this.demoOops, this.demoLive]) {
+      demo();
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
   }
 
   /** A story that went well */
