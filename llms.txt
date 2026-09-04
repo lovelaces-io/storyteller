@@ -9,7 +9,7 @@ Storyteller collects timestamped beats during an operation and emits them as one
 ## Quick start
 
 ```bash
-npx storyteller init      # installs, writes a configured storyteller, teaches your agents
+npx @lovelaces-io/storyteller init      # installs, writes a configured storyteller, teaches your agents
 # or
 npm install @lovelaces-io/storyteller
 ```

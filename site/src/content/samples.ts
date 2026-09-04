@@ -251,10 +251,10 @@ export const audienceMemberCode = `<span class="keyword">type</span> <span class
   hear(emission: <span class="type">Emission</span>): <span class="type">void</span> | <span class="type">Promise</span>&lt;<span class="type">void</span>&gt;;
 <span class="punctuation">}</span>;`;
 
-export const initOutputCode = `<span class="prompt">$</span> npx storyteller init
+export const initOutputCode = `<span class="prompt">$</span> npx @lovelaces-io/storyteller init
   <span class="level-tell">added</span>    src/storyteller.ts
   <span class="level-tell">added</span>    AGENTS.md (created)
 
-<span class="prompt">$</span> npx storyteller init          <span class="comment"># again — nothing to do</span>
+<span class="prompt">$</span> npx @lovelaces-io/storyteller init          <span class="comment"># again — nothing to do</span>
   <span class="comment">kept</span>     src/storyteller.ts (already exists)
   <span class="comment">kept</span>     AGENTS.md (already up to date)`;

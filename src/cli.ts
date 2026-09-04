@@ -217,14 +217,15 @@ function readJson(path: string): Record<string, unknown> {
   }
 }
 
-/** Entry point for `npx storyteller init` */
+/** Entry point for `npx @lovelaces-io/storyteller init` */
 function main(argv: string[]) {
   const command = argv[0] ?? "init";
 
   if (command === "--help" || command === "-h" || command === "help") {
     console.log(
       [
-        "storyteller init [--no-install]",
+        "npx @lovelaces-io/storyteller init [--no-install]",
+        "  (or `storyteller init` once the package is installed)",
         "",
         "  Sets this project up to use Storyteller:",
         "    - installs the package",
