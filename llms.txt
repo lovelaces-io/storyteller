@@ -9,6 +9,8 @@ Storyteller collects timestamped beats during an operation and emits them as one
 ## Quick start
 
 ```bash
+npx storyteller init      # installs, writes a configured storyteller, teaches your agents
+# or
 npm install @lovelaces-io/storyteller
 ```
 
@@ -59,6 +61,7 @@ story.finish("Startup complete");
 - `consoleAudience(options?)` — compact line per beat, grouped block per story (default)
 - `ndjsonAudience(options?)` — one JSON object per line, for machine consumption
 - `dbAudience(insert)` — persists warn/oops stories via a provided insert function
+- `storyteller init` — CLI that sets a project up in one command; safe to re-run
 - `ANSI` / `getLevelColor(level)` / `formatOrigin(origin?)` / `summarizeContext(note)` / `formatDuration(ms)`
 
 ## Configuration
