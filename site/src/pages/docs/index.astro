@@ -2,29 +2,30 @@
 import DocsLayout from "../../layouts/DocsLayout.astro";
 import Terminal from "../../components/Terminal.astro";
 import { quickStartCode, outputCode } from "../../content/samples";
+const sections = [{"id": "install", "label": "Install"}, {"id": "your-first-story", "label": "Your first story"}, {"id": "what-comes-out", "label": "What comes out"}, {"id": "two-shapes-one-story", "label": "Two shapes, one story"}, {"id": "where-next", "label": "Where next"}];
 ---
 
-<DocsLayout title="Getting started" description="Install Storyteller, report your first story, and see the record it produces. Two minutes, zero dependencies." path="/docs">
+<DocsLayout title="Getting started" description="Install Storyteller, report your first story, and see the record it produces. Two minutes, zero dependencies." path="/docs" sections={sections}>
   <h1>Getting started</h1>
   <p class="lede">Install it, report a few beats of work, finish the story, and look at what came out. Two minutes.</p>
 
-  <h2>Install</h2>
+  <h2 id="install">Install<a class="heading-anchor" href="#install" aria-label="Link to this section">#</a></h2>
   <p>One command sets a project up: it installs the package, writes a configured storyteller, and adds a short guide to your <code>AGENTS.md</code> so any agent working in the repo knows how to use it.</p>
   <div class="install-cmd"><span class="prompt">$</span> npx @lovelaces-io/storyteller init <button class="copy-btn" type="button" data-copy="npx @lovelaces-io/storyteller init">copy</button></div>
   <p>Safe to run again later — it never overwrites anything you've edited. Or just install the package and wire it up yourself:</p>
   <div class="install-cmd"><span class="prompt">$</span> npm install @lovelaces-io/storyteller <button class="copy-btn" type="button" data-copy="npm install @lovelaces-io/storyteller">copy</button></div>
 
-  <h2>Your first story</h2>
+  <h2 id="your-first-story">Your first story<a class="heading-anchor" href="#your-first-story" aria-label="Link to this section">#</a></h2>
   <p>Report each beat as it happens. When the work is done, finish. Everything you reported becomes one record.</p>
   <Terminal title="app.ts" code={quickStartCode} />
   <p><code>report()</code> takes a message, or any value at all — an error, an API response, a Map. <code>finish()</code> takes a title and, optionally, a level and an error.</p>
 
-  <h2>What comes out</h2>
+  <h2 id="what-comes-out">What comes out<a class="heading-anchor" href="#what-comes-out" aria-label="Link to this section">#</a></h2>
   <p>The console prints a readable report by default. Underneath is a clean JSON record you can store anywhere:</p>
   <Terminal title="JSON.stringify(event)" code={outputCode} />
   <p>That's the whole story, in one place: what happened, in order, how long it took, who did it, and how it ended.</p>
 
-  <h2>Two shapes, one story</h2>
+  <h2 id="two-shapes-one-story">Two shapes, one story<a class="heading-anchor" href="#two-shapes-one-story" aria-label="Link to this section">#</a></h2>
   <div class="comparison">
     <div>
       <p class="comparison-label level-tell">Story — JSON</p>
@@ -37,7 +38,7 @@ import { quickStartCode, outputCode } from "../../content/samples";
   </div>
   <div class="callout"><p>Keep these separate in your head. Storage audiences get the record; people get the report. Never store the formatted text.</p></div>
 
-  <h2>Where next</h2>
+  <h2 id="where-next">Where next<a class="heading-anchor" href="#where-next" aria-label="Link to this section">#</a></h2>
   <ul>
     <li><a href="/docs/narration">Collected &amp; live</a> — watch beats arrive as they happen instead of waiting for the end.</li>
     <li><a href="/docs/audiences">Audiences</a> — send stories to your database, to Discord, to anything.</li>

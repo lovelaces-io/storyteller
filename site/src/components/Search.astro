@@ -1,0 +1,90 @@
+---
+/**
+ * ⌘K / "/" opens a palette. Results come from Pagefind's engine, loaded on demand
+ * from the built site; the markup and styling are ours. In dev, where the index
+ * does not exist, the palette says so instead of breaking.
+ */
+---
+<button class="search-trigger" type="button" data-search-open aria-label="Search the docs">
+  <span class="search-trigger-prompt">&gt;</span> search <kbd>⌘K</kbd>
+</button>
+
+<div class="search-overlay" data-search-overlay hidden>
+  <div class="search-panel" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="search-row">
+      <span class="search-prompt" aria-hidden="true">&gt;</span>
+      <input class="search-input" type="search" placeholder="search the docs…" autocomplete="off" spellcheck="false" data-search-input />
+      <kbd class="search-esc">esc</kbd>
+    </div>
+    <ol class="search-results" data-search-results></ol>
+    <p class="search-hint" data-search-hint>type to search · ↑↓ to move · ↵ to open</p>
+  </div>
+</div>
+
+<script>
+  type Result = { url: string; title: string; excerpt: string };
+  const overlay = document.querySelector<HTMLElement>("[data-search-overlay]")!;
+  const input = document.querySelector<HTMLInputElement>("[data-search-input]")!;
+  const list = document.querySelector<HTMLOListElement>("[data-search-results]")!;
+  const hint = document.querySelector<HTMLElement>("[data-search-hint]")!;
+  let engine: { search: (q: string) => Promise<{ results: { data: () => Promise<{ url: string; meta: { title?: string }; excerpt: string }> }[] }> } | null | undefined;
+  let selected = 0;
+  let items: Result[] = [];
+
+  async function loadEngine() {
+    if (engine !== undefined) return engine;
+    try {
+      // Pagefind emits this at build time; importing via a variable keeps the
+      // bundler from trying to resolve it, and lets dev fail softly
+      const modulePath = "/pagefind/pagefind.js";
+      engine = await import(/* @vite-ignore */ modulePath);
+      await (engine as unknown as { init?: () => Promise<void> }).init?.();
+    } catch {
+      engine = null;
+    }
+    return engine;
+  }
+
+  function open() {
+    overlay.hidden = false;
+    document.body.style.overflow = "hidden";
+    input.value = ""; items = []; render();
+    requestAnimationFrame(() => input.focus());
+    loadEngine().then((e) => { if (!e) hint.textContent = "search is available on the published site"; });
+  }
+  function close() {
+    overlay.hidden = true;
+    document.body.style.overflow = "";
+  }
+  function render() {
+    list.innerHTML = items.map((item, i) => `<li class="${i === selected ? "selected" : ""}"><a href="${item.url}"><span class="search-result-title">${item.title}</span><span class="search-result-excerpt">${item.excerpt}</span></a></li>`).join("");
+    hint.hidden = items.length > 0;
+  }
+  let timer = 0;
+  input.addEventListener("input", () => {
+    window.clearTimeout(timer);
+    timer = window.setTimeout(async () => {
+      const q = input.value.trim();
+      if (!q) { items = []; render(); return; }
+      const e = await loadEngine();
+      if (!e) return;
+      const res = await e.search(q);
+      const data = await Promise.all(res.results.slice(0, 8).map((r) => r.data()));
+      items = data.map((d) => ({ url: d.url, title: d.meta.title ?? d.url, excerpt: d.excerpt }));
+      selected = 0; render();
+    }, 80);
+  });
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "ArrowDown") { selected = Math.min(selected + 1, items.length - 1); render(); event.preventDefault(); }
+    if (event.key === "ArrowUp") { selected = Math.max(selected - 1, 0); render(); event.preventDefault(); }
+    if (event.key === "Enter" && items[selected]) window.location.href = items[selected].url;
+  });
+  document.addEventListener("keydown", (event) => {
+    const typing = /^(INPUT|TEXTAREA)$/.test((event.target as HTMLElement).tagName);
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") { event.preventDefault(); overlay.hidden ? open() : close(); }
+    else if (event.key === "/" && !typing && overlay.hidden) { event.preventDefault(); open(); }
+    else if (event.key === "Escape" && !overlay.hidden) close();
+  });
+  for (const trigger of document.querySelectorAll("[data-search-open]")) trigger.addEventListener("click", open);
+  overlay.addEventListener("click", (event) => { if (event.target === overlay) close(); });
+</script>

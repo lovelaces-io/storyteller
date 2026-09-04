@@ -2,17 +2,18 @@
 import DocsLayout from "../../layouts/DocsLayout.astro";
 import Terminal from "../../components/Terminal.astro";
 import { chapterCode, treeCode } from "../../content/samples";
+const sections = [{"id": "opening-one", "label": "Opening one"}, {"id": "what-a-chapter-inherits", "label": "What a chapter inherits"}, {"id": "rebuilding-the-run", "label": "Rebuilding the run"}];
 ---
 
-<DocsLayout title="Chapters" description="Real work nests. chapter() keeps each piece a complete story of its own, linked to its parent, so a whole run rebuilds as a tree." path="/docs/chapters">
+<DocsLayout title="Chapters" description="Real work nests. chapter() keeps each piece a complete story of its own, linked to its parent, so a whole run rebuilds as a tree." path="/docs/chapters" sections={sections}>
   <h1>Chapters</h1>
   <p class="lede">Real work nests. An agent spawns subtasks; a batch runs one operation per item; a request crosses services. <code>chapter()</code> keeps each piece a complete story of its own, linked to its parent.</p>
 
-  <h2>Opening one</h2>
+  <h2 id="opening-one">Opening one<a class="heading-anchor" href="#opening-one" aria-label="Link to this section">#</a></h2>
   <Terminal title="sync.ts" code={chapterCode} />
   <p>Each chapter emits its own record, carrying <code>parentStoryId</code>. It's <em>not</em> folded into the parent's beats — one record per story stays true, and a nested story is still a story.</p>
 
-  <h2>What a chapter inherits</h2>
+  <h2 id="what-a-chapter-inherits">What a chapter inherits<a class="heading-anchor" href="#what-a-chapter-inherits" aria-label="Link to this section">#</a></h2>
   <ul>
     <li><strong>The parent's audiences</strong> — the same registry, not a copy. An audience you add to the parent later reaches the chapter too; remove one and it's gone for both.</li>
     <li><strong>Origin</strong>, shallow-merged with anything you pass. Above, each chapter keeps <code>who: "sync-agent"</code> and adds its own <code>what</code>.</li>
@@ -20,7 +21,7 @@ import { chapterCode, treeCode } from "../../content/samples";
   </ul>
   <p><code>parentStoryId</code> is captured when the chapter is created, so a parent that finishes first doesn't orphan its chapters.</p>
 
-  <h2>Rebuilding the run</h2>
+  <h2 id="rebuilding-the-run">Rebuilding the run<a class="heading-anchor" href="#rebuilding-the-run" aria-label="Link to this section">#</a></h2>
   <p>Follow <code>parentStoryId</code> and the whole run comes back as a tree. Nest as deep as the work does.</p>
   <Terminal title="tree.ts" code={treeCode} />
   <div class="callout"><p>This is what turns a pile of records into a trace — and it's the precondition for asking "what happened during that run?" across more than one step.</p></div>

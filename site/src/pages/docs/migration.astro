@@ -1,15 +1,16 @@
 ---
 import DocsLayout from "../../layouts/DocsLayout.astro";
+const sections = [{"id": "bump-the-range", "label": "Bump the range"}, {"id": "the-verbs", "label": "The verbs"}, {"id": "behavior-changes", "label": "Behavior changes"}, {"id": "new-in-0-3", "label": "New in 0.3"}];
 ---
 
-<DocsLayout title="Migrating from 0.2" description="Nothing breaks. The old verbs still work identically. Here is what changed, what to rename, and the one behavior change that touches stored data." path="/docs/migration">
+<DocsLayout title="Migrating from 0.2" description="Nothing breaks. The old verbs still work identically. Here is what changed, what to rename, and the one behavior change that touches stored data." path="/docs/migration" sections={sections}>
   <h1>Migrating from 0.2</h1>
   <p class="lede">Nothing breaks. Every 0.2 call site compiles and behaves identically on 0.3. Here's what changed and what to rename when you're ready.</p>
 
-  <h2>Bump the range</h2>
+  <h2 id="bump-the-range">Bump the range<a class="heading-anchor" href="#bump-the-range" aria-label="Link to this section">#</a></h2>
   <p>If you depend on <code>^0.2.0</code>, npm won't move you to 0.3 on its own — on a 0.x version, caret is locked to the minor. Bump the range deliberately, change no code, and migrate the verbs whenever you like before 1.0.</p>
 
-  <h2>The verbs</h2>
+  <h2 id="the-verbs">The verbs<a class="heading-anchor" href="#the-verbs" aria-label="Link to this section">#</a></h2>
   <!-- docs-check: allow-deprecated -->
   <table>
     <thead><tr><th>0.2</th><th>0.3</th></tr></thead>
@@ -22,7 +23,7 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
   </table>
   <p>The old names remain as aliases until 1.0 and are silent unless you set <code>STORYTELLER_DEPRECATION_WARNINGS=1</code>. <code>tell</code> will not be reintroduced with a new meaning — reusing a familiar name with inverted semantics stays a trap for anyone still on 0.x.</p>
 
-  <h2>Behavior changes</h2>
+  <h2 id="behavior-changes">Behavior changes<a class="heading-anchor" href="#behavior-changes" aria-label="Link to this section">#</a></h2>
   <ul>
     <li><strong><code>error.cause</code> is now normalized</strong> rather than kept as a live <code>Error</code>. Previously the raw <code>Error</code> serialized to <code>{'{}'}</code>, so the cause was silently lost in every stored record. The chain is now preserved, depth-capped at five. If you read <code>cause</code> as an <code>Error</code> instance, it's a plain object now.</li>
     <li><strong>Records carry <code>kind</code> and <code>storyId</code>; beats carry <code>sequence</code>.</strong> Additive. Rows written by 0.2 still typecheck — the fields are optional on the record types.</li>
@@ -31,6 +32,6 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
     <li><strong>Context values are normalized on the way in.</strong> A circular object passed as <code>what</code> used to break <code>JSON.stringify</code> inside the console audience; it's now marked and stored safely.</li>
   </ul>
 
-  <h2>New in 0.3</h2>
+  <h2 id="new-in-0-3">New in 0.3<a class="heading-anchor" href="#new-in-0-3" aria-label="Link to this section">#</a></h2>
   <p>Live narration, chapters, <code>ndjsonAudience</code>, environment configuration, <code>onAudienceError</code>, back-pressure bounds, universal input normalization, and <code>npx @lovelaces-io/storyteller init</code>. The <a href="https://github.com/lovelaces-io/storyteller/blob/main/CHANGELOG.md">changelog</a> has every line.</p>
 </DocsLayout>

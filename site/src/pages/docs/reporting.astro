@@ -2,13 +2,14 @@
 import DocsLayout from "../../layouts/DocsLayout.astro";
 import Terminal from "../../components/Terminal.astro";
 import { anythingCode, contextCode } from "../../content/samples";
+const sections = [{"id": "hand-it-anything", "label": "Hand it anything"}, {"id": "context", "label": "Context"}, {"id": "levels", "label": "Levels"}];
 ---
 
-<DocsLayout title="Reporting & context" description="report() takes any value and stores clean JSON. Attach who, what, where, an error, or a level to any beat." path="/docs/reporting">
+<DocsLayout title="Reporting & context" description="report() takes any value and stores clean JSON. Attach who, what, where, an error, or a level to any beat." path="/docs/reporting" sections={sections}>
   <h1>Reporting &amp; context</h1>
   <p class="lede"><code>report()</code> is the verb you'll call most. It takes anything, structures it safely, and attaches whatever context you give it.</p>
 
-  <h2>Hand it anything</h2>
+  <h2 id="hand-it-anything">Hand it anything<a class="heading-anchor" href="#hand-it-anything" aria-label="Link to this section">#</a></h2>
   <p>No pre-flattening. No defensive <code>JSON.stringify</code>. Pass the value you have:</p>
   <Terminal title="anything.ts" code={anythingCode} />
   <table>
@@ -27,7 +28,7 @@ import { anythingCode, contextCode } from "../../content/samples";
   <p>The normalizer never throws. A hostile object — a getter that explodes, a Proxy that traps everything — cannot break the pipeline.</p>
   <div class="callout"><p>Redaction matches <em>key names</em>, not values. It's defense in depth, not a guarantee. Don't rely on it as your only line.</p></div>
 
-  <h2>Context</h2>
+  <h2 id="context">Context<a class="heading-anchor" href="#context" aria-label="Link to this section">#</a></h2>
   <p>Any beat can carry context. Use whichever fields make sense; the rest are simply absent from the record.</p>
   <table>
     <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
@@ -43,7 +44,7 @@ import { anythingCode, contextCode } from "../../content/samples";
   </table>
   <Terminal title="context.ts" code={contextCode} />
 
-  <h2>Levels</h2>
+  <h2 id="levels">Levels<a class="heading-anchor" href="#levels" aria-label="Link to this section">#</a></h2>
   <p>Three levels, on stories and on individual beats. <code>level</code> accepts the short forms shown here, or the stored labels <code>Information</code>, <code>Warning</code>, <code>Error</code>.</p>
   <div class="features-grid" style="grid-template-columns: repeat(3, 1fr);">
     <div class="feature-card">

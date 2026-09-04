@@ -2,13 +2,14 @@
 import DocsLayout from "../../layouts/DocsLayout.astro";
 import Terminal from "../../components/Terminal.astro";
 import { dbAudienceCode, ndjsonCode, customAudienceCode, discordDocsCode, targetingCode, audienceManagementCode, robustnessCode } from "../../content/samples";
+const sections = [{"id": "built-in", "label": "Built in"}, {"id": "write-your-own", "label": "Write your own"}, {"id": "who-hears-what", "label": "Who hears what"}, {"id": "when-an-audience-fails", "label": "When an audience fails"}];
 ---
 
-<DocsLayout title="Audiences" description="Stories are delivered to audiences: console, database, NDJSON, Discord, or fifteen lines of your own. Each decides what it hears." path="/docs/audiences">
+<DocsLayout title="Audiences" description="Stories are delivered to audiences: console, database, NDJSON, Discord, or fifteen lines of your own. Each decides what it hears." path="/docs/audiences" sections={sections}>
   <h1>Audiences</h1>
   <p class="lede">Stories are delivered to audiences. Each one is a listener that decides what it wants to hear and what to do with it. Console is included; the rest are a few lines each.</p>
 
-  <h2>Built in</h2>
+  <h2 id="built-in">Built in<a class="heading-anchor" href="#built-in" aria-label="Link to this section">#</a></h2>
   <h3>Console</h3>
   <p>Registered on every storyteller by default. In live narration it prints one compact line per beat; when a story finishes it prints a grouped, color-coded block. Remove it with <code>story.audience.remove("console")</code> if you'd rather be quiet.</p>
 
@@ -20,7 +21,7 @@ import { dbAudienceCode, ndjsonCode, customAudienceCode, discordDocsCode, target
   <p>One JSON object per line, every beat and every story, nothing else on the channel. This is the format to hand a program: a log shipper, <code>jq</code>, or an agent reading a subprocess.</p>
   <Terminal title="ndjson.ts" code={ndjsonCode} />
 
-  <h2>Write your own</h2>
+  <h2 id="write-your-own">Write your own<a class="heading-anchor" href="#write-your-own" aria-label="Link to this section">#</a></h2>
   <p>An audience is an object with a name and a <code>hear</code> function. That's the whole contract.</p>
   <Terminal title="custom.ts" code={customAudienceCode} />
 
@@ -29,7 +30,7 @@ import { dbAudienceCode, ndjsonCode, customAudienceCode, discordDocsCode, target
   <Terminal title="discord.ts" code={discordDocsCode} />
   <p><code>accepts</code> keeps everything below <code>Error</code> out of the channel. <code>summarize()</code> turns the record into a short readable block, which Discord renders as code. Swap the URL and the body shape for Slack, Teams, or anything with a webhook.</p>
 
-  <h2>Who hears what</h2>
+  <h2 id="who-hears-what">Who hears what<a class="heading-anchor" href="#who-hears-what" aria-label="Link to this section">#</a></h2>
   <p>Three levers, from broad to narrow:</p>
   <ul>
     <li><strong><code>hears</code></strong> — which <em>kinds</em> an audience wants: <code>["note"]</code>, <code>["story"]</code>, or both. Defaults to stories only, so an audience written before live narration existed keeps working unchanged.</li>
@@ -43,7 +44,7 @@ import { dbAudienceCode, ndjsonCode, customAudienceCode, discordDocsCode, target
   <h3>Managing</h3>
   <Terminal title="registry.ts" code={audienceManagementCode} />
 
-  <h2>When an audience fails</h2>
+  <h2 id="when-an-audience-fails">When an audience fails<a class="heading-anchor" href="#when-an-audience-fails" aria-label="Link to this section">#</a></h2>
   <p>A logging library that loses records in silence is worse than one that complains. When an audience throws or rejects, the failure goes to <code>onAudienceError</code> — never into your code. Without a handler, you get one throttled console warning per audience.</p>
   <p>When an audience is too <em>slow</em>, live narration would otherwise pile up promises without limit. Deliveries in flight are capped per audience; past the cap, beats are dropped and <strong>counted on the closing story</strong> as <code>droppedEmissions</code>. The record itself still holds every beat — back-pressure costs you the stream, never the story.</p>
   <Terminal title="robust.ts" code={robustnessCode} />
