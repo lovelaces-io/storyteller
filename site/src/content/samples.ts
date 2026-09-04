@@ -244,12 +244,15 @@ export const treeCode = `<span class="comment">// Every chapter record carries p
 <span class="comment">//   Synced acct-2     (2 beats)</span>
 <span class="comment">//   Synced acct-3     (2 beats)</span>`;
 
-export const audienceMemberCode = `<span class="keyword">type</span> <span class="type">AudienceMember</span> = <span class="punctuation">{</span>
+export const audienceMemberCode = `<span class="keyword">type</span> <span class="type">AudienceMember</span>&lt;<span class="type">Kind</span> = <span class="string">"story"</span>&gt; = <span class="punctuation">{</span>
   name: <span class="type">string</span>;
-  hears?: (<span class="string">"note"</span> | <span class="string">"story"</span>)[];          <span class="comment">// defaults to ["story"]</span>
-  accepts?(emission: <span class="type">Emission</span>): <span class="type">boolean</span>;   <span class="comment">// optional filter</span>
-  hear(emission: <span class="type">Emission</span>): <span class="type">void</span> | <span class="type">Promise</span>&lt;<span class="type">void</span>&gt;;
-<span class="punctuation">}</span>;`;
+  hears?: <span class="type">Kind</span>[];                       <span class="comment">// "note" | "story"; defaults to ["story"]</span>
+  accepts?(emission: <span class="type">EmissionOf</span>&lt;<span class="type">Kind</span>&gt;): <span class="type">boolean</span>;
+  hear(emission: <span class="type">EmissionOf</span>&lt;<span class="type">Kind</span>&gt;): <span class="type">void</span> | <span class="type">Promise</span>&lt;<span class="type">void</span>&gt;;
+<span class="punctuation">}</span>;
+
+<span class="comment">// No \`hears\` → a StoryEvent, exactly as before live narration existed.</span>
+<span class="comment">// hears: ["note"] → a NoteEmission.  Both → the union; narrow on .kind.</span>`;
 
 export const initOutputCode = `<span class="prompt">$</span> npx @lovelaces-io/storyteller init
   <span class="level-tell">added</span>    src/storyteller.ts
