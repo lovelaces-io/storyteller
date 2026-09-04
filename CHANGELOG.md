@@ -2,6 +2,12 @@
 
 All notable changes to Storyteller will be documented in this file.
 
+## 0.3.1 — 2026-09-04
+
+### Fixed
+
+- **Custom audiences written for 0.2 compile again.** In 0.3.0, `accepts` and `hear` received the `Emission` union, so an audience that passed the event to a helper typed for `StoryEvent` failed to typecheck — found by the first real consumer on upgrade. `AudienceMember` is now generic on the kinds it hears: with no `hears` (the default), both callbacks receive a `StoryEvent` exactly as before; `hears: ["note"]` gives `NoteEmission`; `["note", "story"]` gives the union. Runtime behavior is unchanged.
+
 ## 0.3.0 — 2026-09-04
 
 Live narration and agent-first reporting. See [#31](https://github.com/lovelaces-io/storyteller/issues/31).

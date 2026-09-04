@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import type { AudienceMember, Emission, StoryEvent } from "../src/storyteller";
+import type { AudienceMember, Emission, EmissionKind, StoryEvent } from "../src/storyteller";
 import { Storyteller } from "../src/storyteller";
 
 async function tick() {
@@ -7,7 +7,7 @@ async function tick() {
 }
 
 /** An audience that always throws when it hears anything */
-function createBrokenAudience(name = "broken"): AudienceMember {
+function createBrokenAudience(name = "broken"): AudienceMember<EmissionKind> {
   return {
     name,
     hears: ["note", "story"],

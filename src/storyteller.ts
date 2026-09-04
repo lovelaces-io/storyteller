@@ -183,22 +183,30 @@ export type NoteEmission = StoryNote & {
 
 export type Emission = NoteEmission | StoryEvent;
 
-export type AudienceMember = {
+/** The emission type an audience receives, given the kinds it hears */
+export type EmissionOf<Kind extends EmissionKind> = Kind extends "note"
+  ? NoteEmission
+  : StoryEvent;
+
+/**
+ * An audience, typed by what it hears.
+ *
+ * With no `hears`, it hears stories only and `accepts`/`hear` receive a
+ * `StoryEvent` — so an audience written before live narration existed compiles
+ * unchanged, including one that hands the event to a helper typed for
+ * `StoryEvent`. `hears: ["note"]` gives `NoteEmission`; `["note", "story"]`
+ * gives the union, and the code narrows on `kind`.
+ */
+export type AudienceMember<Kind extends EmissionKind = "story"> = {
   name: string;
-  /**
-   * Which emission kinds this audience wants. Defaults to `["story"]`, so an
-   * audience written before live narration existed keeps hearing only stories.
-   */
-  hears?: EmissionKind[];
-  /**
-   * Declared with method syntax deliberately. TypeScript checks method parameters
-   * bivariantly, so an audience written as `hear: (event: StoryEvent) => void`
-   * still compiles. That would be unsound if such an audience could receive a note
-   * emission — it cannot, because `hears` defaults to stories only.
-   */
-  accepts?(emission: Emission): boolean;
-  hear(emission: Emission): void | Promise<void>;
+  /** Which emission kinds this audience wants. Defaults to `["story"]`. */
+  hears?: Kind[];
+  accepts?(emission: EmissionOf<Kind>): boolean;
+  hear(emission: EmissionOf<Kind>): void | Promise<void>;
 };
+
+/** Any audience, whatever it hears — the shape the registry stores */
+export type AnyAudienceMember = AudienceMember<EmissionKind>;
 
 /**
  * How a storyteller narrates.
@@ -249,7 +257,7 @@ export type ChapterOptions = {
 
 export type StorytellerOptions = {
   origin?: StoryOriginInput;
-  audiences?: AudienceMember[];
+  audiences?: AnyAudienceMember[];
   /** Defaults to `STORYTELLER_NARRATION`, then `collected` */
   narration?: NarrationInput;
   /**
@@ -287,17 +295,20 @@ export type StorytellerOptions = {
 /** Called when an audience member throws or rejects while hearing an emission */
 export type AudienceErrorHandler = (
   error: unknown,
-  member: AudienceMember,
+  member: AnyAudienceMember,
   emission: Emission
 ) => void;
 
 /** Manages the set of audience members that receive story events */
 export class AudienceRegistry {
-  private members = new Map<string, AudienceMember>();
+  private members = new Map<string, AnyAudienceMember>();
 
   /** Register an audience member, replacing any existing member with the same name */
-  add(member: AudienceMember) {
-    this.members.set(member.name, member);
+  add<Kind extends EmissionKind = "story">(member: AudienceMember<Kind>) {
+    // Delivery routes by `hears` at runtime, so a member typed for one kind is
+    // only ever handed that kind; widening the stored type is safe here and
+    // nowhere else.
+    this.members.set(member.name, member as AnyAudienceMember);
     return this;
   }
 
@@ -314,7 +325,7 @@ export class AudienceRegistry {
 
   /** Return only the audience members matching the given names */
   getOnly(names: string[]) {
-    return names.map((name) => this.members.get(name)).filter(Boolean) as AudienceMember[];
+    return names.map((name) => this.members.get(name)).filter(Boolean) as AnyAudienceMember[];
   }
 
   /** Check if an audience member is registered by name */
@@ -688,7 +699,7 @@ export class Storyteller {
   }
 
   /** Run an audience's accepts() without letting a throw from it lose the emission */
-  private acceptsSafely(member: AudienceMember, emission: Emission): boolean {
+  private acceptsSafely(member: AnyAudienceMember, emission: Emission): boolean {
     if (!member.accepts) return true;
 
     try {
@@ -704,7 +715,7 @@ export class Storyteller {
    * contained: a throw is reported rather than swallowed, and a backlog is dropped
    * rather than grown without limit.
    */
-  private async hearSafely(member: AudienceMember, emission: Emission) {
+  private async hearSafely(member: AnyAudienceMember, emission: Emission) {
     const pending = this.inFlight.get(member.name) ?? 0;
     if (pending >= this.maxInFlight) {
       this.droppedEmissions += 1;
@@ -724,7 +735,7 @@ export class Storyteller {
   }
 
   /** Report an audience failure without ever letting it reach caller code */
-  private handleAudienceError(error: unknown, member: AudienceMember, emission: Emission) {
+  private handleAudienceError(error: unknown, member: AnyAudienceMember, emission: Emission) {
     try {
       this.onAudienceError(error, member, emission);
     } catch {
@@ -768,7 +779,7 @@ const lastReportedAudienceError = new Map<string, number>();
  */
 function reportAudienceErrorToConsole(
   error: unknown,
-  member: AudienceMember,
+  member: AnyAudienceMember,
   emission: Emission
 ) {
   const now = Date.now();
@@ -785,7 +796,7 @@ function reportAudienceErrorToConsole(
 }
 
 /** Check whether an audience member listens for a given emission kind */
-function hearsKind(member: AudienceMember, kind: EmissionKind): boolean {
+function hearsKind(member: AnyAudienceMember, kind: EmissionKind): boolean {
   // Audiences written before live narration existed only expect stories
   const kinds = member.hears ?? ["story"];
   return kinds.includes(kind);
