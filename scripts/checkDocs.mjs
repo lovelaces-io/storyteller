@@ -10,7 +10,8 @@ import { join } from "node:path";
 const FILES = [
   "README.md",
   "AGENTS.md",
-  "llms.txt",
+  "packages/core/AGENTS.md",
+  "packages/core/llms.txt",
   "docs/API.md",
   "docs/HOW-IT-WORKS.md",
 ];

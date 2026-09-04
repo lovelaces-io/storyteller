@@ -4,7 +4,7 @@ import Terminal from "../../components/Terminal.astro";
 import AgentLinks from "../../components/AgentLinks.astro";
 import { initOutputCode, jqCode } from "../../content/samples";
 // The canonical file itself, so what the site shows can't drift from what ships
-import agentsSnippet from "../../../../snippets/agents-section.md?raw";
+import agentsSnippet from "../../../../packages/core/snippets/agents-section.md?raw";
 
 const escapeHtml = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

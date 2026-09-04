@@ -35,10 +35,13 @@ jobs:
         run: npm run check:snippet
 
       - name: Test
-        run: npx vitest run
+        run: npm test
 
       - name: Build
         run: npm run build
+
+      - name: Check the package (zero dependencies, intended files only)
+        run: npm run check:package
 
       - name: Build site
         run: npm ci --prefix site && npm run build --prefix site

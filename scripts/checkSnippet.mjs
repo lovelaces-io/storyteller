@@ -9,7 +9,7 @@
  */
 import { readFileSync } from "node:fs";
 
-const CANONICAL = "snippets/agents-section.md";
+const CANONICAL = "packages/core/snippets/agents-section.md";
 const MUST_EMBED = ["README.md"];
 const MAX_LINES = 40;
 
