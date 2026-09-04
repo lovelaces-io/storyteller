@@ -185,6 +185,19 @@ Built in: `consoleAudience()` (notes and stories, registered by default), `dbAud
 
 When an audience throws, the failure is reported through `onAudienceError` rather than swallowed, and never propagates into your code. When an audience is too slow, emissions past `maxInFlight` are dropped and counted in `droppedEmissions` on the closing story — so the loss shows up in the record instead of vanishing.
 
+## Rendering stories for humans
+
+Stories are JSON so programs can read them. When a person needs to read one — an admin log screen, a terminal, a chat transcript — use `@lovelaces-io/storyteller-view`, a separate zero-dependency package from the same repo:
+
+```ts
+import { renderStory, renderStoryText } from "@lovelaces-io/storyteller-view";
+
+renderStory(event);            // HTMLElement: timeline of notes, context trees, error with cause chain
+renderStoryText(event, { colors: true }); // string: the same layout as indented text
+```
+
+Both accept a `StoryEvent`, a `NoteEmission`, or a stored record read back from a database or NDJSON. Every marker the normalizer leaves (`@type`, `@truncated`, `[Circular → path]`, `[redacted]`) is shown as what it means rather than as a string, and the DOM renderer inserts text nodes only — never `innerHTML` — because story content is user input. Do not hand-roll a story renderer in an app; reach for the view and theme it with the `--stv-*` custom properties.
+
 ## Architecture
 
 ```

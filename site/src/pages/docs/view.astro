@@ -1,0 +1,98 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import Terminal from "../../components/Terminal.astro";
+import { viewInstallCode, viewDomCode, viewTextCode, viewThemeCode, viewReactCode } from "../../content/samples";
+import { renderStoryText, type StoryRecord } from "@lovelaces-io/storyteller-view";
+import demoStoryJson from "../../content/demoStory.json";
+
+// The same record drives both demos. The text version is rendered here at
+// build time, so the page reads without JavaScript; the DOM version is drawn
+// in the browser by the package itself.
+const demoStory = demoStoryJson as StoryRecord;
+const escapeHtml = (text: string) =>
+  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const demoText = escapeHtml(renderStoryText(demoStory, { locale: "en-US", timeZone: "UTC" }));
+
+const sections = [
+  { id: "install", label: "Install" },
+  { id: "frontends", label: "Frontends" },
+  { id: "consoles", label: "Consoles" },
+  { id: "what-it-shows", label: "What it shows" },
+  { id: "theming", label: "Theming" },
+  { id: "react", label: "React and friends" },
+  { id: "live-demo", label: "Live demo" },
+];
+---
+
+<DocsLayout title="Story view" description="Render stories, notes, and reports for humans: a DOM renderer for frontends and a text renderer for consoles, in one zero-dependency package." path="/docs/view" sections={sections}>
+  <h1>Story view</h1>
+  <p class="lede">Stories are JSON so programs can read them. When a person needs to read one, <code>@lovelaces-io/storyteller-view</code> turns the record into a timeline: notes in sequence, context as a tree, the error with its cause chain, and every marker the normalizer left shown as what it means.</p>
+
+  <h2 id="install">Install<a class="heading-anchor" href="#install" aria-label="Link to this section">#</a></h2>
+  <Terminal title="terminal" code={viewInstallCode} />
+  <p>A separate package with zero dependencies, including no dependency on Storyteller itself. It reads the public record shape, so it works on a <code>StoryEvent</code> straight from an audience, a <code>NoteEmission</code> from live narration, or a story read back from a database or an NDJSON file.</p>
+
+  <h2 id="frontends">Frontends<a class="heading-anchor" href="#frontends" aria-label="Link to this section">#</a></h2>
+  <p><code>renderStory</code> returns an <code>HTMLElement</code>. Append it wherever the story should appear. The stylesheet is a separate import so you can skip it and write your own.</p>
+  <Terminal title="panel.ts" code={viewDomCode} />
+  <p>Everything from the record goes in as text nodes. A note carries user input, URLs and stack traces, so the renderer never assigns <code>innerHTML</code>. <code>renderNote</code>, <code>renderError</code> and <code>renderValue</code> are the building blocks, exported for custom layouts.</p>
+
+  <h2 id="consoles">Consoles<a class="heading-anchor" href="#consoles" aria-label="Link to this section">#</a></h2>
+  <p>The same layout as indented text, for a terminal, a CI log, or an agent's transcript. Color is opt-in ANSI; <code>stripAnsi</code> takes it back out.</p>
+  <Terminal title="cli.ts" code={viewTextCode} />
+
+  <h2 id="what-it-shows">What it shows<a class="heading-anchor" href="#what-it-shows" aria-label="Link to this section">#</a></h2>
+  <p>The normalizer leaves explicit markers wherever it changed a value. The view recognises each one:</p>
+  <ul>
+    <li><strong>Redaction</strong> reads as <em>redacted</em>, never as the marker string.</li>
+    <li><strong>Truncation</strong> says what was cut and how much: “50 more items not kept”, “nested deeper than 6 levels, not kept”.</li>
+    <li><strong>Circular references</strong> point at the path they repeat: “circular, same as $.graph”.</li>
+    <li><strong>Types JSON cannot hold</strong> get a badge: Map, Set, Date, a byte preview for binary.</li>
+    <li><strong>A capped cause chain</strong> says so, five errors down.</li>
+  </ul>
+  <p>Notes render in <code>sequence</code> order whatever order they arrived in, with an offset from the story's first beat. A chapter links to its parent; a story that dropped beats to back-pressure says how many.</p>
+
+  <h2 id="theming">Theming<a class="heading-anchor" href="#theming" aria-label="Link to this section">#</a></h2>
+  <p>Set the <code>--stv-*</code> custom properties on the story element or any ancestor. The stylesheet only reads them, so a value from higher up is inherited rather than shadowed. Dark mode follows <code>prefers-color-scheme</code> unless you set the knobs yourself.</p>
+  <Terminal title="theme.css" code={viewThemeCode} />
+
+  <h2 id="react">React and friends<a class="heading-anchor" href="#react" aria-label="Link to this section">#</a></h2>
+  <p>The renderer is plain DOM, so any framework can host it: give it an element to own and re-render when the record changes. In React that is a ref and an effect.</p>
+  <Terminal title="StoryView.tsx" code={viewReactCode} />
+
+  <h2 id="live-demo">Live demo<a class="heading-anchor" href="#live-demo" aria-label="Link to this section">#</a></h2>
+  <p>One stored record, rendered both ways by the package on this page. Open the trees; the redaction, the truncated array, the circular reference and the capped cause chain are all in there.</p>
+  <div class="view-demo" id="view-demo" data-demo="dom" aria-live="polite">
+    <noscript><p>The DOM renderer runs in the browser; the text renderer's output is below.</p></noscript>
+  </div>
+  <Terminal title="renderStoryText(record)" code={demoText} />
+</DocsLayout>
+
+<script>
+  import { renderStory } from "@lovelaces-io/storyteller-view";
+  import "@lovelaces-io/storyteller-view/style.css";
+  import demoStory from "../../content/demoStory.json";
+
+  const host = document.getElementById("view-demo");
+  if (host) host.replaceChildren(renderStory(demoStory as Parameters<typeof renderStory>[0], { expandDepth: 2 }));
+</script>
+
+<style>
+  .view-demo {
+    --stv-bg: var(--bg-surface);
+    --stv-fg: var(--text);
+    --stv-muted: var(--text-muted);
+    --stv-border: var(--border);
+    --stv-surface: var(--bg-elevated);
+    --stv-info: var(--green);
+    --stv-warn: var(--warn);
+    --stv-error: var(--oops);
+    --stv-accent: var(--green);
+    --stv-font: var(--font-body);
+    --stv-mono: var(--font-mono);
+    --stv-radius: var(--radius);
+    --stv-size: 13px;
+    margin: 0 0 1.5rem;
+    min-height: 3rem;
+  }
+</style>

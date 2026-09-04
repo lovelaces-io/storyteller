@@ -261,3 +261,42 @@ export const initOutputCode = `<span class="prompt">$</span> npx @lovelaces-io/s
 <span class="prompt">$</span> npx @lovelaces-io/storyteller init          <span class="comment"># again — nothing to do</span>
   <span class="comment">kept</span>     src/storyteller.ts (already exists)
   <span class="comment">kept</span>     AGENTS.md (already up to date)`;
+
+export const viewInstallCode = `<span class="prompt">$</span> npm install @lovelaces-io/storyteller-view`;
+
+export const viewDomCode = `<span class="keyword">import</span> <span class="punctuation">{</span> renderStory <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller-view"</span>;
+<span class="keyword">import</span> <span class="string">"@lovelaces-io/storyteller-view/style.css"</span>;
+
+story.audience.<span class="function">add</span>(<span class="punctuation">{</span>
+  name: <span class="string">"panel"</span>,
+  hear: (event) =&gt; panel.<span class="function">append</span>(<span class="function">renderStory</span>(event)),
+<span class="punctuation">}</span>);
+
+<span class="comment">// Or anything you kept: a row from your database, a line of NDJSON</span>
+panel.<span class="function">append</span>(<span class="function">renderStory</span>(JSON.<span class="function">parse</span>(line), <span class="punctuation">{</span> expandDepth: <span class="type">2</span> <span class="punctuation">}</span>));`;
+
+export const viewTextCode = `<span class="keyword">import</span> <span class="punctuation">{</span> renderStoryText <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller-view"</span>;
+
+story.audience.<span class="function">add</span>(<span class="punctuation">{</span>
+  name: <span class="string">"terminal"</span>,
+  hear: (event) =&gt; console.<span class="function">log</span>(<span class="function">renderStoryText</span>(event, <span class="punctuation">{</span> colors: process.stdout.isTTY <span class="punctuation">}</span>)),
+<span class="punctuation">}</span>);`;
+
+export const viewThemeCode = `<span class="comment">/* Set the knobs on any ancestor; the stylesheet only reads them */</span>
+.log-panel <span class="punctuation">{</span>
+  --stv-bg: var(--surface);
+  --stv-fg: var(--text);
+  --stv-muted: var(--text-dim);
+  --stv-border: var(--border);
+  --stv-error: var(--red);
+  --stv-font: var(--font-body);
+  --stv-mono: var(--font-mono);
+<span class="punctuation">}</span>`;
+
+export const viewReactCode = `<span class="keyword">function</span> <span class="function">StoryView</span>(<span class="punctuation">{</span> story <span class="punctuation">}</span>: <span class="punctuation">{</span> story: StoryRecord <span class="punctuation">}</span>) <span class="punctuation">{</span>
+  <span class="keyword">const</span> host = <span class="function">useRef</span>&lt;HTMLDivElement&gt;(<span class="type">null</span>);
+  <span class="function">useEffect</span>(() =&gt; <span class="punctuation">{</span>
+    host.current?.<span class="function">replaceChildren</span>(<span class="function">renderStory</span>(story));
+  <span class="punctuation">}</span>, [story]);
+  <span class="keyword">return</span> &lt;div ref=<span class="punctuation">{</span>host<span class="punctuation">}</span> /&gt;;
+<span class="punctuation">}</span>`;
