@@ -76,15 +76,58 @@ const ogImageUrl = `${siteUrl}/og-image.png`;
 
     <footer>
       <div class="container">
-        <div class="footer-links">
-          <a href="https://github.com/lovelaces-io/storyteller">GitHub</a>
-          <a href="https://www.npmjs.com/package/@lovelaces-io/storyteller">npm</a>
-          <a href="/docs">Documentation</a>
-          <a href="https://lovelaces.io">lovelaces.io</a>
+        <div class="footer-grid">
+          <div>
+            <h4>docs</h4>
+            <a href="/docs">Getting started</a>
+            <a href="/docs/narration">Collected &amp; live</a>
+            <a href="/docs/audiences">Audiences</a>
+            <a href="/docs/agents">For agents</a>
+            <a href="/docs/api">API reference</a>
+          </div>
+          <div>
+            <h4>project</h4>
+            <a href="https://github.com/lovelaces-io/storyteller">GitHub</a>
+            <a href="https://www.npmjs.com/package/@lovelaces-io/storyteller">npm</a>
+            <a href="https://github.com/lovelaces-io/storyteller/blob/main/CHANGELOG.md">Changelog</a>
+            <a href="https://github.com/lovelaces-io/storyteller/issues">Issues</a>
+            <a href="https://github.com/lovelaces-io/storyteller/blob/main/LICENSE">MIT license</a>
+          </div>
+          <div>
+            <h4>machines</h4>
+            <a href="/llms.txt">llms.txt</a>
+            <a href="https://github.com/lovelaces-io/storyteller/blob/main/AGENTS.md">AGENTS.md</a>
+            <a href="https://github.com/lovelaces-io/storyteller/blob/main/snippets/agents-section.md">Agent snippet</a>
+          </div>
+          <div>
+            <h4>lovelaces</h4>
+            <a href="https://lovelaces.io">lovelaces.io</a>
+            <a href="mailto:hello@lovelaces.io">hello@lovelaces.io</a>
+          </div>
         </div>
-        <p>Happy logging!</p>
+        <p>Zero dependencies. One record per story. Happy logging.</p>
       </div>
     </footer>
+
+    <script>
+      // Every copy button on the site. In the markup regardless; inert without JS.
+      for (const button of document.querySelectorAll<HTMLButtonElement>(".copy-btn")) {
+        const idle = button.textContent;
+        button.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(button.dataset.copy ?? "");
+            button.textContent = "copied";
+            button.classList.add("copied");
+            setTimeout(() => {
+              button.textContent = idle;
+              button.classList.remove("copied");
+            }, 1500);
+          } catch {
+            // Clipboard can be unavailable; the text is still readable on the page
+          }
+        });
+      }
+    </script>
   </body>
 </html>
 

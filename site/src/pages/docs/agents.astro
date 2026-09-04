@@ -1,0 +1,56 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import Terminal from "../../components/Terminal.astro";
+import AgentLinks from "../../components/AgentLinks.astro";
+import { initOutputCode, jqCode } from "../../content/samples";
+// The canonical file itself, so what the site shows can't drift from what ships
+import agentsSnippet from "../../../../snippets/agents-section.md?raw";
+
+const escapeHtml = (text: string) =>
+  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const explainPrompt =
+  "I'm evaluating Storyteller (@lovelaces-io/storyteller), a zero-dependency TypeScript logging library where you report beats of work and finish() emits one structured record — with a live mode that streams beats as they happen. " +
+  "Read https://storyteller.lovelaces.io/llms.txt and explain, in plain terms, when I'd want it over pino or winston, and what its limits are.";
+---
+
+<DocsLayout title="Agents & init" description="Make every agent in your repo narrate its work: one command to set up, one block to paste into AGENTS.md, and output a program can read." path="/docs/agents">
+  <h1>Agents &amp; init</h1>
+  <p class="lede">Agents don't browse npm. They use what's already in front of them — in the repo's files, in <code>node_modules</code>, in the environment. So that's where Storyteller puts itself.</p>
+
+  <h2>One command</h2>
+  <p>Installs the package, writes a configured storyteller, and adds the guidance block below to your <code>AGENTS.md</code> or <code>CLAUDE.md</code>. Run it as often as you like; it never overwrites something you've edited.</p>
+  <Terminal title="terminal" code={initOutputCode} />
+
+  <h2>Teach every agent in the repo</h2>
+  <p>This block is what <code>init</code> appends. Paste it yourself if you'd rather. Every agent that works in the repo reads it, so it spreads by being copied between projects — which is exactly the point.</p>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>
+      <span class="terminal-title">AGENTS.md</span>
+      <button class="copy-btn" type="button" data-copy={agentsSnippet} style="margin-left: auto;">copy block</button>
+    </div>
+    <div class="terminal-body"><pre set:html={escapeHtml(agentsSnippet)} /></div>
+  </div>
+  <p>Under forty lines on purpose. A block people trim is a block that loses its warnings first.</p>
+
+  <h2>What ships in the package</h2>
+  <p>After <code>npm install</code>, an agent working in the project finds these in <code>node_modules/@lovelaces-io/storyteller/</code> — no fetching, no being told:</p>
+  <ul>
+    <li><code>AGENTS.md</code> — the full guide, patterns and anti-patterns</li>
+    <li><code>llms.txt</code> — the compressed version, for a context window</li>
+    <li><code>snippets/agents-section.md</code> — the block above</li>
+  </ul>
+
+  <h2>Output a program can read</h2>
+  <p>For machine consumption, one JSON object per line. Set it from the environment and change no code:</p>
+  <Terminal title="terminal" code={jqCode} />
+  <p>Each line parses on its own. <code>storyId</code> groups beats with their story; <code>sequence</code> orders them.</p>
+
+  <h2>Reading stories back</h2>
+  <p>Writing is half of it. The other half — an agent, tomorrow, answering "why did last night's sync fail?" from the stories another agent wrote — is in progress: a storage contract, a query vocabulary, and an MCP server. It is <strong>not shipped yet</strong>. Follow along on <a href="https://github.com/lovelaces-io/storyteller/issues/41">the epic</a>.</p>
+
+  <h2>Or just ask one</h2>
+  <p>Hand the question to an agent and let it read the docs for you.</p>
+  <AgentLinks prompt={explainPrompt} label="Have an agent explain it" />
+</DocsLayout>

@@ -1,0 +1,42 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import Terminal from "../../components/Terminal.astro";
+import { liveCode, liveOptionsCode } from "../../content/samples";
+---
+
+<DocsLayout title="Collected & live" description="Two ways to hear the same story: one record at the end, or every beat as it happens. Nothing is lost either way." path="/docs/narration">
+  <h1>Collected &amp; live</h1>
+  <p class="lede">Two ways to hear the same story. Collected gives you one record when the work ends. Live gives you every beat the moment it happens — and still gives you the record.</p>
+
+  <h2>Collected — the default</h2>
+  <p>Beats are kept until you call <code>finish()</code>, then emitted together as one record. This is the right shape for an audit log: one row per operation, complete and self-contained.</p>
+  <p>It's the wrong shape when the work takes forty seconds and someone — a person or an agent — wants to know what's going on <em>right now</em>.</p>
+
+  <h2>Live</h2>
+  <p>Set narration to <code>live</code> and each <code>report()</code> is emitted immediately. The console prints one compact line per beat:</p>
+  <div class="install-cmd" style="margin-bottom: 1rem;"><span class="prompt">$</span> STORYTELLER_NARRATION=live node sync.js</div>
+  <Terminal title="live" code={liveCode} live={true} />
+  <p>Live <em>adds</em> emissions. It never removes them — the story still lands at <code>finish()</code>. An audience that only wants beats says so with <code>hears: ["note"]</code>, rather than by silencing the record.</p>
+
+  <h3>Turning it on</h3>
+  <Terminal title="narration.ts" code={liveOptionsCode} />
+  <p>The environment variable wins when nothing is set in code, so you can switch a deployed process to live narration without touching it.</p>
+
+  <h2>Nothing is lost</h2>
+  <p>Every beat carries the <code>storyId</code> of the story it belongs to, and a <code>sequence</code> number assigned the instant you call <code>report()</code> — gap-free from zero.</p>
+  <p>That means whoever holds the streamed beats can order and group them back into exactly the record collected narration would have produced. Neither mode is the lesser one. This is the guarantee the whole design rests on, and it's enforced by tests.</p>
+  <div class="callout"><p><strong>Order by <code>sequence</code>, never by arrival time.</strong> Audiences are asynchronous, and a slow one lands late.</p></div>
+
+  <h2>Configuration</h2>
+  <p>Every option can come from the environment, so the same file behaves differently for a person at a terminal and a program reading a pipe.</p>
+  <table>
+    <thead><tr><th>Variable</th><th>Values</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td><code>STORYTELLER_NARRATION</code></td><td><code>collected</code> · <code>live</code></td><td>Whether beats stream as they happen</td></tr>
+      <tr><td><code>STORYTELLER_FORMAT</code></td><td><code>text</code> · <code>ndjson</code></td><td>Which default audience is registered</td></tr>
+      <tr><td><code>STORYTELLER_LEVEL</code></td><td><code>info</code> · <code>warn</code> · <code>oops</code></td><td>Minimum level delivered — filters the closing story too</td></tr>
+      <tr><td><code>STORYTELLER_COLOR</code></td><td><code>0</code> · <code>1</code></td><td>Force colors off or on</td></tr>
+    </tbody>
+  </table>
+  <p>Unrecognized values fall back to the default rather than throwing. Output format is deliberately <em>not</em> inferred from whether stdout is a terminal — output that changes shape when a process is piped is a debugging afternoon nobody asked for.</p>
+</DocsLayout>

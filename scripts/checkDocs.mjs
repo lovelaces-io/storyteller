@@ -4,7 +4,8 @@
  * Only fenced TypeScript blocks are scanned — prose and migration tables are
  * supposed to name the old verbs, and flagging those would make the check useless.
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 const FILES = [
   "README.md",
@@ -19,7 +20,17 @@ const FILES = [
  * blocks, so they are scanned whole. Calls appear either bare or wrapped in a
  * syntax-highlighting span: `story.tell(` or `<span class="function">tell</span>(`.
  */
-const SITE_FILES = ["site/src/pages/index.astro", "site/src/pages/docs.astro"];
+/** Every page, layout, component and sample module under the site source tree */
+function walk(directory) {
+  const found = [];
+  for (const entry of readdirSync(directory)) {
+    const path = join(directory, entry);
+    if (statSync(path).isDirectory()) found.push(...walk(path));
+    else if (/\.(astro|ts)$/.test(entry)) found.push(path);
+  }
+  return found;
+}
+const SITE_FILES = walk("site/src");
 const SITE_DEPRECATED = /(?:\.|>)(note|tell|warn|oops)(?:<\/span>)?\(/g;
 
 const DEPRECATED = [

@@ -1,0 +1,29 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import Terminal from "../../components/Terminal.astro";
+import { apiRequestCode, backgroundJobCode, chapterCode, discordDocsCode, jqCode } from "../../content/samples";
+---
+
+<DocsLayout title="Examples" description="Real shapes of work, narrated: an API request, a background job, a nested sync, failures to Discord, and a stream piped to jq." path="/docs/examples">
+  <h1>Examples</h1>
+  <p class="lede">Real shapes of work. Copy the one that looks like yours.</p>
+
+  <h2>An API request</h2>
+  <p>One story per request. The failure path finishes with the error attached; the record carries the whole lifecycle either way.</p>
+  <Terminal title="middleware.ts" code={apiRequestCode} />
+
+  <h2>A background job</h2>
+  <p>Report progress as you go; pick the level at the end based on what actually happened.</p>
+  <Terminal title="sync-job.ts" code={backgroundJobCode} />
+
+  <h2>A nested sync, narrated live</h2>
+  <p>One chapter per account. Each becomes its own record, linked to the parent, while the console shows every beat as it happens.</p>
+  <Terminal title="sync.ts" code={chapterCode} />
+
+  <h2>Failures to Discord</h2>
+  <Terminal title="discord.ts" code={discordDocsCode} />
+
+  <h2>A stream, piped to jq</h2>
+  <p>Same code as above. Only the environment changes.</p>
+  <Terminal title="terminal" code={jqCode} />
+</DocsLayout>

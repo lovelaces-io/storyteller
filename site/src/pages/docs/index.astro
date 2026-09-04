@@ -1,0 +1,46 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import Terminal from "../../components/Terminal.astro";
+import { quickStartCode, outputCode } from "../../content/samples";
+---
+
+<DocsLayout title="Getting started" description="Install Storyteller, report your first story, and see the record it produces. Two minutes, zero dependencies." path="/docs">
+  <h1>Getting started</h1>
+  <p class="lede">Install it, report a few beats of work, finish the story, and look at what came out. Two minutes.</p>
+
+  <h2>Install</h2>
+  <p>One command sets a project up: it installs the package, writes a configured storyteller, and adds a short guide to your <code>AGENTS.md</code> so any agent working in the repo knows how to use it.</p>
+  <div class="install-cmd"><span class="prompt">$</span> npx storyteller init <button class="copy-btn" type="button" data-copy="npx storyteller init">copy</button></div>
+  <p>Safe to run again later — it never overwrites anything you've edited. Or just install the package and wire it up yourself:</p>
+  <div class="install-cmd"><span class="prompt">$</span> npm install @lovelaces-io/storyteller <button class="copy-btn" type="button" data-copy="npm install @lovelaces-io/storyteller">copy</button></div>
+
+  <h2>Your first story</h2>
+  <p>Report each beat as it happens. When the work is done, finish. Everything you reported becomes one record.</p>
+  <Terminal title="app.ts" code={quickStartCode} />
+  <p><code>report()</code> takes a message, or any value at all — an error, an API response, a Map. <code>finish()</code> takes a title and, optionally, a level and an error.</p>
+
+  <h2>What comes out</h2>
+  <p>The console prints a readable report by default. Underneath is a clean JSON record you can store anywhere:</p>
+  <Terminal title="JSON.stringify(event)" code={outputCode} />
+  <p>That's the whole story, in one place: what happened, in order, how long it took, who did it, and how it ended.</p>
+
+  <h2>Two shapes, one story</h2>
+  <div class="comparison">
+    <div>
+      <p class="comparison-label level-tell">Story — JSON</p>
+      <p>What you <strong>store</strong>. Database, log file, monitoring, an agent's memory. <code>JSON.stringify(event)</code> is the complete row.</p>
+    </div>
+    <div>
+      <p class="comparison-label level-warn">Report — text</p>
+      <p>What you <strong>read</strong>. Console, terminal, a Discord message. <code>formatStory(event)</code> or <code>event.summarize()</code>.</p>
+    </div>
+  </div>
+  <div class="callout"><p>Keep these separate in your head. Storage audiences get the record; people get the report. Never store the formatted text.</p></div>
+
+  <h2>Where next</h2>
+  <ul>
+    <li><a href="/docs/narration">Collected &amp; live</a> — watch beats arrive as they happen instead of waiting for the end.</li>
+    <li><a href="/docs/audiences">Audiences</a> — send stories to your database, to Discord, to anything.</li>
+    <li><a href="/docs/agents">Agents &amp; init</a> — make every agent in your repo narrate its work.</li>
+  </ul>
+</DocsLayout>
