@@ -3,3 +3,5 @@ dist/
 *.tsbuildinfo
 .DS_Store
 .env*
+# Lighthouse reports generated with --view
+*.report.html
