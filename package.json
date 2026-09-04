@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/lovelaces-io/storyteller.git"
+    "url": "git+https://github.com/lovelaces-io/storyteller.git"
   },
   "author": "Lovelaces <contact@lovelaces.io> (https://lovelaces.io)",
   "homepage": "https://storyteller.lovelaces.io",
@@ -80,6 +80,6 @@
     "vitest": "^2.0.0"
   },
   "bin": {
-    "storyteller": "./dist/cli.cjs"
+    "storyteller": "dist/cli.cjs"
   }
 }
