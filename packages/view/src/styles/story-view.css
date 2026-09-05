@@ -332,7 +332,7 @@ article.stv-note { padding: 8px 14px; border: 1px solid var(--_stv-border); bord
 /* a chapter is a step with its own flow inside */
 .stv-step[data-kind="chapter"] > .stv-step-body > .stv-flow { margin-top: 8px; padding: 10px 12px 2px; border: 1px solid var(--_stv-border); border-radius: var(--_stv-radius); background: var(--_stv-surface); }
 .stv-step[data-kind="chapter"] > .stv-step-body > .stv-flow > .stv-flow-head { display: none; }
-.stv-step[data-kind="chapter"] > .stv-step-body > .stv-flow .stv-step-marker { background: var(--_stv-bg); }
+.stv-step[data-kind="chapter"] > .stv-step-body > .stv-flow .stv-step-marker[data-level="Information"] { background: var(--_stv-bg); }
 .stv-step[data-kind="chapter"][data-level="Warning"] > .stv-step-body > .stv-flow { border-color: color-mix(in srgb, var(--_stv-warn) 40%, var(--_stv-border)); }
 .stv-step[data-kind="chapter"][data-level="Error"] > .stv-step-body > .stv-flow { border-color: color-mix(in srgb, var(--_stv-error) 50%, var(--_stv-border)); }
 
