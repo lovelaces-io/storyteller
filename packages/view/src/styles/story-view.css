@@ -249,7 +249,7 @@ article.stv-note { padding: 8px 14px; border: 1px solid var(--_stv-border); bord
 /* The board fits its container, not the viewport: in a narrow window the
    columns that matter least go first — beats, then when, then origin — and
    the title keeps its room. */
-.stv-board { container-type: inline-size; }
+.stv-board-body { container-type: inline-size; }
 @container (max-width: 860px) {
   .stv-row { grid-template-columns: 28px minmax(0, 1fr) minmax(0, 110px) 72px 84px 52px; }
   .stv-cell-beats { display: none; }
@@ -329,10 +329,24 @@ article.stv-note { padding: 8px 14px; border: 1px solid var(--_stv-border); bord
 .stv-board-pinned-label { padding: 6px 14px 0; font-family: var(--_stv-mono); font-size: 0.78em; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_stv-accent); }
 .stv-board-pinned-rows .stv-row:last-child { border-bottom: 0; }
 
-/* the dialog: the story over the feed, so the feed keeps flowing */
-.stv-dialog { width: min(920px, calc(100vw - 32px)); max-height: min(88vh, 1000px); padding: 0; border: 1px solid var(--_stv-border); border-radius: calc(var(--_stv-radius) + 6px); background: var(--_stv-bg); color: var(--_stv-fg); font-family: var(--_stv-font); font-size: var(--_stv-size); line-height: 1.45; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); overflow: hidden; display: none; flex-direction: column; }
-.stv-dialog[open] { display: flex; }
-.stv-dialog::backdrop { background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(2px); }
+/* the dialog: the story over the feed, so the feed keeps flowing.
+   Centred on the viewport; a sheet from the bottom on a phone. */
+.stv-dialog { box-sizing: border-box; position: fixed; inset: 0; margin: auto; width: min(920px, calc(100vw - 32px)); max-width: 100vw; max-height: min(86vh, 1000px); padding: 0; border: 1px solid var(--_stv-border); border-radius: calc(var(--_stv-radius) + 6px); background: var(--_stv-bg); color: var(--_stv-fg); font-family: var(--_stv-font); font-size: var(--_stv-size); line-height: 1.45; box-shadow: 0 32px 90px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.03) inset; overflow: hidden; display: none; flex-direction: column; }
+.stv-dialog[open] { display: flex; animation: stv-dialog-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.stv-dialog::backdrop { background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); animation: stv-backdrop-in 0.22s ease-out; }
+@keyframes stv-dialog-in { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes stv-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 640px) {
+  .stv-dialog { inset: auto 0 0 0; margin: 0; width: 100%; max-width: 100vw; max-height: 92vh; border-radius: 16px 16px 0 0; border-left: 0; border-right: 0; border-bottom: 0; }
+  .stv-dialog[open] { animation-name: stv-sheet-in; }
+  .stv-dialog-head { grid-template-columns: 24px minmax(0, 1fr); padding: 18px 14px 12px; }
+  .stv-dialog-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .stv-dialog-body { padding: 10px 14px 24px; }
+  .stv-dialog-meta { word-break: break-word; }
+  .stv-dialog::before { content: ""; position: absolute; top: 6px; left: 50%; width: 36px; height: 4px; margin-left: -18px; border-radius: 2px; background: var(--_stv-muted); opacity: 0.5; }
+}
+@keyframes stv-sheet-in { from { transform: translateY(100%); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .stv-dialog[open], .stv-dialog::backdrop { animation: none; } }
 .stv-dialog[data-level="Error"] { border-color: color-mix(in srgb, var(--_stv-error) 55%, var(--_stv-border)); }
 .stv-dialog[data-level="Warning"] { border-color: color-mix(in srgb, var(--_stv-warn) 50%, var(--_stv-border)); }
 .stv-dialog-head { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 14px 16px; border-bottom: 1px solid var(--_stv-border); background: var(--_stv-surface); }

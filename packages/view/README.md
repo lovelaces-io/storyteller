@@ -97,6 +97,7 @@ Story content is user input, URLs, and stack traces. Everything is inserted as t
 
 ## Changelog
 
+- **0.5.1** — the dialog centres on the viewport (it was anchored to the board, whose size container was its positioning root) and opens with a fade on desktop, as a sheet from the bottom on phones.
 - **0.5.0** — rows can open in a dialog over the feed (`detail: "dialog"`); pins with a pinned strip that survives updates and the session; `onSave` for a save-for-later action; `open`/`close`/`pin`/`unpin`/`pinned` on the board.
 - **0.4.0** — the storyboard is a run inspector: rows with status, subtitle, origin, beats, took, when; tabs and search; rows unfold to steps, steps to detail; `createStoryboard` updates in place and keeps the reader's state, which `liveStoryboard` now uses. Card panels are gone. Durations read in hours and days.
 - **0.3.0** — `liveStoryboard`: the board grows as beats arrive; running stories look running. Summary counts running stories.
