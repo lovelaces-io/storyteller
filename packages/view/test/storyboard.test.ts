@@ -137,3 +137,96 @@ describe("formatAgo", () => {
     expect(formatAgo(from, "not a time")).toBe("not a time");
   });
 });
+
+describe("the dialog and the pins", () => {
+  const at = (ms: number) => new Date(Date.UTC(2026, 8, 5, 12, 0, 0, ms)).toISOString();
+  const NOW = () => new Date(Date.UTC(2026, 8, 5, 12, 2, 0, 0));
+  const run: StoryRecord[] = [
+    { storyId: "root", timestamp: at(31000), level: "Error", title: "Nightly sync failed", origin: { who: "sync-agent" }, durationMs: 31000, notes: [
+      { timestamp: at(0), sequence: 0, note: "Fetched 1,200 rows", what: { source: "crm", rows: 1200 } },
+      { timestamp: at(31000), sequence: 1, note: "Upsert failed", level: "Error", error: { name: "DeadlockError", message: "deadlock detected" } },
+    ], error: { name: "DeadlockError", message: "deadlock detected" } },
+    { storyId: "digest", timestamp: at(45000), level: "Information", title: "Digest sent", origin: { who: "mailer" }, durationMs: 1900, notes: [{ timestamp: at(43100), sequence: 0, note: "Digest built" }] },
+  ];
+  const rowsOf = (root: HTMLElement) => [...root.querySelectorAll(".stv-board-rows .stv-row:not(.stv-row-header)")] as HTMLElement[];
+
+  it("opens a row in a dialog over the feed, with the steps and the folded record, and closes it", () => {
+    const board = createStoryboard(run, { now: NOW, detail: "dialog", pinsKey: null });
+    document.body.append(board.element);
+    const dialog = board.element.querySelector("dialog.stv-dialog") as HTMLDialogElement;
+    expect(dialog.hasAttribute("open")).toBe(false);
+    const row = rowsOf(board.element)[1]!;
+    expect(row.getAttribute("aria-haspopup")).toBe("dialog");
+    row.click();
+    expect(dialog.hasAttribute("open")).toBe(true);
+    expect(dialog.querySelector(".stv-dialog-title")!.textContent).toBe("Nightly sync failed");
+    expect(dialog.querySelector(".stv-dialog-sub")!.textContent).toBe("deadlock detected · turned at step 2 of 2");
+    expect(dialog.querySelector(".stv-dialog-meta")!.textContent).toContain("sync-agent · 31.0 s");
+    expect([...dialog.querySelectorAll(".stv-flow-steps > .stv-step > .stv-step-marker > .stv-step-number")].map((n) => n.textContent)).toEqual(["1", "2", "✕"]);
+    expect((dialog.querySelector(".stv-dialog-record") as HTMLDetailsElement).open).toBe(false);
+    expect(dialog.querySelector(".stv-dialog-record .stv-story")).not.toBeNull();
+    // the feed did not unfold anything inline
+    expect(board.element.querySelector(".stv-row-steps")).toBeNull();
+    (dialog.querySelector(".stv-dialog-close") as HTMLButtonElement).click();
+    expect(dialog.hasAttribute("open")).toBe(false);
+    board.open("digest");
+    expect(dialog.querySelector(".stv-dialog-title")!.textContent).toBe("Digest sent");
+    board.close();
+    board.element.remove();
+  });
+
+  it("keeps the open dialog current across updates", () => {
+    const board = createStoryboard([{ ...run[1]!, running: true, title: "Digest built" }], { now: NOW, detail: "dialog", pinsKey: null });
+    document.body.append(board.element);
+    board.open("digest");
+    const dialog = board.element.querySelector("dialog.stv-dialog") as HTMLDialogElement;
+    expect(dialog.dataset["running"]).toBe("true");
+    board.update([run[1]!]);
+    expect(dialog.hasAttribute("open")).toBe(true);
+    expect(dialog.dataset["running"]).toBeUndefined();
+    expect(dialog.querySelector(".stv-dialog-title")!.textContent).toBe("Digest sent");
+    board.element.remove();
+  });
+
+  it("pins a story to a strip that survives updates and trimming, and the session", () => {
+    sessionStorage.removeItem("storyteller-view:pins:t1");
+    const board = createStoryboard(run, { now: NOW, title: "t1" });
+    const pinButton = board.element.querySelector('.stv-board-rows .stv-row[data-story-id="root"] .stv-row-pin') as HTMLButtonElement;
+    expect(pinButton.textContent).toBe("pin");
+    pinButton.click();
+    expect(board.pinned().map((s) => s.storyId)).toEqual(["root"]);
+    const strip = board.element.querySelector(".stv-board-pinned") as HTMLElement;
+    expect(strip.hidden).toBe(false);
+    expect(strip.querySelector(".stv-board-pinned-label")!.textContent).toBe("Pinned · 1");
+    expect(strip.querySelector(".stv-row")!.getAttribute("data-story-id")).toBe("root");
+    expect(board.element.querySelector('.stv-board-rows .stv-row[data-story-id="root"]')!.getAttribute("data-pinned")).toBe("true");
+    // the board forgets the story; the pin does not
+    board.update([run[1]!]);
+    expect(rowsOf(board.element).map((r) => r.dataset["storyId"])).toEqual(["digest"]);
+    expect(strip.querySelector(".stv-row")!.getAttribute("data-story-id")).toBe("root");
+    // and a new board in the same session starts with it
+    const again = createStoryboard([], { now: NOW, title: "t1" });
+    expect(again.pinned().map((s) => s.title)).toEqual(["Nightly sync failed"]);
+    again.unpin("root");
+    expect(again.pinned()).toEqual([]);
+    expect((again.element.querySelector(".stv-board-pinned") as HTMLElement).hidden).toBe(true);
+    expect(sessionStorage.getItem("storyteller-view:pins:t1")).toBe("[]");
+    const none = createStoryboard(run, { now: NOW, pins: false, pinsKey: null });
+    expect(none.element.querySelector(".stv-row-pin")).toBeNull();
+  });
+
+  it("offers save-for-later in the dialog when there is somewhere to save to", () => {
+    const saved: string[] = [];
+    const board = createStoryboard(run, { now: NOW, detail: "dialog", pinsKey: null, onSave: (story) => saved.push(story.title), saveLabel: "keep this" });
+    document.body.append(board.element);
+    board.open("root");
+    const save = [...board.element.querySelectorAll(".stv-dialog-action")].find((b) => b.textContent === "keep this") as HTMLButtonElement;
+    save.click();
+    expect(saved).toEqual(["Nightly sync failed"]);
+    const plain = createStoryboard(run, { now: NOW, detail: "dialog", pinsKey: null });
+    document.body.append(plain.element);
+    plain.open("root");
+    expect([...plain.element.querySelectorAll(".stv-dialog-action")].map((b) => b.textContent)).toEqual(["pin", "close"]);
+    board.element.remove(); plain.element.remove();
+  });
+});
