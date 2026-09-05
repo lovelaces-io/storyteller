@@ -343,14 +343,12 @@ export const adapterCode = `<span class="keyword">import</span> <span class="pun
 <span class="comment">//   origin_who, origin_what, origin_where, duration_ms, error_message,</span>
 <span class="comment">//   notes, search_text, record }</span>`;
 
-export const mapCode = `<span class="keyword">import</span> <span class="punctuation">{</span> renderStory, renderStoryMap, toMermaid <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller-view"</span>;
+export const storyboardCode = `<span class="keyword">import</span> <span class="punctuation">{</span> renderStoryboard, renderStoryFlow, renderStory <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller-view"</span>;
 
-<span class="comment">// A run: the parent, its chapters, the retry that failed — as a shape</span>
-<span class="keyword">const</span> map = <span class="function">renderStoryMap</span>(run, <span class="punctuation">{</span>
-  onSelect: (story) =&gt; detail.<span class="function">replaceChildren</span>(<span class="function">renderStory</span>(story)),   <span class="comment">// dig in</span>
-<span class="punctuation">}</span>);
-panel.<span class="function">append</span>(map);
-
-<span class="comment">// The same map anywhere Mermaid renders: GitHub, docs, an agent's reply</span>
-<span class="function">toMermaid</span>(run);                         <span class="comment">// flowchart: stories, chapters, failures styled</span>
-<span class="function">toMermaid</span>(run, <span class="punctuation">{</span> kind: <span class="string">"gantt"</span> <span class="punctuation">}</span>);       <span class="comment">// lanes as sections, durations as bars</span>`;
+<span class="comment">// At a glance: one panel per story, chapters as sub-scenes, a failure that looks like one</span>
+board.<span class="function">append</span>(<span class="function">renderStoryboard</span>(run, <span class="punctuation">{</span>
+  onSelect: (story) =&gt; detail.<span class="function">replaceChildren</span>(
+    <span class="function">renderStoryFlow</span>(story, <span class="punctuation">{</span> chapters: run, unfold: <span class="string">"failed"</span> <span class="punctuation">}</span>),   <span class="comment">// click in: steps 1 → 2 → 3, where it turned</span>
+    <span class="function">renderStory</span>(story),                                            <span class="comment">// and the full record beneath</span>
+  ),
+<span class="punctuation">}</span>));`;
