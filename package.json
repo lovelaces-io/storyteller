@@ -31,5 +31,6 @@
     "typescript": "^5.6.0",
     "typescript-eslint": "^8.57.1",
     "vitest": "^2.0.0"
-  }
+  },
+  "author": "Lovelaces.io <contact@lovelaces.io> (https://lovelaces.io)"
 }
