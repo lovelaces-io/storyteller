@@ -30,5 +30,6 @@ What this does **not** do: it does not recognise a secret that looks like an ord
 
 | Version | Supported |
 |---------|-----------|
+| 0.4.x   | Yes       |
 | 0.3.x   | Yes       |
 | < 0.3   | No — upgrade; every 0.2 call site still works |

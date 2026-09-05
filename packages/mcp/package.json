@@ -1,0 +1,60 @@
+{
+  "name": "@lovelaces-io/storyteller-mcp",
+  "version": "0.1.0",
+  "description": "The Librarian: an MCP server that lets an agent read the stories Storyteller kept. Read-only.",
+  "keywords": [
+    "storyteller",
+    "mcp",
+    "model-context-protocol",
+    "logs",
+    "agents",
+    "claude"
+  ],
+  "license": "MIT",
+  "author": "Lovelaces <contact@lovelaces.io>",
+  "homepage": "https://storyteller.lovelaces.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lovelaces-io/storyteller.git",
+    "directory": "packages/mcp"
+  },
+  "bugs": "https://github.com/lovelaces-io/storyteller/issues",
+  "type": "module",
+  "bin": {
+    "storyteller-mcp": "dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "prepack": "npm run build && cp ../../LICENSE ."
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.25.76"
+  },
+  "peerDependencies": {
+    "@lovelaces-io/storyteller": ">=0.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.0.0"
+  }
+}

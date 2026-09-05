@@ -2,7 +2,9 @@
 
 All notable changes to Storyteller will be documented in this file.
 
-## Unreleased
+## 0.4.0 — unreleased
+
+Stories become answerable: a store contract, redaction by value, a query vocabulary, and the Librarian. See [#41](https://github.com/lovelaces-io/storyteller/issues/41).
 
 ### Added
 
@@ -10,6 +12,7 @@ All notable changes to Storyteller will be documented in this file.
 - **`memoryStore()`.** The reference implementation: a bounded in-memory store, zero dependencies, browser-safe.
 - **`fileStore(path)`.** One JSON-lines file, append-only, with `prune` rewriting it. Node only, so it ships from its own entry point: `@lovelaces-io/storyteller/store/file`.
 - **`storeAudience(store, options?)`.** The one-line bridge from delivery to persistence. Keeps every level by default.
+- **The Librarian.** `@lovelaces-io/storyteller-mcp`, a read-only MCP server over any `StoryStore`: `search_stories`, `get_story`, `summarize_period`, `find_related`. `npx -y @lovelaces-io/storyteller-mcp ./stories.jsonl` in `.mcp.json` and an agent answers "why did last night's sync fail?" from the stories the code wrote. Separate package; core stays at zero dependencies.
 - **Query vocabulary.** `stories(store).about("checkout").from("payment-service").failing().since("24h")` — chainable, immutable, reads like the question. Clauses: `about`, `from`, `level`, `atLeast`, `failing`, `succeeding`, `slowerThan`, `since`, `until`, `under`, `newest`, `oldest`, `limit`, `skip`. Terminals: `all()`, `first()`, `count()`; an awaited builder resolves to `all()`. Durations as `"30s"` / `"5m"` / `"24h"` / `"7d"` / `"2w"` or milliseconds; `parseDuration()` exported. A builder compiles to a `StoryQuery`, so every adapter answers the same question.
 - **Redaction by value.** Recognisable secret formats (Stripe, OpenAI/Anthropic, GitHub, GitLab, npm, Slack, Google, SendGrid, AWS access key ids, JWTs, PEM private keys, `Bearer`/`Basic` credentials, passwords in URLs, secrets in query parameters) are redacted inside any string — error messages and stacks included — keeping the text around them. Secret-shaped keys (`dbPassword`, `x-api-key`, `STRIPE_SECRET_KEY`) count too. `redactValues: "balanced" | "strict" | "off"` tunes it. Stores run the same pass at the boundary. `auditRedaction()` reports what would be redacted without changing anything. SECURITY.md says honestly what this does not guarantee.
 
