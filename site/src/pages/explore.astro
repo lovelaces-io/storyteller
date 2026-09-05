@@ -37,7 +37,6 @@ const description = "Drop a stories.jsonl or paste NDJSON and see your runs as a
         <button type="button" class="copy-btn" id="clear-board">clear</button>
       </div>
       <div class="view-demo" id="board-host"></div>
-      <div class="view-demo explore-detail" id="detail-host" hidden></div>
     </div>
 
     <div class="explore-how">
@@ -53,7 +52,7 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
 </Base>
 
 <script>
-  import { createStoryboard, liveStoryboard, renderStory, toMermaid } from "@lovelaces-io/storyteller-view";
+  import { createStoryboard, liveStoryboard, toMermaid } from "@lovelaces-io/storyteller-view";
   import "@lovelaces-io/storyteller-view/style.css";
   import demoRun from "../content/demoRun.json";
 
@@ -64,7 +63,6 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
   const status = $<HTMLParagraphElement>("explore-status");
   const boardSection = $<HTMLElement>("explore-board");
   const boardHost = $<HTMLDivElement>("board-host");
-  const detailHost = $<HTMLDivElement>("detail-host");
   const clearButton = $<HTMLButtonElement>("clear-board");
 
   type Record = Parameters<typeof createStoryboard>[0][number];
@@ -79,14 +77,7 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
   function draw() {
     const stories = live.stories() as Record[];
     if (!board) {
-      board = createStoryboard(stories, {
-        title: "your stories",
-        onSelect: (story) => {
-          detailHost.hidden = false;
-          detailHost.replaceChildren(renderStory(story, { expandDepth: 1 }));
-          detailHost.scrollIntoView({ block: "nearest", behavior: "smooth" });
-        },
-      });
+      board = createStoryboard(stories, { title: "your stories", detail: "dialog" });
       boardHost.replaceChildren(board.element);
     } else {
       board.update(stories);
@@ -127,7 +118,7 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
     live.destroy();
     live = liveStoryboard(document.createElement("div"), { capacity: 100_000 });
     loaded = 0; skipped = 0; board = undefined; sample = false;
-    boardHost.replaceChildren(); detailHost.replaceChildren(); detailHost.hidden = true;
+    boardHost.replaceChildren();
   }
   function loadText(text: string) { load(text, () => { live.flush(); draw(); }); }
   function loadFile(file: File) { if (sample) reset(); file.text().then(loadText); }
@@ -174,7 +165,6 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
   .explore-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .explore-status { min-height: 1.4em; margin: 0; color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
   .explore-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; margin: 0 0 10px; }
-  .explore-detail { display: grid; gap: 16px; margin-top: 16px; }
   .explore-how { margin: 2.5rem 0 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
   .explore-code { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); font-family: var(--font-mono); font-size: 12.5px; overflow-x: auto; }
   .view-demo {
