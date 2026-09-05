@@ -72,4 +72,10 @@ export type StoryRecord = {
   error?: ErrorRecord;
   /** Present on a live emission */
   kind?: "story";
+  /**
+   * Set by the live storyboard on a story that has begun but not finished:
+   * beats have arrived, the closing record has not. Never present on a
+   * record the library wrote.
+   */
+  running?: boolean;
 };

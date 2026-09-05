@@ -24,3 +24,5 @@ export type { StoryboardOptions } from "./storyboard";
 export { renderStoryboard } from "./storyboard";
 export type { StoryFlowOptions } from "./flow";
 export { renderStoryFlow } from "./flow";
+export type { LiveEmission, LiveStoryboard, LiveStoryboardOptions } from "./live";
+export { liveStoryboard } from "./live";

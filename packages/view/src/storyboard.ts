@@ -58,6 +58,7 @@ function offset(from: number, iso: string): string {
 
 /** How a story ended, in one line */
 function outcome(story: StoryRecord): { text: string; level: Level } {
+  if (story.running) return { text: "still running", level: story.level === "Error" ? "Error" : "Information" };
   if (story.error?.message) return { text: story.error.message, level: "Error" };
   if (story.level === "Error") return { text: "failed", level: "Error" };
   if (story.level === "Warning") return { text: "finished with warnings", level: "Warning" };
@@ -75,12 +76,14 @@ export function renderStoryboard(stories: StoryRecord[], options: StoryboardOpti
   const board = el(ctx, "section", "stv-board");
   board.setAttribute("aria-label", "Storyboard");
 
-  const failed = map.rows.filter((node) => node.failed).length;
-  const warned = map.rows.filter((node) => !node.failed && node.story.level === "Warning").length;
+  const running = map.rows.filter((node) => node.story.running).length;
+  const failed = map.rows.filter((node) => node.failed && !node.story.running).length;
+  const warned = map.rows.filter((node) => !node.failed && node.story.level === "Warning" && !node.story.running).length;
   const summaryParts = [`${map.count} ${map.count === 1 ? "story" : "stories"}`];
+  if (running) summaryParts.push(`${running} running`);
   if (failed) summaryParts.push(`${failed} failed`);
   if (warned) summaryParts.push(`${warned} with warnings`);
-  if (map.count && !failed && !warned) summaryParts.push("all fine");
+  if (map.count && !failed && !warned && !running) summaryParts.push("all fine");
   const head = el(ctx, "header", "stv-board-head");
   head.dataset["state"] = failed ? "failed" : warned ? "warned" : "fine";
   head.append(el(ctx, "span", "stv-board-summary", options.title ?? summaryParts.join(" · ")));
@@ -121,10 +124,11 @@ function renderPanel(ctx: Ctx, node: MapNode): HTMLElement {
   panel.dataset["storyId"] = node.id;
   if (node.orphan) panel.dataset["orphan"] = "true";
   if (node.failed) panel.dataset["failed"] = "true";
+  if (story.running) panel.dataset["running"] = "true";
 
-  // Header: the title, and one word for how it went
+  // Header: the title, and one word for how it went (or that it is still going)
   const head = el(ctx, "header", "stv-panel-head");
-  const level = el(ctx, "span", "stv-panel-level", LEVEL_WORD[story.level]);
+  const level = el(ctx, "span", "stv-panel-level", story.running ? "running" : LEVEL_WORD[story.level]);
   level.dataset["level"] = story.level;
   head.append(el(ctx, "h4", "stv-panel-title", story.title), level);
   panel.append(head);

@@ -57,6 +57,19 @@ panel.append(renderStoryboard(run, {
 - `renderStoryboard(stories, options?)` → `HTMLElement`. Summary line (`5 stories · 1 failed`), then panels in the order things happened: title, beats as sentences with a small "+21 s", chapters indented under the beat that started them, how it ended. A beat with data or an error unfolds in place to the raw payload. Options: `onSelect` (adds an *open* button per panel), `maxBeats` (default 8), `title`.
 - `renderStoryFlow(story, options?)` → `HTMLElement`. Numbered steps with arrows coloured by how each went; the first failed step is marked as the turn; chapters (`chapters: [...]`, matched by `parentStoryId`) are steps with their own steps inside; the end says how it came out. `unfold: "none" | "failed" | "all"` controls which details start open.
 
+### Live: a board that grows as beats arrive
+
+```ts
+import { liveStoryboard } from "@lovelaces-io/storyteller-view";
+
+const live = liveStoryboard(document.querySelector("#board")!, { capacity: 50 });
+story.audience.add(live.audience);          // in the browser: hears notes and stories directly
+// or, tailing a file / an NDJSON stream:
+for await (const line of lines) live.hear(JSON.parse(line));
+```
+
+A note opens or extends a running story (dashed border, a pulse, "still running"); the closing story replaces it. A burst of beats draws once. `stories()`, `flush()`, `clear()`, `destroy()`. This is the monitor: what an agent, a job, a server is doing right now.
+
 ### The timeline map
 
 ```ts
@@ -81,6 +94,7 @@ Story content is user input, URLs, and stack traces. Everything is inserted as t
 
 ## Changelog
 
+- **0.3.0** — `liveStoryboard`: the board grows as beats arrive; running stories look running. Summary counts running stories.
 - **0.2.0** — the visual language: `renderStoryboard` (a panel per story, at a glance) and `renderStoryFlow` (numbered steps with arrows, click in), raw detail unfolding in place. Also `renderStoryMap` (a timeline), `toMermaid` (flowchart or gantt), and `buildStoryMap` for the model.
 - **0.1.1** — theme knobs set on an ancestor now apply: the stylesheet only reads `--stv-*`, it no longer defines them on the element itself.
 - **0.1.0** — first release: DOM and text renderers, zero dependencies.
