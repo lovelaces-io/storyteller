@@ -342,3 +342,13 @@ export const adapterCode = `<span class="keyword">import</span> <span class="pun
 <span class="comment">// { story_id, parent_story_id, timestamp, level, title,</span>
 <span class="comment">//   origin_who, origin_what, origin_where, duration_ms, error_message,</span>
 <span class="comment">//   notes, search_text, record }</span>`;
+
+export const storyboardCode = `<span class="keyword">import</span> <span class="punctuation">{</span> renderStoryboard, renderStoryFlow, renderStory <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller-view"</span>;
+
+<span class="comment">// At a glance: one panel per story, chapters as sub-scenes, a failure that looks like one</span>
+board.<span class="function">append</span>(<span class="function">renderStoryboard</span>(run, <span class="punctuation">{</span>
+  onSelect: (story) =&gt; detail.<span class="function">replaceChildren</span>(
+    <span class="function">renderStoryFlow</span>(story, <span class="punctuation">{</span> chapters: run, unfold: <span class="string">"failed"</span> <span class="punctuation">}</span>),   <span class="comment">// click in: steps 1 → 2 → 3, where it turned</span>
+    <span class="function">renderStory</span>(story),                                            <span class="comment">// and the full record beneath</span>
+  ),
+<span class="punctuation">}</span>));`;

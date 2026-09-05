@@ -1,8 +1,9 @@
 ---
 import DocsLayout from "../../layouts/DocsLayout.astro";
 import Terminal from "../../components/Terminal.astro";
-import { viewInstallCode, viewDomCode, viewTextCode, viewThemeCode, viewReactCode } from "../../content/samples";
-import { renderStoryText, type StoryRecord } from "@lovelaces-io/storyteller-view";
+import { viewInstallCode, viewDomCode, viewTextCode, viewThemeCode, viewReactCode, storyboardCode } from "../../content/samples";
+import { renderStoryText, toMermaid, type StoryRecord } from "@lovelaces-io/storyteller-view";
+import demoRunJson from "../../content/demoRun.json";
 import demoStoryJson from "../../content/demoStory.json";
 
 // The same record drives both demos. The text version is rendered here at
@@ -12,6 +13,8 @@ const demoStory = demoStoryJson as StoryRecord;
 const escapeHtml = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const demoText = escapeHtml(renderStoryText(demoStory, { locale: "en-US", timeZone: "UTC" }));
+const demoRun = demoRunJson as StoryRecord[];
+const demoMermaid = escapeHtml(toMermaid(demoRun));
 
 const sections = [
   { id: "install", label: "Install" },
@@ -20,6 +23,7 @@ const sections = [
   { id: "what-it-shows", label: "What it shows" },
   { id: "theming", label: "Theming" },
   { id: "react", label: "React and friends" },
+  { id: "storyboard", label: "The storyboard" },
   { id: "live-demo", label: "Live demo" },
 ];
 ---
@@ -60,6 +64,17 @@ const sections = [
   <p>The renderer is plain DOM, so any framework can host it: give it an element to own and re-render when the record changes. In React that is a ref and an effect.</p>
   <Terminal title="StoryView.tsx" code={viewReactCode} />
 
+  <h2 id="storyboard">The storyboard<a class="heading-anchor" href="#storyboard" aria-label="Link to this section">#</a></h2>
+  <p>Logs are hard to read because everything is a line and every line looks the same. The storyboard is a visual language for stories instead. <strong>At a glance:</strong> one panel per story in the order things happened, beats as plain sentences with a small <em>when</em>, chapters as sub-scenes under the beat that started them, and a failure that looks like one. <strong>Click in:</strong> the story as numbered steps with arrows, green until the step where it turned, each step unfolding to its logs, data and error. The whole picture says how far things got and where they went wrong, or right.</p>
+  <Terminal title="board.ts" code={storyboardCode} />
+  <p>Try it on a nightly sync that failed on its third batch. Open a panel; the raw data behind any beat is one click down, and nothing here left the page.</p>
+  <div class="view-demo" id="board-demo" aria-live="polite">
+    <noscript><p>The storyboard draws in the browser.</p></noscript>
+  </div>
+  <div class="view-demo" id="board-detail" hidden></div>
+  <p>The same run as text, for anywhere Mermaid renders, GitHub, docs, an agent's answer, with no library at all (<code>toMermaid(run)</code>). A timeline view, <code>renderStoryMap</code>, is there too for a long run that wants a time axis.</p>
+  <Terminal title="toMermaid(run)" code={demoMermaid} />
+
   <h2 id="live-demo">Live demo<a class="heading-anchor" href="#live-demo" aria-label="Link to this section">#</a></h2>
   <p>One stored record, rendered both ways by the package on this page. Open the trees; the redaction, the truncated array, the circular reference and the capped cause chain are all in there.</p>
   <div class="view-demo" id="view-demo" data-demo="dom" aria-live="polite">
@@ -69,15 +84,35 @@ const sections = [
 </DocsLayout>
 
 <script>
-  import { renderStory } from "@lovelaces-io/storyteller-view";
+  import { renderStory, renderStoryboard, renderStoryFlow } from "@lovelaces-io/storyteller-view";
+  import demoRun from "../../content/demoRun.json";
   import "@lovelaces-io/storyteller-view/style.css";
   import demoStory from "../../content/demoStory.json";
 
   const host = document.getElementById("view-demo");
   if (host) host.replaceChildren(renderStory(demoStory as Parameters<typeof renderStory>[0], { expandDepth: 2 }));
+
+  const boardHost = document.getElementById("board-demo");
+  const boardDetail = document.getElementById("board-detail");
+  if (boardHost && boardDetail) {
+    const run = demoRun as Parameters<typeof renderStoryboard>[0];
+    boardHost.replaceChildren(
+      renderStoryboard(run, {
+        onSelect: (story) => {
+          boardDetail.hidden = false;
+          boardDetail.replaceChildren(
+            renderStoryFlow(story, { chapters: run, unfold: "failed" }),
+            renderStory(story, { expandDepth: 1 })
+          );
+          boardDetail.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        },
+      })
+    );
+  }
 </script>
 
 <style>
+  #board-detail { display: grid; gap: 16px; }
   .view-demo {
     --stv-bg: var(--bg-surface);
     --stv-fg: var(--text);
