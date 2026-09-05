@@ -1,0 +1,240 @@
+---
+/**
+ * The same night, two ways. A simulated checkout site under load: the left
+ * window prints what a console prints and fills faster than anyone can read;
+ * the right window is Storyteller hearing the same work, calm, with every
+ * detail one click down. Everything happens in the browser on a loop.
+ */
+interface Props {
+  /** Show the section heading and caption. Default true. */
+  framed?: boolean;
+}
+const { framed = true } = Astro.props;
+---
+
+<div class="showcase" data-showcase>
+  {framed && (
+    <div class="showcase-head">
+      <h2>The same night, two ways</h2>
+      <p>A checkout site under load. Left: what the console prints. Right: what Storyteller tells you. Same facts, one of them readable.</p>
+    </div>
+  )}
+  <div class="showcase-split">
+    <div class="showcase-win" aria-label="Console output">
+      <div class="showcase-bar"><span class="showcase-name">production · stdout</span><span class="showcase-grow"></span><span class="showcase-pill" data-rate>0 lines / min</span></div>
+      <div class="showcase-console" data-console aria-live="off"></div>
+      <div class="showcase-foot"><span data-lines>0 lines</span><span class="showcase-grow"></span><span>tail -f prod.log</span></div>
+    </div>
+    <div class="showcase-win showcase-win-board" aria-label="Storyteller">
+      <div class="showcase-board view-demo" data-board></div>
+      <div class="showcase-foot"><span data-stories>0 stories</span><span class="showcase-grow"></span><span>click a row · ↵ open</span></div>
+    </div>
+  </div>
+  {framed && (
+    <div class="showcase-cap">
+      <span><b>Left:</b> every request, every pool checkout, every retry, as lines. The failure is three of them, hundreds of lines from its cause.</span>
+      <span><b>Right:</b> one story per unit of work. The one that failed says so, and where it turned.</span>
+    </div>
+  )}
+</div>
+
+<script>
+  import { liveStoryboard } from "@lovelaces-io/storyteller-view";
+
+  type Level = "Information" | "Warning" | "Error";
+  type Note = { timestamp: string; sequence: number; note: string; level?: Level; what?: unknown; error?: { name?: string; message: string; stack?: string } };
+  type Origin = { who?: string; where?: unknown };
+
+  const LOOP_MS = 44_000;
+  const rid = () => Math.random().toString(16).slice(2, 6);
+  const pad = (n: number, w = 2) => String(n).padStart(w, "0");
+  const clock = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(), 3)}`; };
+
+  for (const root of document.querySelectorAll<HTMLElement>("[data-showcase]")) {
+    const consoleHost = root.querySelector<HTMLElement>("[data-console]")!;
+    const boardHost = root.querySelector<HTMLElement>("[data-board]")!;
+    const rateEl = root.querySelector<HTMLElement>("[data-rate]")!;
+    const linesEl = root.querySelector<HTMLElement>("[data-lines]")!;
+    const storiesEl = root.querySelector<HTMLElement>("[data-stories]")!;
+
+    const live = liveStoryboard(boardHost, { title: "production", capacity: 14, toolbar: false, onChange: (stories) => { storiesEl.textContent = `${stories.length} ${stories.length === 1 ? "story" : "stories"}`; } });
+
+    // --- the console: lines in, oldest out, rate over the last ten seconds
+    let total = 0;
+    const stamps: number[] = [];
+    const MAX_LINES = 260;
+    function print(level: "info" | "debug" | "warn" | "error", text: string) {
+      const line = document.createElement("div");
+      line.className = `showcase-line is-${level}`;
+      const time = document.createElement("span"); time.className = "showcase-time"; time.textContent = clock();
+      const tag = document.createElement("span"); tag.className = "showcase-level"; tag.textContent = level.padEnd(5);
+      const body = document.createElement("span"); body.textContent = text;
+      line.append(time, tag, body);
+      consoleHost.append(line);
+      while (consoleHost.childElementCount > MAX_LINES) consoleHost.firstElementChild!.remove();
+      consoleHost.scrollTop = consoleHost.scrollHeight;
+      total++;
+      const now = performance.now();
+      stamps.push(now);
+      while (stamps.length && stamps[0]! < now - 10_000) stamps.shift();
+      rateEl.textContent = `${Math.round(stamps.length * 6).toLocaleString()} lines / min`;
+      rateEl.dataset["hot"] = stamps.length * 6 > 400 ? "true" : "false";
+      linesEl.textContent = `${total.toLocaleString()} lines`;
+    }
+
+    // --- stories: beats become live notes, a finish becomes the story record
+    let seq = 0;
+    class Story {
+      notes: Note[] = [];
+      id = `s${++seq}-${rid()}`;
+      constructor(public origin: Origin, public parent?: Story) {}
+      beat(note: string, extra: { level?: Level; what?: unknown; error?: Note["error"] } = {}) {
+        const n: Note = { timestamp: new Date().toISOString(), sequence: this.notes.length, note, ...(extra.level ? { level: extra.level } : {}), ...(extra.what !== undefined ? { what: extra.what } : {}), ...(extra.error ? { error: extra.error } : {}) };
+        this.notes.push(n);
+        live.hear({ kind: "note", storyId: this.id, ...(this.parent ? { parentStoryId: this.parent.id } : {}), origin: this.origin, level: extra.level ?? "Information", ...n });
+      }
+      finish(title: string, extra: { level?: Level; error?: Note["error"] } = {}) {
+        const first = Date.parse(this.notes[0]?.timestamp ?? new Date().toISOString());
+        live.hear({ kind: "story", storyId: this.id, ...(this.parent ? { parentStoryId: this.parent.id } : {}), timestamp: new Date().toISOString(), level: extra.level ?? "Information", title, origin: this.origin, notes: this.notes, durationMs: Date.now() - first, ...(extra.error ? { error: extra.error } : {}) });
+      }
+    }
+
+    // --- the scenario, on a loop. Times in ms from the loop start.
+    const timers: number[] = [];
+    let running = false;
+    const at = (ms: number, fn: () => void) => { timers.push(window.setTimeout(fn, ms)); };
+
+    function noise(ms: number) {
+      // Background traffic that gets denser as the night goes on: this is the clog.
+      let t = 0; let gap = 520;
+      while (t < ms) {
+        const when = t;
+        at(when, () => {
+          const pick = Math.random();
+          if (pick < 0.42) print("info", `GET /api/orders?page=${1 + Math.floor(Math.random() * 9)} 200 ${20 + Math.floor(Math.random() * 60)}ms rid=${rid()}…`);
+          else if (pick < 0.62) print("debug", `pool: acquire conn=${10 + Math.floor(Math.random() * 12)} idle=${Math.floor(Math.random() * 5)} wait=${Math.floor(Math.random() * 40)}ms`);
+          else if (pick < 0.78) print("debug", `cache: ${Math.random() < 0.7 ? "hit" : "miss"} key=orders:page:${1 + Math.floor(Math.random() * 9)} ttl=${Math.floor(Math.random() * 300)}`);
+          else if (pick < 0.9) print("debug", `pool: release conn=${10 + Math.floor(Math.random() * 12)}`);
+          else print("debug", `gc: minor ${8 + Math.floor(Math.random() * 20)}ms heap=${380 + Math.floor(Math.random() * 90)}MB`);
+        });
+        t += gap;
+        gap = Math.max(95, gap * 0.985);
+      }
+    }
+
+    function checkout(start: number, order: string, declined = false) {
+      const s = new Story({ who: "web", where: { route: "/api/checkout" } });
+      at(start, () => { print("info", `POST /api/cart/validate 200 ${30 + Math.floor(Math.random() * 30)}ms rid=${rid()}… order=${order}`); s.beat("Cart validated", { what: { order, items: 3 } }); });
+      at(start + 700, () => {
+        if (declined) {
+          print("warn", `stripe: charge failed status=402 code=card_declined order=${order}`);
+          print("error", `CardDeclinedError: Your card was declined (order=${order})`);
+          print("error", `    at charge (payments/stripe.ts:71:9)`);
+          s.beat("Charge declined", { level: "Error", error: { name: "CardDeclinedError", message: "Your card was declined", stack: "CardDeclinedError: Your card was declined\n    at charge (payments/stripe.ts:71:9)" }, what: { order, amount: 42.5, currency: "USD" } });
+        } else {
+          print("info", `stripe: charge ok amount=4250 currency=usd order=${order} took=${300 + Math.floor(Math.random() * 400)}ms`);
+          s.beat("Card charged", { what: { order, amount: 42.5, currency: "USD" } });
+        }
+      });
+      at(start + 1200, () => {
+        if (declined) { print("info", `POST /api/checkout 402 ${700 + Math.floor(Math.random() * 100)}ms rid=${rid()}… order=${order}`); s.finish(`Checkout for order ${order} failed`, { level: "Error", error: { name: "CardDeclinedError", message: "Your card was declined" } }); }
+        else { print("info", `POST /api/checkout 201 ${900 + Math.floor(Math.random() * 300)}ms rid=${rid()}… order=${order}`); s.beat("Confirmation sent"); s.finish(`Checkout for order ${order}`); }
+      });
+    }
+
+    function health(start: number, slow = false) {
+      const s = new Story({ who: "api" });
+      at(start, () => { const ms = slow ? 300 : 3 + Math.floor(Math.random() * 6); print("info", `GET /health 200 ${ms}ms`); s.beat(`200 OK in ${ms} ms`); s.finish("Health check"); });
+    }
+
+    function digest(start: number) {
+      const s = new Story({ who: "mailer" });
+      at(start, () => { print("info", "mailer: digest built recipients=12"); s.beat("Digest built", { what: { recipients: 12 } }); });
+      at(start + 1900, () => { print("info", `mailer: digest sent id=msg_${rid()}… took=1896ms`); s.beat("Digest sent"); s.finish("Digest sent"); });
+    }
+
+    function nightlySync(start: number) {
+      const s = new Story({ who: "sync-agent" });
+      at(start, () => { print("info", "sync: fetched rows=1200 source=crm cursor=eyJ0aW1l…"); s.beat("Fetched 1,200 rows", { what: { source: "crm", rows: 1200 } }); });
+      const schema = new Story({ what: "schema" }, s);
+      at(start + 300, () => { print("debug", "schema: comparing 42 columns table=crm_contacts"); schema.beat("Comparing 42 columns"); });
+      at(start + 2600, () => { print("info", "schema: 42 columns match table=crm_contacts"); schema.beat("42 columns match"); schema.finish("Schema checked"); });
+      at(start + 3600, () => { print("info", "sync: batch 1/3 upserted rows=400 took=3583ms"); s.beat("Batch 1 of 3 upserted", { what: { batch: 1, rows: 400 } }); });
+      at(start + 9300, () => { print("info", "sync: batch 2/3 upserted rows=400 took=5710ms"); s.beat("Batch 2 of 3 upserted", { what: { batch: 2, rows: 400 } }); });
+      const retry = new Story({ what: "batch-3" }, s);
+      at(start + 20700, () => { print("warn", "sync: batch 3/3 attempt=1 timeout after 10000ms"); s.beat("Retrying batch 3", { level: "Warning" }); retry.beat("Attempt 1 timed out", { level: "Warning", what: { attempt: 1, timeoutMs: 10000 } }); });
+      at(start + 26500, () => { print("warn", "sync: batch 3/3 attempt=2 timeout after 5800ms"); retry.beat("Attempt 2 timed out", { level: "Warning", what: { attempt: 2, timeoutMs: 5800 } }); });
+      at(start + 31000, () => { print("warn", "sync: batch 3/3 attempt=3 giving up"); retry.finish("Batch 3 retried twice", { level: "Warning" }); });
+      at(start + 31200, () => {
+        print("error", "DeadlockError: deadlock detected");
+        print("error", "    at upsert (sync/batch.ts:88:11)");
+        print("error", "    at run (sync/nightly.ts:41:9)");
+        print("error", "sync: FAILED batch=3 rows=412 attempt=3");
+        const error = { name: "DeadlockError", message: "deadlock detected", stack: "DeadlockError: deadlock detected\n    at upsert (sync/batch.ts:88:11)\n    at run (sync/nightly.ts:41:9)" };
+        s.beat("Upsert failed", { level: "Error", error, what: { batch: 3, rows: 412, attempt: 3 } });
+        s.finish("Nightly sync failed", { level: "Error", error: { name: "DeadlockError", message: "deadlock detected" } });
+      });
+    }
+
+    function deploy(start: number) {
+      const s = new Story({ who: "deploy-bot" });
+      at(start, () => { print("info", "deploy: building image api@2.14"); s.beat("Building image api@2.14"); });
+      at(start + 6000, () => { print("info", "deploy: image pushed sha256:9f1c… size=212MB"); s.beat("Image pushed", { what: { size: "212 MB" } }); });
+      at(start + 8500, () => { print("info", "deploy: waiting for health check"); s.beat("Waiting for health check"); });
+      at(start + 12500, () => { print("info", "deploy: healthy after 2 checks"); s.beat("Healthy after 2 checks"); s.finish("Deploy api@2.14"); });
+    }
+
+    function loop() {
+      for (const timer of timers) clearTimeout(timer);
+      timers.length = 0;
+      noise(LOOP_MS);
+      nightlySync(1500);
+      health(800); health(10_800); health(20_800, true); health(30_800); health(40_800);
+      digest(12_400);
+      checkout(3_000, `ord_${rid()}`); checkout(9_500, `ord_${rid()}`); checkout(16_000, `ord_${rid()}`, true); checkout(24_000, `ord_${rid()}`); checkout(36_000, `ord_${rid()}`);
+      deploy(27_000);
+      at(LOOP_MS, loop);
+    }
+
+    // Run only while on screen, so a page with the showcase costs nothing when it is scrolled away
+    const start = () => { if (running) return; running = true; loop(); };
+    const stop = () => { running = false; for (const timer of timers) clearTimeout(timer); timers.length = 0; };
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver((entries) => { for (const entry of entries) entry.isIntersecting ? start() : stop(); }, { threshold: 0.15 }).observe(root);
+    } else {
+      start();
+    }
+  }
+</script>
+
+<style>
+  .showcase { margin: 0; }
+  .showcase-head h2 { margin: 0 0 0.5rem; }
+  .showcase-head p { margin: 0 0 1.25rem; color: var(--text-muted); max-width: 720px; }
+  .showcase-split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+  @media (max-width: 900px) { .showcase-split { grid-template-columns: 1fr; } }
+  .showcase-win { display: flex; flex-direction: column; height: 460px; min-width: 0; border: 1px solid var(--border); border-radius: 12px; background: var(--bg-surface); overflow: hidden; }
+  .showcase-bar { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--border); background: var(--bg-elevated); font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); }
+  .showcase-name { color: var(--text); }
+  .showcase-grow { flex: 1; }
+  .showcase-pill { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; font-size: 0.68rem; color: var(--text-muted); transition: color 0.3s, border-color 0.3s; }
+  .showcase-pill[data-hot="true"] { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 45%, var(--border)); }
+  .showcase-console { flex: 1; overflow: hidden; padding: 8px 12px; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.55; color: var(--text-muted); background: var(--bg); }
+  .showcase-line { display: flex; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .showcase-time { color: var(--green-dim); flex: 0 0 auto; }
+  .showcase-level { flex: 0 0 auto; color: #7fb3ff; }
+  .showcase-line.is-debug .showcase-level { color: var(--green-dim); }
+  .showcase-line.is-warn .showcase-level, .showcase-line.is-warn { color: var(--warn); }
+  .showcase-line.is-error .showcase-level, .showcase-line.is-error { color: var(--oops); }
+  .showcase-foot { display: flex; gap: 10px; padding: 7px 12px; border-top: 1px solid var(--border); background: var(--bg-elevated); font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-muted); }
+  .showcase-board { flex: 1; min-height: 0; overflow: auto; }
+  .showcase-board :global(.stv-board) { border: 0; border-radius: 0; min-height: 100%; }
+  .showcase-cap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; color: var(--text-muted); font-size: 0.9rem; }
+  .showcase-cap b { color: var(--text); font-weight: 500; }
+  @media (max-width: 900px) { .showcase-cap { grid-template-columns: 1fr; } }
+  .view-demo {
+    --stv-bg: var(--bg-surface); --stv-fg: var(--text); --stv-muted: var(--text-muted); --stv-border: var(--border); --stv-surface: var(--bg-elevated);
+    --stv-info: var(--green); --stv-warn: var(--warn); --stv-error: var(--oops); --stv-accent: #7fb3ff;
+    --stv-font: var(--font-body); --stv-mono: var(--font-mono); --stv-radius: 8px; --stv-size: 12.5px;
+  }
+</style>

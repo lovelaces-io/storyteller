@@ -1,6 +1,7 @@
 ---
 import DocsLayout from "../../layouts/DocsLayout.astro";
 import Terminal from "../../components/Terminal.astro";
+import Showcase from "../../components/Showcase.astro";
 import { viewInstallCode, viewDomCode, viewTextCode, viewThemeCode, viewReactCode, storyboardCode, liveCodeBoard } from "../../content/samples";
 import { renderStoryText, toMermaid, type StoryRecord } from "@lovelaces-io/storyteller-view";
 import demoRunJson from "../../content/demoRun.json";
@@ -79,9 +80,8 @@ const sections = [
   <h2 id="live">Live<a class="heading-anchor" href="#live" aria-label="Link to this section">#</a></h2>
   <p>A board that grows as beats arrive. This is the monitor: what an agent, a job, a server is doing right now. A story that has begun but not finished is drawn running, with a pulse and its first beat for a title; the closing story replaces it. Feed it emissions from a storyteller in the page, or each line of a tailed file.</p>
   <Terminal title="monitor.ts" code={liveCodeBoard} />
-  <p>Watch the same run arrive, beat by beat, at eight times speed:</p>
-  <div class="view-demo" id="live-demo-board" aria-live="polite"><noscript><p>The live board draws in the browser.</p></noscript></div>
-  <p><button type="button" class="copy-btn" id="live-replay">replay</button></p>
+  <p>Watch a checkout site under load, twice: the console on the left, Storyteller on the right, the same facts.</p>
+  <div class="view-wide"><Showcase framed={false} /></div>
 
   <h2 id="live-demo">Live demo<a class="heading-anchor" href="#live-demo" aria-label="Link to this section">#</a></h2>
   <p>One stored record, rendered both ways by the package on this page. Open the trees; the redaction, the truncated array, the circular reference and the capped cause chain are all in there.</p>
@@ -92,7 +92,7 @@ const sections = [
 </DocsLayout>
 
 <script>
-  import { renderStory, renderStoryboard, renderStoryFlow, liveStoryboard } from "@lovelaces-io/storyteller-view";
+  import { renderStory, renderStoryboard, renderStoryFlow } from "@lovelaces-io/storyteller-view";
   import demoRun from "../../content/demoRun.json";
   import "@lovelaces-io/storyteller-view/style.css";
   import demoStory from "../../content/demoStory.json";
@@ -118,36 +118,13 @@ const sections = [
     );
   }
 
-  // Replay the demo run into a live board: every beat becomes a note emission
-  // in time order, every story closes when its record's time comes.
-  const liveHost = document.getElementById("live-demo-board");
-  const replayButton = document.getElementById("live-replay");
-  if (liveHost) {
-    type Rec = { storyId: string; timestamp: string; parentStoryId?: string; origin?: unknown; notes: { timestamp: string; note: string; level?: string; error?: unknown; what?: unknown; who?: unknown; where?: unknown }[] };
-    const records = demoRun as Rec[];
-    const events: { at: number; emission: unknown }[] = [];
-    for (const record of records) {
-      record.notes.forEach((note, sequence) => events.push({ at: Date.parse(note.timestamp), emission: { kind: "note", ...note, sequence, storyId: record.storyId, parentStoryId: record.parentStoryId, origin: record.origin, level: note.level ?? "Information" } }));
-      events.push({ at: Date.parse(record.timestamp) + 1, emission: { kind: "story", ...record } });
-    }
-    events.sort((a, b) => a.at - b.at);
-    const start = events[0]!.at;
-    let timers: number[] = [];
-    let live = liveStoryboard(liveHost);
-    const replay = () => {
-      for (const timer of timers) clearTimeout(timer);
-      timers = [];
-      live.destroy();
-      live = liveStoryboard(liveHost);
-      for (const event of events) timers.push(window.setTimeout(() => live.hear(event.emission), (event.at - start) / 8));
-    };
-    replay();
-    replayButton?.addEventListener("click", replay);
-  }
 </script>
 
 <style>
   #board-detail { display: grid; gap: 16px; }
+  /* The showcase wants more than the docs column: let it spill into the right rail's space */
+  .view-wide { margin: 0.5rem 0 1.5rem; }
+  @media (min-width: 1100px) { .view-wide { width: calc(100% + 260px); } }
   .view-demo {
     --stv-bg: var(--bg-surface);
     --stv-fg: var(--text);
@@ -157,7 +134,7 @@ const sections = [
     --stv-info: var(--green);
     --stv-warn: var(--warn);
     --stv-error: var(--oops);
-    --stv-accent: var(--green);
+    --stv-accent: #7fb3ff;
     --stv-font: var(--font-body);
     --stv-mono: var(--font-mono);
     --stv-radius: var(--radius);

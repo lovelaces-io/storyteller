@@ -31,8 +31,6 @@ const description = "Drop a stories.jsonl or paste NDJSON and see your runs as a
 
     <section class="explore-board" id="explore-board" hidden aria-label="Storyboard">
       <div class="explore-toolbar">
-        <label class="explore-filter"><input type="checkbox" id="filter-failing" /> only failures</label>
-        <input type="search" id="filter-about" placeholder="mentions…" aria-label="Only stories that mention" />
         <button type="button" class="copy-btn" id="copy-mermaid">copy as Mermaid</button>
       </div>
       <div class="view-demo" id="board-host"></div>
@@ -52,7 +50,7 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
 </Base>
 
 <script>
-  import { liveStoryboard, renderStory, renderStoryFlow, renderStoryboard, toMermaid } from "@lovelaces-io/storyteller-view";
+  import { createStoryboard, liveStoryboard, renderStory, toMermaid } from "@lovelaces-io/storyteller-view";
   import demoRun from "../content/demoRun.json";
 
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -64,38 +62,34 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
   const boardHost = $<HTMLDivElement>("board-host");
   const detailHost = $<HTMLDivElement>("detail-host");
   const clearButton = $<HTMLButtonElement>("clear-board");
-  const failingOnly = $<HTMLInputElement>("filter-failing");
-  const aboutInput = $<HTMLInputElement>("filter-about");
 
-  type Record = Parameters<typeof renderStoryboard>[0][number];
+  type Record = Parameters<typeof createStoryboard>[0][number];
   // The live controller reassembles beats into stories and ignores anything else;
   // its board is never shown — the filtered board below is what the page draws.
   let live = liveStoryboard(document.createElement("div"), { capacity: 100_000 });
   let loaded = 0;
   let skipped = 0;
 
+  let board: ReturnType<typeof createStoryboard> | undefined;
   function draw() {
-    let stories = live.stories() as Record[];
-    if (failingOnly.checked) stories = stories.filter((story) => story.level === "Error" || story.error);
-    const about = aboutInput.value.trim().toLowerCase();
-    if (about) {
-      stories = stories.filter((story) =>
-        [story.title, ...story.notes.map((note) => note.note), story.error?.message ?? ""].some((text) => text.toLowerCase().includes(about))
-      );
-    }
-    boardHost.replaceChildren(
-      renderStoryboard(stories, {
+    const stories = live.stories() as Record[];
+    if (!board) {
+      board = createStoryboard(stories, {
+        title: "your stories",
         onSelect: (story) => {
           detailHost.hidden = false;
-          detailHost.replaceChildren(renderStoryFlow(story, { chapters: live.stories() as Record[], unfold: "failed" }), renderStory(story, { expandDepth: 1 }));
+          detailHost.replaceChildren(renderStory(story, { expandDepth: 1 }));
           detailHost.scrollIntoView({ block: "nearest", behavior: "smooth" });
         },
-      })
-    );
+      });
+      boardHost.replaceChildren(board.element);
+    } else {
+      board.update(stories);
+    }
     boardSection.hidden = false;
     clearButton.hidden = false;
-    const total = live.stories().length;
-    status.textContent = `${total} ${total === 1 ? "story" : "stories"} from ${loaded} ${loaded === 1 ? "line" : "lines"}${skipped ? `, ${skipped} skipped` : ""}${stories.length !== total ? ` · showing ${stories.length}` : ""}. Nothing left your browser.`;
+    const total = stories.length;
+    status.textContent = `${total} ${total === 1 ? "story" : "stories"} from ${loaded} ${loaded === 1 ? "line" : "lines"}${skipped ? `, ${skipped} skipped` : ""}. Nothing left your browser.`;
   }
 
   /** Parse one JSON object per line (or one JSON array), in slices so a big file does not freeze the page */
@@ -140,12 +134,10 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
   clearButton.addEventListener("click", () => {
     live.destroy();
     live = liveStoryboard(document.createElement("div"), { capacity: 100_000 });
-    loaded = 0; skipped = 0;
+    loaded = 0; skipped = 0; board = undefined;
     boardHost.replaceChildren(); detailHost.replaceChildren(); detailHost.hidden = true; boardSection.hidden = true; clearButton.hidden = true;
     status.textContent = "";
   });
-  failingOnly.addEventListener("change", draw);
-  aboutInput.addEventListener("input", draw);
   $("copy-mermaid").addEventListener("click", async () => {
     const button = $<HTMLButtonElement>("copy-mermaid");
     try { await navigator.clipboard.writeText(toMermaid(live.stories() as Record[])); button.textContent = "copied"; }
@@ -167,14 +159,12 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
   .explore-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .explore-status { min-height: 1.4em; margin: 0; color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
   .explore-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 12px; }
-  .explore-filter { display: inline-flex; gap: 6px; align-items: center; color: var(--text-muted); font-size: 0.9em; }
-  .explore-toolbar input[type="search"] { padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); color: var(--text); font-family: var(--font-mono); font-size: 12px; }
   .explore-detail { display: grid; gap: 16px; margin-top: 16px; }
   .explore-how { margin: 2.5rem 0 3rem; }
   .explore-code { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); font-family: var(--font-mono); font-size: 12.5px; overflow-x: auto; }
   .view-demo {
     --stv-bg: var(--bg-surface); --stv-fg: var(--text); --stv-muted: var(--text-muted); --stv-border: var(--border); --stv-surface: var(--bg-elevated);
-    --stv-info: var(--green); --stv-warn: var(--warn); --stv-error: var(--oops); --stv-accent: var(--green);
+    --stv-info: var(--green); --stv-warn: var(--warn); --stv-error: var(--oops); --stv-accent: #7fb3ff;
     --stv-font: var(--font-body); --stv-mono: var(--font-mono); --stv-radius: var(--radius); --stv-size: 13px;
     min-width: 0;
   }
