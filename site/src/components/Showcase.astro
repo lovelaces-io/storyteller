@@ -58,7 +58,7 @@ const { framed = true } = Astro.props;
     const linesEl = root.querySelector<HTMLElement>("[data-lines]")!;
     const storiesEl = root.querySelector<HTMLElement>("[data-stories]")!;
 
-    const live = liveStoryboard(boardHost, { title: "production", capacity: 14, toolbar: false, onChange: (stories) => { storiesEl.textContent = `${stories.length} ${stories.length === 1 ? "story" : "stories"}`; } });
+    const live = liveStoryboard(boardHost, { title: "production", capacity: 14, toolbar: false, detail: "dialog", pinsKey: null, onChange: (stories) => { storiesEl.textContent = `${stories.length} ${stories.length === 1 ? "story" : "stories"}`; } });
 
     // --- the console: lines in, oldest out, rate over the last ten seconds
     let total = 0;
@@ -100,10 +100,23 @@ const { framed = true } = Astro.props;
       }
     }
 
-    // --- the scenario, on a loop. Times in ms from the loop start.
-    const timers: number[] = [];
-    let running = false;
-    const at = (ms: number, fn: () => void) => { timers.push(window.setTimeout(fn, ms)); };
+    // --- the scenario, on a loop, on a clock of its own. The clock only advances
+    // while the showcase is on screen, so scrolling away pauses the night and
+    // scrolling back resumes it — nothing is cut off mid-story.
+    type Event = { at: number; fn: () => void };
+    let events: Event[] = [];
+    let elapsed = 0;
+    let ticking: number | undefined;
+    let lastTick = 0;
+    const at = (ms: number, fn: () => void) => { events.push({ at: ms, fn }); };
+    function tick() {
+      const now = performance.now();
+      elapsed += Math.min(250, now - lastTick);
+      lastTick = now;
+      events.sort((a, b) => a.at - b.at);
+      while (events.length && events[0]!.at <= elapsed) events.shift()!.fn();
+      if (elapsed >= LOOP_MS) { elapsed = 0; events = []; loop(); }
+    }
 
     function noise(ms: number) {
       // Background traffic that gets denser as the night goes on: this is the clog.
@@ -186,20 +199,18 @@ const { framed = true } = Astro.props;
     }
 
     function loop() {
-      for (const timer of timers) clearTimeout(timer);
-      timers.length = 0;
       noise(LOOP_MS);
       nightlySync(1500);
       health(800); health(10_800); health(20_800, true); health(30_800); health(40_800);
       digest(12_400);
       checkout(3_000, `ord_${rid()}`); checkout(9_500, `ord_${rid()}`); checkout(16_000, `ord_${rid()}`, true); checkout(24_000, `ord_${rid()}`); checkout(36_000, `ord_${rid()}`);
       deploy(27_000);
-      at(LOOP_MS, loop);
     }
 
     // Run only while on screen, so a page with the showcase costs nothing when it is scrolled away
-    const start = () => { if (running) return; running = true; loop(); };
-    const stop = () => { running = false; for (const timer of timers) clearTimeout(timer); timers.length = 0; };
+    let started = false;
+    const start = () => { if (ticking !== undefined) return; if (!started) { started = true; loop(); } lastTick = performance.now(); ticking = window.setInterval(tick, 100); };
+    const stop = () => { if (ticking === undefined) return; clearInterval(ticking); ticking = undefined; };
     if ("IntersectionObserver" in window) {
       new IntersectionObserver((entries) => { for (const entry of entries) entry.isIntersecting ? start() : stop(); }, { threshold: 0.15 }).observe(root);
     } else {
