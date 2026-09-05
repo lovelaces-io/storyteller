@@ -6,3 +6,5 @@ export type { CanonicalRow, StoredStory, StoryQuery, StoryStore, ToStoredStoryOp
 export { applyQuery, canonicalRow, matchesQuery, storySearchText, toStoredStory } from "./storyStore";
 export type { FileStore } from "./fileStore";
 export { fileStore } from "./fileStore";
+export type { DurationInput, StoriesOptions } from "./stories";
+export { parseDuration, stories, StoryQueryBuilder } from "./stories";

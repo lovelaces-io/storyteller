@@ -194,18 +194,19 @@ When an audience throws, the failure is reported through `onAudienceError` rathe
 A story is the unit of retrieval: complete, ordered, small enough for a context window. A `StoryStore` keeps them and answers structured questions; `storeAudience` is the one-line bridge from delivery.
 
 ```typescript
-import { memoryStore, storeAudience } from "@lovelaces-io/storyteller";
+import { memoryStore, stories, storeAudience } from "@lovelaces-io/storyteller";
 import { fileStore } from "@lovelaces-io/storyteller/store/file";   // Node only
 
-const stories = fileStore("./stories.jsonl");      // or memoryStore() for a browser, a test, one run
-story.audience.add(storeAudience(stories));
+const kept = fileStore("./stories.jsonl");         // or memoryStore() for a browser, a test, one run
+story.audience.add(storeAudience(kept));
 
-await stories.query({ about: "checkout", failed: true, since: new Date(Date.now() - 86_400_000) });
-await stories.children(storyId);                    // its chapters
-await stories.prune(new Date(Date.now() - 30 * 86_400_000));
+await stories(kept).about("checkout").failing().since("24h");   // reads like the question
+await stories(kept).slowerThan("5s").since("7d").oldest().limit(10);
+await stories(kept).under(storyId);                                // its chapters
+await kept.prune(new Date(Date.now() - 30 * 86_400_000));
 ```
 
-Query criteria are an object, never a string. `about` searches title, note text, scalar context and error messages; `from` searches the origin. To write an adapter for a database, store `canonicalRow(story)` and make its query agree with `matchesQuery` — that agreement is the contract.
+`stories(store)` is the vocabulary: `about`, `from`, `level`, `atLeast`, `failing`, `succeeding`, `slowerThan`, `since`, `until`, `under`, `newest`, `oldest`, `limit`, `skip`; then `all()`, `first()` or `count()`, or just `await` it. It compiles to a `StoryQuery` object, never a string. `about` searches title, note text, scalar context and error messages; `from` searches the origin. To write an adapter for a database, store `canonicalRow(story)` and make its query agree with `matchesQuery` — that agreement is the contract.
 
 ## Rendering stories for humans
 
