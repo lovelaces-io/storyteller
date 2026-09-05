@@ -7,7 +7,8 @@
  * shadowed. The resolved values live in --_stv-*, which the rules below use.
  */
 .stv-story,
-.stv-note {
+.stv-note,
+.stv-map {
   --_stv-bg: var(--stv-bg, #ffffff);
   --_stv-fg: var(--stv-fg, #1c1f22);
   --_stv-muted: var(--stv-muted, #6b7280);
@@ -31,7 +32,8 @@
 
 @media (prefers-color-scheme: dark) {
   .stv-story,
-  .stv-note {
+  .stv-note,
+  .stv-map {
     --_stv-bg: var(--stv-bg, #131517);
     --_stv-fg: var(--stv-fg, #e6e8eb);
     --_stv-muted: var(--stv-muted, #8b929b);
@@ -161,3 +163,26 @@ article.stv-note { padding: 8px 14px; border: 1px solid var(--_stv-border); bord
 .stv-cause-label { display: block; color: var(--_stv-muted); font-size: 0.9em; margin-bottom: 2px; }
 .stv-errors { list-style: none; margin: 6px 0 0 0; padding: 0 0 0 12px; border-left: 2px solid var(--_stv-border); }
 .stv-story-error { padding: 10px 14px; border-top: 1px solid var(--_stv-border); background: var(--_stv-surface); }
+
+/* story map */
+.stv-map { display: block; max-width: 100%; height: auto; }
+.stv-map-band { fill: var(--_stv-surface); }
+.stv-map-lane-group:nth-of-type(even) .stv-map-band { fill: var(--_stv-bg); }
+.stv-map-lane { fill: var(--_stv-muted); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.stv-map-axis { stroke: var(--_stv-border); stroke-width: 1; }
+.stv-map-tick { fill: var(--_stv-muted); font-family: var(--_stv-mono); font-size: 10px; }
+.stv-map-bar { fill: var(--_stv-info); opacity: 0.85; }
+.stv-map-bar[data-level="Warning"] { fill: var(--_stv-warn); }
+.stv-map-bar[data-level="Error"] { fill: var(--_stv-error); }
+.stv-map-bar[data-orphan="true"] { stroke: var(--_stv-muted); stroke-width: 1; stroke-dasharray: 4 3; }
+.stv-map-row { cursor: default; }
+.stv-map-row[data-selectable="true"] { cursor: pointer; }
+.stv-map-row:hover .stv-map-bar, .stv-map-row:focus .stv-map-bar { opacity: 1; }
+.stv-map-row:focus { outline: none; }
+.stv-map-row:focus .stv-map-bar { stroke: var(--_stv-fg); stroke-width: 1.5; }
+.stv-map-label { fill: var(--_stv-fg); font-size: 12px; }
+.stv-map-beat { fill: var(--_stv-bg); stroke: var(--_stv-fg); stroke-width: 1; }
+.stv-map-beat[data-level="Warning"] { fill: var(--_stv-warn); stroke: none; }
+.stv-map-beat[data-level="Error"] { fill: var(--_stv-error); stroke: none; }
+.stv-map-link { fill: none; stroke: var(--_stv-muted); stroke-width: 1; stroke-dasharray: 2 2; }
+.stv-map-empty { fill: var(--_stv-muted); font-size: 12px; }
