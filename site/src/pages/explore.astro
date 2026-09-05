@@ -13,25 +13,28 @@ const description = "Drop a stories.jsonl or paste NDJSON and see your runs as a
     </header>
 
     <section class="explore-input" aria-label="Load stories">
-      <label class="dropzone" id="dropzone" for="file-input">
-        <span class="dropzone-title">Drop <code>stories.jsonl</code> here</span>
-        <span class="dropzone-sub">or click to choose a file · or paste below</span>
-        <input type="file" id="file-input" accept=".jsonl,.ndjson,.json,.txt,text/plain,application/json" hidden />
-      </label>
-      <div class="explore-paste">
+      <div class="explore-start">
+        <button type="button" class="btn btn-primary" id="load-sample">Show me a sample run</button>
+        <label class="dropzone" id="dropzone" for="file-input">
+          <span class="dropzone-title">or drop your own <code>stories.jsonl</code></span>
+          <span class="dropzone-sub">click to choose a file · nothing is uploaded</span>
+          <input type="file" id="file-input" accept=".jsonl,.ndjson,.json,.txt,text/plain,application/json" hidden />
+        </label>
+      </div>
+      <details class="explore-paste">
+        <summary>paste NDJSON instead</summary>
         <textarea id="paste-input" rows="4" spellcheck="false" placeholder='{"kind":"story","title":"Nightly sync failed", ...}'></textarea>
         <div class="explore-actions">
           <button type="button" class="copy-btn" id="load-paste">load pasted text</button>
-          <button type="button" class="copy-btn" id="load-sample">load a sample run</button>
-          <button type="button" class="copy-btn" id="clear-board" hidden>clear</button>
         </div>
-      </div>
+      </details>
       <p class="explore-status" id="explore-status" aria-live="polite"></p>
     </section>
 
     <section class="explore-board" id="explore-board" hidden aria-label="Storyboard">
       <div class="explore-toolbar">
         <button type="button" class="copy-btn" id="copy-mermaid">copy as Mermaid</button>
+        <button type="button" class="copy-btn" id="clear-board">clear</button>
       </div>
       <div class="view-demo" id="board-host"></div>
       <div class="view-demo explore-detail" id="detail-host" hidden></div>
@@ -51,6 +54,7 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
 
 <script>
   import { createStoryboard, liveStoryboard, renderStory, toMermaid } from "@lovelaces-io/storyteller-view";
+  import "@lovelaces-io/storyteller-view/style.css";
   import demoRun from "../content/demoRun.json";
 
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -69,6 +73,7 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
   let live = liveStoryboard(document.createElement("div"), { capacity: 100_000 });
   let loaded = 0;
   let skipped = 0;
+  let sample = false;
 
   let board: ReturnType<typeof createStoryboard> | undefined;
   function draw() {
@@ -87,9 +92,10 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
       board.update(stories);
     }
     boardSection.hidden = false;
-    clearButton.hidden = false;
     const total = stories.length;
-    status.textContent = `${total} ${total === 1 ? "story" : "stories"} from ${loaded} ${loaded === 1 ? "line" : "lines"}${skipped ? `, ${skipped} skipped` : ""}. Nothing left your browser.`;
+    status.textContent = sample
+      ? `A sample run: ${total} stories. Drop your own stories.jsonl to see yours the same way; nothing is uploaded.`
+      : `${total} ${total === 1 ? "story" : "stories"} from ${loaded} ${loaded === 1 ? "line" : "lines"}${skipped ? `, ${skipped} skipped` : ""}. Nothing left your browser.`;
   }
 
   /** Parse one JSON object per line (or one JSON array), in slices so a big file does not freeze the page */
@@ -117,8 +123,15 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
     slice();
   }
 
+  function reset() {
+    live.destroy();
+    live = liveStoryboard(document.createElement("div"), { capacity: 100_000 });
+    loaded = 0; skipped = 0; board = undefined; sample = false;
+    boardHost.replaceChildren(); detailHost.replaceChildren(); detailHost.hidden = true;
+  }
   function loadText(text: string) { load(text, () => { live.flush(); draw(); }); }
-  function loadFile(file: File) { file.text().then(loadText); }
+  function loadFile(file: File) { if (sample) reset(); file.text().then(loadText); }
+  function loadSample() { reset(); sample = true; loadText((demoRun as unknown[]).map((record) => JSON.stringify(record)).join("\n")); }
 
   fileInput.addEventListener("change", () => { if (fileInput.files?.[0]) loadFile(fileInput.files[0]); });
   for (const type of ["dragenter", "dragover"]) dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.add("is-over"); });
@@ -127,17 +140,13 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
   document.addEventListener("paste", (event) => {
     if (event.target === pasteInput) return;
     const text = event.clipboardData?.getData("text");
-    if (text && text.trim().startsWith("{")) { event.preventDefault(); loadText(text); }
+    if (text && text.trim().startsWith("{")) { event.preventDefault(); if (sample) reset(); loadText(text); }
   });
-  $("load-paste").addEventListener("click", () => loadText(pasteInput.value));
-  $("load-sample").addEventListener("click", () => loadText((demoRun as unknown[]).map((record) => JSON.stringify(record)).join("\n")));
-  clearButton.addEventListener("click", () => {
-    live.destroy();
-    live = liveStoryboard(document.createElement("div"), { capacity: 100_000 });
-    loaded = 0; skipped = 0; board = undefined;
-    boardHost.replaceChildren(); detailHost.replaceChildren(); detailHost.hidden = true; boardSection.hidden = true; clearButton.hidden = true;
-    status.textContent = "";
-  });
+  $("load-paste").addEventListener("click", () => { if (sample) reset(); loadText(pasteInput.value); });
+  $("load-sample").addEventListener("click", loadSample);
+  clearButton.addEventListener("click", () => { reset(); boardSection.hidden = true; status.textContent = ""; });
+  // The page opens on the sample, so the first thing a visitor sees is the tool working
+  loadSample();
   $("copy-mermaid").addEventListener("click", async () => {
     const button = $<HTMLButtonElement>("copy-mermaid");
     try { await navigator.clipboard.writeText(toMermaid(live.stories() as Record[])); button.textContent = "copied"; }
@@ -150,15 +159,21 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
   .explore { max-width: 1100px; }
   .explore-head { padding: 2.5rem 0 1rem; }
   .explore-head h1 { margin: 0 0 0.5rem; }
-  .explore-input { display: grid; gap: 12px; margin: 0 0 1.5rem; }
-  .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 120px; padding: 20px; border: 1px dashed var(--green-dim); border-radius: var(--radius); background: var(--bg-surface); color: var(--text); cursor: pointer; text-align: center; transition: border-color 0.15s, background 0.15s; }
+  .explore-input { display: grid; gap: 10px; margin: 0 0 1.25rem; }
+  .explore-start { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: stretch; }
+  @media (max-width: 640px) { .explore-start { grid-template-columns: 1fr; } }
+  .explore-start .btn { align-self: center; white-space: nowrap; }
+  .explore-paste { color: var(--text-muted); font-size: 0.9em; }
+  .explore-paste summary { cursor: pointer; }
+  .explore-paste textarea { margin-top: 8px; }
+  .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 64px; padding: 10px 16px; border: 1px dashed var(--green-dim); border-radius: var(--radius); background: var(--bg-surface); color: var(--text); cursor: pointer; text-align: center; transition: border-color 0.15s, background 0.15s; }
   .dropzone:hover, .dropzone.is-over { border-color: var(--green); background: var(--bg-elevated); }
   .dropzone-title { font-weight: 600; }
   .dropzone-sub { color: var(--text-muted); font-size: 0.9em; }
   .explore-paste textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); color: var(--text); font-family: var(--font-mono); font-size: 12px; resize: vertical; }
   .explore-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
   .explore-status { min-height: 1.4em; margin: 0; color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
-  .explore-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 12px; }
+  .explore-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; margin: 0 0 10px; }
   .explore-detail { display: grid; gap: 16px; margin-top: 16px; }
   .explore-how { margin: 2.5rem 0 3rem; }
   .explore-code { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); font-family: var(--font-mono); font-size: 12.5px; overflow-x: auto; }
