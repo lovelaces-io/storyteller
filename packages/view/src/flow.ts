@@ -52,6 +52,13 @@ export function renderStoryFlow(story: StoryRecord, options: StoryFlowOptions = 
   return renderFlowFor(ctx, node, 0);
 }
 
+/** Just the steps of a story — what an inspector row unfolds to — for a node the caller already has */
+export function renderStorySteps(node: MapNode, options: StoryFlowOptions = {}): HTMLElement {
+  const ctx: Ctx = { doc: resolveDocument(options), options };
+  const flow = renderFlowFor(ctx, node, 0);
+  return flow.querySelector(":scope > .stv-flow-steps") as HTMLElement;
+}
+
 function renderFlowFor(ctx: Ctx, node: MapNode, depth: number): HTMLElement {
   const { story } = node;
   const flow = el(ctx, "section", "stv-flow");
@@ -116,7 +123,13 @@ function renderFlowFor(ctx: Ctx, node: MapNode, depth: number): HTMLElement {
     list.append(item);
   });
 
-  // The end: how it came out
+  // The end: how it came out. A chapter that simply finished says nothing more;
+  // its parent's steps go on, and "finished" would only be noise.
+  const quietChapter = depth > 0 && story.level === "Information" && story.error === undefined;
+  if (quietChapter) {
+    flow.append(list);
+    return flow;
+  }
   const end = el(ctx, "li", "stv-step stv-step-end");
   end.dataset["level"] = story.level;
   const endMarker = el(ctx, "span", "stv-step-marker stv-step-marker-end");

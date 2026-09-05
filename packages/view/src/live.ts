@@ -10,7 +10,7 @@
  * It renders from the same records everything else does, so a page can tail
  * a stories.jsonl or an NDJSON stream and hand each parsed line straight in.
  */
-import { renderStoryboard, type StoryboardOptions } from "./storyboard";
+import { createStoryboard, type Storyboard, type StoryboardOptions } from "./storyboard";
 import type { Level, NoteRecord, StoryRecord } from "./types";
 
 /** What the controller accepts: a live note, a closing story, or anything shaped like either */
@@ -65,11 +65,17 @@ export function liveStoryboard(host: HTMLElement, options: LiveStoryboardOptions
   // which exists everywhere the DOM does and needs no frame to be running
   const schedule = (fn: () => void) => queueMicrotask(fn);
 
+  let board: Storyboard | undefined;
   function draw(): void {
     scheduled = false;
     if (!alive) return;
     const list = [...stories.values()];
-    host.replaceChildren(renderStoryboard(list, { ...options, document: doc }));
+    if (!board) {
+      board = createStoryboard(list, { ...options, document: doc });
+      host.replaceChildren(board.element);
+    } else {
+      board.update(list);
+    }
     options.onChange?.(list);
   }
 
