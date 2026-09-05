@@ -300,3 +300,45 @@ export const viewReactCode = `<span class="keyword">function</span> <span class=
   <span class="punctuation">}</span>, [story]);
   <span class="keyword">return</span> &lt;div ref=<span class="punctuation">{</span>host<span class="punctuation">}</span> /&gt;;
 <span class="punctuation">}</span>`;
+
+export const storeCode = `<span class="keyword">import</span> <span class="punctuation">{</span> storeAudience <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller"</span>;
+<span class="keyword">import</span> <span class="punctuation">{</span> fileStore <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller/store/file"</span>;
+
+<span class="keyword">const</span> kept = <span class="function">fileStore</span>(<span class="string">"./stories.jsonl"</span>);   <span class="comment">// or memoryStore() in a browser, a test, one run</span>
+story.audience.<span class="function">add</span>(<span class="function">storeAudience</span>(kept));`;
+
+export const askCode = `<span class="keyword">import</span> <span class="punctuation">{</span> stories <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller"</span>;
+
+<span class="keyword">await</span> <span class="function">stories</span>(kept).<span class="function">failing</span>().<span class="function">since</span>(<span class="string">"1h"</span>);
+<span class="keyword">await</span> <span class="function">stories</span>(kept).<span class="function">about</span>(<span class="string">"checkout"</span>).<span class="function">from</span>(<span class="string">"payment-service"</span>).<span class="function">level</span>(<span class="string">"oops"</span>).<span class="function">since</span>(<span class="string">"24h"</span>);
+<span class="keyword">await</span> <span class="function">stories</span>(kept).<span class="function">slowerThan</span>(<span class="string">"5s"</span>).<span class="function">since</span>(<span class="string">"7d"</span>).<span class="function">oldest</span>().<span class="function">limit</span>(<span class="type">10</span>);
+<span class="keyword">await</span> <span class="function">stories</span>(kept).<span class="function">under</span>(storyId).<span class="function">count</span>();          <span class="comment">// its chapters</span>
+
+<span class="keyword">await</span> kept.<span class="function">prune</span>(<span class="keyword">new</span> <span class="function">Date</span>(Date.<span class="function">now</span>() - <span class="type">30</span> * <span class="type">86_400_000</span>));   <span class="comment">// forget what is older than a month</span>`;
+
+export const mcpConfigCode = `<span class="comment">// .mcp.json — Claude Code, Cursor, or any MCP client</span>
+<span class="punctuation">{</span>
+  <span class="keyword">"mcpServers"</span>: <span class="punctuation">{</span>
+    <span class="keyword">"storyteller"</span>: <span class="punctuation">{</span>
+      <span class="keyword">"command"</span>: <span class="string">"npx"</span>,
+      <span class="keyword">"args"</span>: <span class="punctuation">[</span><span class="string">"-y"</span>, <span class="string">"@lovelaces-io/storyteller-mcp"</span>, <span class="string">"./stories.jsonl"</span><span class="punctuation">]</span>
+    <span class="punctuation">}</span>
+  <span class="punctuation">}</span>
+<span class="punctuation">}</span>`;
+
+export const librarianAnswerCode = `<span class="prompt">&gt;</span> why did last night's sync fail?
+
+<span class="comment">search_stories { about: "sync", failing: true, since: "24h" }</span>
+<span class="comment">get_story      { storyId: "7b1e5c2a-…" }</span>
+
+The 02:00 sync (<span class="level-oops">Nightly sync failed</span>, sync-worker) fetched 1,200 rows,
+then the upsert failed with <span class="level-oops">deadlock detected</span> on the third batch.
+The two runs before it succeeded in under 4s; this one took 31s.`;
+
+export const adapterCode = `<span class="keyword">import</span> <span class="punctuation">{</span> canonicalRow, matchesQuery <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller"</span>;
+
+<span class="comment">// Store these columns; answer query() so that it agrees with matchesQuery()</span>
+<span class="keyword">const</span> row = <span class="function">canonicalRow</span>(story);
+<span class="comment">// { story_id, parent_story_id, timestamp, level, title,</span>
+<span class="comment">//   origin_who, origin_what, origin_where, duration_ms, error_message,</span>
+<span class="comment">//   notes, search_text, record }</span>`;
