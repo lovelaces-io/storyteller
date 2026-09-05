@@ -20,3 +20,7 @@ export type { StoryMapOptions } from "./renderMap";
 export { renderStoryMap } from "./renderMap";
 export type { MermaidOptions } from "./mermaid";
 export { toMermaid } from "./mermaid";
+export type { StoryboardOptions } from "./storyboard";
+export { renderStoryboard } from "./storyboard";
+export type { StoryFlowOptions } from "./flow";
+export { renderStoryFlow } from "./flow";

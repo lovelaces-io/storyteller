@@ -77,6 +77,8 @@ export function buildStoryMap(stories: StoryRecord[]): StoryMap {
   const ordered: MapNode[] = [];
   stories.forEach((story, index) => {
     const id = story.storyId ?? `story-${index}`;
+    // The same story twice — passed as itself and again among its chapters — is one story
+    if (nodes.has(id)) return;
     const { start, end } = boundsOf(story);
     const node: MapNode = {
       id,
