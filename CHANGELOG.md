@@ -2,7 +2,7 @@
 
 All notable changes to Storyteller will be documented in this file.
 
-## 0.4.0 — unreleased
+## 0.4.0 — 2026-09-05
 
 Stories become answerable: a store contract, redaction by value, a query vocabulary, and the Librarian. See [#41](https://github.com/lovelaces-io/storyteller/issues/41).
 

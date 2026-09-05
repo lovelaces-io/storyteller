@@ -4,7 +4,7 @@
 
 Storyteller (`@lovelaces-io/storyteller`) is a lightweight TypeScript logging library with zero production dependencies. You report beats of work as they happen; it keeps them and emits them as one structured record when the work finishes. Records go to pluggable audiences.
 
-Version: 0.3.1 (pre-1.0, API may change). Dual output: ESM + CJS.
+Version: 0.4.0 (pre-1.0, API may change). Dual output: ESM + CJS.
 
 ## Narrate your work
 

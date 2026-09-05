@@ -1,14 +1,14 @@
 ---
 import DocsLayout from "../../layouts/DocsLayout.astro";
-const sections = [{"id": "bump-the-range", "label": "Bump the range"}, {"id": "the-verbs", "label": "The verbs"}, {"id": "behavior-changes", "label": "Behavior changes"}, {"id": "new-in-0-3", "label": "New in 0.3"}];
+const sections = [{"id": "bump-the-range", "label": "Bump the range"}, {"id": "the-verbs", "label": "The verbs"}, {"id": "behavior-changes", "label": "Behavior changes"}, {"id": "new-in-0-3", "label": "New in 0.3"}, {"id": "new-in-0-4", "label": "New in 0.4"}];
 ---
 
-<DocsLayout title="Migrating from 0.2" description="Nothing breaks. The old verbs still work identically. Here is what changed, what to rename, and the one behavior change that touches stored data." path="/docs/migration" sections={sections}>
+<DocsLayout title="Migrating from 0.2" description="Nothing breaks, on 0.3 or 0.4. The old verbs still work identically. Here is what changed, what to rename, and the one behavior change that touches stored data." path="/docs/migration" sections={sections}>
   <h1>Migrating from 0.2</h1>
-  <p class="lede">Nothing breaks. Every 0.2 call site compiles and behaves identically on 0.3. Here's what changed and what to rename when you're ready.</p>
+  <p class="lede">Nothing breaks. Every 0.2 call site compiles and behaves identically on 0.3 and 0.4. Here's what changed and what to rename when you're ready.</p>
 
   <h2 id="bump-the-range">Bump the range<a class="heading-anchor" href="#bump-the-range" aria-label="Link to this section">#</a></h2>
-  <p>If you depend on <code>^0.2.0</code>, npm won't move you to 0.3 on its own — on a 0.x version, caret is locked to the minor. Bump the range deliberately, change no code, and migrate the verbs whenever you like before 1.0.</p>
+  <p>If you depend on <code>^0.2.0</code> or <code>^0.3.0</code>, npm won't move you forward on its own — on a 0.x version, caret is locked to the minor. Bump the range to <code>^0.4.0</code> deliberately, change no code, and migrate the verbs whenever you like before 1.0.</p>
 
   <h2 id="the-verbs">The verbs<a class="heading-anchor" href="#the-verbs" aria-label="Link to this section">#</a></h2>
   <!-- docs-check: allow-deprecated -->
@@ -33,5 +33,8 @@ const sections = [{"id": "bump-the-range", "label": "Bump the range"}, {"id": "t
   </ul>
 
   <h2 id="new-in-0-3">New in 0.3<a class="heading-anchor" href="#new-in-0-3" aria-label="Link to this section">#</a></h2>
-  <p>Live narration, chapters, <code>ndjsonAudience</code>, environment configuration, <code>onAudienceError</code>, back-pressure bounds, universal input normalization, and <code>npx @lovelaces-io/storyteller init</code>. The <a href="https://github.com/lovelaces-io/storyteller/blob/main/CHANGELOG.md">changelog</a> has every line.</p>
+  <p>Live narration, chapters, <code>ndjsonAudience</code>, environment configuration, <code>onAudienceError</code>, back-pressure bounds, universal input normalization, and <code>npx @lovelaces-io/storyteller init</code>.</p>
+
+  <h2 id="new-in-0-4">New in 0.4<a class="heading-anchor" href="#new-in-0-4" aria-label="Link to this section">#</a></h2>
+  <p>Stories become answerable. A <code>StoryStore</code> contract with <code>memoryStore()</code> and <code>fileStore()</code>, <code>storeAudience()</code> to keep every story, the query vocabulary (<code>stories(store).failing().since("24h")</code>), redaction by value at capture and again at the storage boundary, and two add-on packages: <code>@lovelaces-io/storyteller-mcp</code>, the Librarian, a read-only MCP server so an agent can read stories back, and <code>@lovelaces-io/storyteller-view</code> for humans. Nothing existing changes; see <a href="/docs/library">The Library</a>. The <a href="https://github.com/lovelaces-io/storyteller/blob/main/CHANGELOG.md">changelog</a> has every line.</p>
 </DocsLayout>
