@@ -58,6 +58,8 @@ Rows are stories, newest first: status, title with a one-line subtitle (*deadloc
 
 `renderStoryFlow(story, { chapters })` is the steps view on its own; `renderStorySteps(node)` is just the list.
 
+**Open in a dialog, pin what matters.** With `detail: "dialog"` a row opens in a modal over the feed — steps first, the full record folded beneath — so a live feed keeps flowing underneath. Every row and the dialog carry a **pin**: pinned stories sit in a strip at the top, survive updates and trimming, and persist for the browser session (`pinsKey` to name or disable that; `pins: false` to drop the feature). `onSave` adds a *save for later* action to the dialog — hand the story to a store, a report, wherever it should live. `board.open(id)`, `board.close()`, `board.pin(id)`, `board.unpin(id)`, `board.pinned()`.
+
 ### Live: a board that grows as beats arrive
 
 ```ts
@@ -95,6 +97,7 @@ Story content is user input, URLs, and stack traces. Everything is inserted as t
 
 ## Changelog
 
+- **0.5.0** — rows can open in a dialog over the feed (`detail: "dialog"`); pins with a pinned strip that survives updates and the session; `onSave` for a save-for-later action; `open`/`close`/`pin`/`unpin`/`pinned` on the board.
 - **0.4.0** — the storyboard is a run inspector: rows with status, subtitle, origin, beats, took, when; tabs and search; rows unfold to steps, steps to detail; `createStoryboard` updates in place and keeps the reader's state, which `liveStoryboard` now uses. Card panels are gone. Durations read in hours and days.
 - **0.3.0** — `liveStoryboard`: the board grows as beats arrive; running stories look running. Summary counts running stories.
 - **0.2.0** — the visual language: `renderStoryboard` (a panel per story, at a glance) and `renderStoryFlow` (numbered steps with arrows, click in), raw detail unfolding in place. Also `renderStoryMap` (a timeline), `toMermaid` (flowchart or gantt), and `buildStoryMap` for the model.

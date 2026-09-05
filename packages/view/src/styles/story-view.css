@@ -317,3 +317,40 @@ article.stv-note { padding: 8px 14px; border: 1px solid var(--_stv-border); bord
 .stv-step[data-kind="chapter"] > .stv-step-body > .stv-flow > .stv-flow-head { display: none; }
 .stv-step[data-kind="chapter"][data-level="Warning"] > .stv-step-body > .stv-flow { border-color: color-mix(in srgb, var(--_stv-warn) 45%, var(--_stv-border)); }
 .stv-step[data-kind="chapter"][data-level="Error"] > .stv-step-body > .stv-flow { border-color: color-mix(in srgb, var(--_stv-error) 55%, var(--_stv-border)); }
+
+/* pins */
+.stv-row-pin { font: inherit; font-size: 0.78em; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--_stv-border); background: transparent; color: var(--_stv-muted); cursor: pointer; opacity: 0; transition: opacity 0.12s; }
+.stv-row:hover .stv-row-pin, .stv-row:focus-within .stv-row-pin, .stv-row-pin[aria-pressed="true"] { opacity: 1; }
+.stv-row-pin:hover, .stv-row-pin:focus { color: var(--_stv-fg); border-color: var(--_stv-fg); outline: none; }
+.stv-row-pin[aria-pressed="true"] { color: var(--_stv-accent); border-color: color-mix(in srgb, var(--_stv-accent) 50%, var(--_stv-border)); }
+.stv-row[data-pinned="true"] .stv-row-title::before { content: "◆ "; color: var(--_stv-accent); font-size: 0.7em; vertical-align: 2px; }
+.stv-board-pinned { border-bottom: 1px solid var(--_stv-border); background: color-mix(in srgb, var(--_stv-accent) 5%, var(--_stv-surface)); }
+.stv-board-pinned[hidden] { display: none; }
+.stv-board-pinned-label { padding: 6px 14px 0; font-family: var(--_stv-mono); font-size: 0.78em; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_stv-accent); }
+.stv-board-pinned-rows .stv-row:last-child { border-bottom: 0; }
+
+/* the dialog: the story over the feed, so the feed keeps flowing */
+.stv-dialog { width: min(920px, calc(100vw - 32px)); max-height: min(88vh, 1000px); padding: 0; border: 1px solid var(--_stv-border); border-radius: calc(var(--_stv-radius) + 6px); background: var(--_stv-bg); color: var(--_stv-fg); font-family: var(--_stv-font); font-size: var(--_stv-size); line-height: 1.45; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55); overflow: hidden; display: none; flex-direction: column; }
+.stv-dialog[open] { display: flex; }
+.stv-dialog::backdrop { background: rgba(0, 0, 0, 0.55); backdrop-filter: blur(2px); }
+.stv-dialog[data-level="Error"] { border-color: color-mix(in srgb, var(--_stv-error) 55%, var(--_stv-border)); }
+.stv-dialog[data-level="Warning"] { border-color: color-mix(in srgb, var(--_stv-warn) 50%, var(--_stv-border)); }
+.stv-dialog-head { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 12px; align-items: start; padding: 14px 16px; border-bottom: 1px solid var(--_stv-border); background: var(--_stv-surface); }
+.stv-dialog-head .stv-status { margin-top: 2px; }
+.stv-dialog-titles { min-width: 0; display: grid; gap: 2px; }
+.stv-dialog-title { font-weight: 600; font-size: 1.08em; word-break: break-word; }
+.stv-dialog-sub { color: var(--_stv-muted); }
+.stv-dialog[data-level="Error"] .stv-dialog-sub { color: color-mix(in srgb, var(--_stv-error) 70%, var(--_stv-muted)); }
+.stv-dialog-meta { font-family: var(--_stv-mono); font-size: 0.82em; color: var(--_stv-muted); word-break: break-all; }
+.stv-dialog-actions { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.stv-dialog-action { font: inherit; font-size: 0.82em; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--_stv-border); background: transparent; color: var(--_stv-muted); cursor: pointer; }
+.stv-dialog-action:hover, .stv-dialog-action:focus { color: var(--_stv-fg); border-color: var(--_stv-fg); outline: none; }
+.stv-dialog-action[aria-pressed="true"] { color: var(--_stv-accent); border-color: color-mix(in srgb, var(--_stv-accent) 50%, var(--_stv-border)); }
+.stv-dialog-body { overflow: auto; padding: 12px 16px 16px; display: grid; gap: 10px; }
+.stv-dialog-section { font-family: var(--_stv-mono); font-size: 0.78em; letter-spacing: 0.06em; text-transform: uppercase; color: var(--_stv-muted); }
+.stv-dialog-record { margin-top: 4px; }
+.stv-dialog-record > summary { cursor: pointer; list-style: none; }
+.stv-dialog-record > summary::-webkit-details-marker { display: none; }
+.stv-dialog-record > summary::before { content: "▸ "; }
+.stv-dialog-record[open] > summary::before { content: "▾ "; }
+.stv-dialog-record > .stv-story { margin-top: 8px; }
