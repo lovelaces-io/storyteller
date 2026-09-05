@@ -1,6 +1,6 @@
 {
   "name": "@lovelaces-io/storyteller-view",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Render Storyteller stories, notes, and reports for humans. Framework-agnostic DOM, zero dependencies.",
   "keywords": [
     "storyteller",

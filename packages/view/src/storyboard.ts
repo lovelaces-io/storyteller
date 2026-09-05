@@ -200,7 +200,12 @@ export function createStoryboard(initial: StoryRecord[], options: StoryboardOpti
   const pinnedStrip = el(ctx, "div", "stv-board-pinned");
   const table = el(ctx, "div", "stv-board-rows");
   table.setAttribute("role", "list");
-  board.append(head, toolbar, pinnedStrip, table);
+  // The body is the size container for the responsive columns. A size
+  // container also becomes the positioning root for fixed descendants, so
+  // the dialog must live outside it to centre on the viewport.
+  const body = el(ctx, "div", "stv-board-body");
+  body.append(head, toolbar, pinnedStrip, table);
+  board.append(body);
 
   // The dialog, made once, shown when a row opens in dialog mode
   const dialog = el(ctx, "dialog", "stv-dialog");
