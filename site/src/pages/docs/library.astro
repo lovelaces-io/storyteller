@@ -1,0 +1,42 @@
+---
+import DocsLayout from "../../layouts/DocsLayout.astro";
+import Terminal from "../../components/Terminal.astro";
+import { storeCode, askCode, mcpConfigCode, librarianAnswerCode, adapterCode } from "../../content/samples";
+
+const sections = [
+  { id: "keep", label: "Keep them" },
+  { id: "ask", label: "Ask in words" },
+  { id: "librarian", label: "Ask an agent" },
+  { id: "redaction", label: "What stays out" },
+  { id: "adapters", label: "Your own store" },
+];
+---
+
+<DocsLayout title="The Library" description="Keep stories in a store, ask questions in the library's own words, and let an agent read them back through the Librarian, a read-only MCP server." path="/docs/library" sections={sections}>
+  <h1>The Library</h1>
+  <p class="lede">Storyteller writes. The Library keeps. Ask the Librarian. A story is the unit of retrieval: complete, ordered, small enough for a context window. Keep them, and the question <em>why did last night's sync fail?</em> has somewhere to look.</p>
+
+  <h2 id="keep">Keep them<a class="heading-anchor" href="#keep" aria-label="Link to this section">#</a></h2>
+  <p>A <code>StoryStore</code> is where stories go and how they come back: <code>append</code>, <code>get</code>, <code>query</code>, <code>children</code>, <code>prune</code>. Two ship with the library and cost nothing: <code>memoryStore()</code>, a bounded map that runs anywhere, and <code>fileStore(path)</code>, one JSON-lines file for Node. <code>storeAudience</code> is the one-line bridge from delivery.</p>
+  <Terminal title="keep.ts" code={storeCode} />
+  <p>Every level is kept by default. A store that only keeps failures can answer <em>what broke</em> but not <em>what happened</em>, and <code>prune()</code> is there for the rest. A rejecting store reports through <code>onAudienceError</code>, like any other audience.</p>
+
+  <h2 id="ask">Ask in words<a class="heading-anchor" href="#ask" aria-label="Link to this section">#</a></h2>
+  <p>The same words have to read well aloud and be easy for a model to write. Every clause returns a new question; awaiting one runs it.</p>
+  <Terminal title="ask.ts" code={askCode} />
+  <p>Clauses: <code>about</code>, <code>from</code>, <code>level</code>, <code>atLeast</code>, <code>failing</code>, <code>succeeding</code>, <code>slowerThan</code>, <code>since</code>, <code>until</code>, <code>under</code>, <code>newest</code>, <code>oldest</code>, <code>limit</code>, <code>skip</code>. Terminals: <code>all()</code>, <code>first()</code>, <code>count()</code>. Durations as people write them: <code>"30s"</code>, <code>"5m"</code>, <code>"24h"</code>, <code>"7d"</code>, <code>"2w"</code>. A question compiles to a structured <code>StoryQuery</code>, so every store answers the same one and no adapter's syntax ever reaches you.</p>
+
+  <h2 id="librarian">Ask an agent<a class="heading-anchor" href="#librarian" aria-label="Link to this section">#</a></h2>
+  <p>The Librarian is a read-only MCP server over any store. Point it at the file your app writes, and an agent can answer questions from the stories the code told, with no other context.</p>
+  <Terminal title=".mcp.json" code={mcpConfigCode} />
+  <Terminal title="claude" code={librarianAnswerCode} />
+  <p>Four tools, every one read-only: <code>search_stories</code> returns summaries sized for a context window; <code>get_story</code> returns one story complete with its chapters; <code>summarize_period</code> gives the shape of a day or a week; <code>find_related</code> pulls on a thread. Results are bounded and say when they were cut. Nothing can write or delete: an agent that can delete your logs is a liability, and nothing about asking a question needs it.</p>
+
+  <h2 id="redaction">What stays out<a class="heading-anchor" href="#redaction" aria-label="Link to this section">#</a></h2>
+  <p>Persisted is the moment a leaked secret stops being a line that scrolled past. Redaction runs at capture and again at the storage boundary: values under secret-named keys, and recognisable secret formats inside any string, error messages and stacks included. Only the secret span is replaced, so the sentence around it survives. <code>auditRedaction()</code> shows what would be removed across a real corpus, so coverage is measured rather than trusted. It is defense in depth, not a guarantee; <a href="https://github.com/lovelaces-io/storyteller/blob/main/SECURITY.md">SECURITY.md</a> says exactly what it does not promise.</p>
+
+  <h2 id="adapters">Your own store<a class="heading-anchor" href="#adapters" aria-label="Link to this section">#</a></h2>
+  <p>The canonical schema is code. Store the columns <code>canonicalRow()</code> derives, and make your <code>query()</code> agree with <code>matchesQuery()</code>. That agreement is the contract; the Librarian and the vocabulary work unchanged on top.</p>
+  <Terminal title="adapter.ts" code={adapterCode} />
+  <p>Full reference: <a href="/docs/api#stores">Stores</a> in the API.</p>
+</DocsLayout>

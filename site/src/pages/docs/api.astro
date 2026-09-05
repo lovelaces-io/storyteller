@@ -2,7 +2,7 @@
 import DocsLayout from "../../layouts/DocsLayout.astro";
 import Terminal from "../../components/Terminal.astro";
 import { audienceMemberCode, outputReferenceCode, singletonCode } from "../../content/samples";
-const sections = [{"id": "constructor", "label": "Constructor"}, {"id": "storyteller", "label": "Storyteller"}, {"id": "audiences", "label": "Audiences"}, {"id": "shared-instance", "label": "Shared instance"}, {"id": "formatting", "label": "Formatting"}, {"id": "normalization", "label": "Normalization"}, {"id": "the-record", "label": "The record"}];
+const sections = [{"id": "constructor", "label": "Constructor"}, {"id": "storyteller", "label": "Storyteller"}, {"id": "audiences", "label": "Audiences"}, {"id": "shared-instance", "label": "Shared instance"}, {"id": "formatting", "label": "Formatting"}, {"id": "normalization", "label": "Normalization"}, {"id": "stores", "label": "Stores"}, {"id": "the-record", "label": "The record"}];
 ---
 
 <DocsLayout title="API" description="Every method, option, and type on the Storyteller public surface." path="/docs/api" sections={sections}>
@@ -49,6 +49,7 @@ const sections = [{"id": "constructor", "label": "Constructor"}, {"id": "storyte
       <tr><td><code>consoleAudience(options?)</code></td><td>notes, stories</td><td>Default. Compact line per beat, grouped block per story</td></tr>
       <tr><td><code>dbAudience(insert)</code></td><td>stories at warn/oops</td><td>Persists via your insert function</td></tr>
       <tr><td><code>ndjsonAudience(options?)</code></td><td>notes, stories</td><td>One JSON object per line. Options: <code>stream</code>, <code>name</code>, <code>level</code></td></tr>
+      <tr><td><code>storeAudience(store, options?)</code></td><td>stories, every level</td><td>Keeps stories in a <a href="#stores">store</a>. Options: <code>name</code>, <code>level</code>, <code>accepts</code></td></tr>
     </tbody>
   </table>
 
@@ -88,8 +89,27 @@ const sections = [{"id": "constructor", "label": "Constructor"}, {"id": "storyte
       <tr><td><code>maxStringLength</code></td><td><code>8000</code></td></tr>
       <tr><td><code>redactKeys</code></td><td>password, token, secret, apiKey, authorization, cookie, sessionId, privateKey, …</td></tr>
       <tr><td><code>redact</code></td><td><code>true</code></td></tr>
+      <tr><td><code>redactValues</code></td><td><code>"balanced"</code> — recognisable secret formats inside any string, and secret-shaped keys; <code>"strict"</code> also removes long random-looking runs; <code>"off"</code> matches key names only</td></tr>
     </tbody>
   </table>
+  <p><code>auditRedaction(value)</code> reports what redaction would remove — path, reason, a four-character preview — without changing anything. <code>redactString(text)</code> and <code>redactJson(value)</code> apply it to data you already hold.</p>
+
+  <h2 id="stores">Stores<a class="heading-anchor" href="#stores" aria-label="Link to this section">#</a></h2>
+  <p>Where stories go and how they come back. The narrative is on <a href="/docs/library">The Library</a>; this is the surface.</p>
+  <table>
+    <thead><tr><th>Export</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>StoryStore</code></td><td><code>append(event)</code>, <code>get(storyId)</code>, <code>query(criteria)</code>, <code>children(parentStoryId)</code>, <code>prune(before)</code></td></tr>
+      <tr><td><code>StoryQuery</code></td><td><code>since</code>, <code>until</code>, <code>level</code>, <code>minimumLevel</code>, <code>about</code>, <code>from</code>, <code>parentStoryId</code>, <code>slowerThanMs</code>, <code>failed</code>, <code>limit</code>, <code>offset</code>, <code>order</code></td></tr>
+      <tr><td><code>memoryStore(options?)</code></td><td>The reference store: a bounded map (<code>capacity</code>, default 10 000), browser-safe</td></tr>
+      <tr><td><code>fileStore(path)</code></td><td>One JSON-lines file, append-only, <code>prune</code> rewrites it. Node only, from <code>@lovelaces-io/storyteller/store/file</code></td></tr>
+      <tr><td><code>stories(store)</code></td><td>The vocabulary: <code>about</code>, <code>from</code>, <code>level</code>, <code>atLeast</code>, <code>failing</code>, <code>succeeding</code>, <code>slowerThan</code>, <code>since</code>, <code>until</code>, <code>under</code>, <code>newest</code>, <code>oldest</code>, <code>limit</code>, <code>skip</code>; then <code>all()</code>, <code>first()</code>, <code>count()</code>, or just <code>await</code> it</td></tr>
+      <tr><td><code>parseDuration(input)</code></td><td><code>"30s"</code>, <code>"5m"</code>, <code>"24h"</code>, <code>"7d"</code>, <code>"2w"</code> or milliseconds; throws on anything else</td></tr>
+      <tr><td><code>canonicalRow(story)</code></td><td>The columns an adapter stores: ids, timestamp, level, title, flattened origin, duration, error message, notes, <code>search_text</code>, the whole record</td></tr>
+      <tr><td><code>matchesQuery(story, criteria)</code> / <code>applyQuery(stories, criteria)</code></td><td>The reference matcher an adapter's own query must agree with</td></tr>
+    </tbody>
+  </table>
+  <p>Read-only access for agents is a separate package, <code>@lovelaces-io/storyteller-mcp</code>: see <a href="/docs/library#librarian">the Librarian</a>.</p>
 
   <h2 id="the-record">The record<a class="heading-anchor" href="#the-record" aria-label="Link to this section">#</a></h2>
   <p>Exactly what <code>JSON.stringify(event)</code> produces. Every field has a job.</p>
