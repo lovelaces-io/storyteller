@@ -40,6 +40,7 @@ const { framed = true } = Astro.props;
 
 <script>
   import { liveStoryboard } from "@lovelaces-io/storyteller-view";
+  import "@lovelaces-io/storyteller-view/style.css";
 
   type Level = "Information" | "Warning" | "Error";
   type Note = { timestamp: string; sequence: number; note: string; level?: Level; what?: unknown; error?: { name?: string; message: string; stack?: string } };
@@ -207,7 +208,7 @@ const { framed = true } = Astro.props;
   }
 </script>
 
-<style>
+<style is:global>
   .showcase { margin: 0; }
   .showcase-head h2 { margin: 0 0 0.5rem; }
   .showcase-head p { margin: 0 0 1.25rem; color: var(--text-muted); max-width: 720px; }
@@ -222,17 +223,17 @@ const { framed = true } = Astro.props;
   .showcase-console { flex: 1; overflow: hidden; padding: 8px 12px; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.55; color: var(--text-muted); background: var(--bg); }
   .showcase-line { display: flex; gap: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .showcase-time { color: var(--green-dim); flex: 0 0 auto; }
-  .showcase-level { flex: 0 0 auto; color: #7fb3ff; }
+  .showcase-level { flex: 0 0 auto; color: #7fb3ff; white-space: pre; }
   .showcase-line.is-debug .showcase-level { color: var(--green-dim); }
   .showcase-line.is-warn .showcase-level, .showcase-line.is-warn { color: var(--warn); }
   .showcase-line.is-error .showcase-level, .showcase-line.is-error { color: var(--oops); }
   .showcase-foot { display: flex; gap: 10px; padding: 7px 12px; border-top: 1px solid var(--border); background: var(--bg-elevated); font-family: var(--font-mono); font-size: 0.68rem; color: var(--text-muted); }
   .showcase-board { flex: 1; min-height: 0; overflow: auto; }
-  .showcase-board :global(.stv-board) { border: 0; border-radius: 0; min-height: 100%; }
+  .showcase-board .stv-board { border: 0; border-radius: 0; min-height: 100%; }
   .showcase-cap { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; color: var(--text-muted); font-size: 0.9rem; }
   .showcase-cap b { color: var(--text); font-weight: 500; }
   @media (max-width: 900px) { .showcase-cap { grid-template-columns: 1fr; } }
-  .view-demo {
+  .showcase .view-demo {
     --stv-bg: var(--bg-surface); --stv-fg: var(--text); --stv-muted: var(--text-muted); --stv-border: var(--border); --stv-surface: var(--bg-elevated);
     --stv-info: var(--green); --stv-warn: var(--warn); --stv-error: var(--oops); --stv-accent: #7fb3ff;
     --stv-font: var(--font-body); --stv-mono: var(--font-mono); --stv-radius: 8px; --stv-size: 12.5px;
