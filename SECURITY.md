@@ -10,9 +10,21 @@ Do not open public GitHub issues for security vulnerabilities.
 
 We will acknowledge receipt within 48 hours and provide a timeline for a fix.
 
-## Redaction Is Best-Effort
+## Redaction: what it does, and what it does not guarantee
 
-`report()` redacts values whose **key names** look like secrets (`password`, `token`, `apiKey`, `authorization`, `cookie`, `sessionId`, `privateKey`, and similar — matched regardless of casing and separators). It does not inspect values, so a secret stored under an unrecognized key passes through. Treat it as defense in depth, not a guarantee, and keep secrets out of what you report where you can.
+Storyteller redacts in three places, and none of them is a guarantee.
+
+**At capture**, `report()` and `normalizeValue()` redact:
+
+- values under **key names** that are secrets by convention (`password`, `token`, `apiKey`, `authorization`, `cookie`, `sessionId`, `privateKey`, and similar — matched regardless of casing and separators), whatever the value is;
+- string values under **secret-shaped keys** (`dbPassword`, `x-api-key`, `STRIPE_SECRET_KEY`, `clientCredential`; and `…token`, `…key`, `…auth` when the value also looks random);
+- **recognisable secret formats inside any string**, including error messages and stack traces: Stripe, OpenAI/Anthropic, GitHub, GitLab, npm, Slack, Google and SendGrid keys, AWS access key ids, JWTs, PEM private keys, `Bearer`/`Basic` credentials, passwords in URL userinfo, and secrets in query parameters. Only the secret span is replaced; the text around it stays.
+
+**At the storage boundary**, a `StoryStore` runs the same pass again on the way in, so a record fed by hand, or normalized with redaction off, is covered before it becomes durable.
+
+**On demand**, `auditRedaction()` reports what would be redacted across a value without changing it, so a team can measure coverage over real stories instead of trusting it.
+
+What this does **not** do: it does not recognise a secret that looks like an ordinary word, a secret in a format it has no pattern for, or a secret split across values. `redactValues: "strict"` also removes any long random-looking string, at the cost of some legitimate content. Treat all of it as defense in depth. Keep secrets out of what you report where you can, and keep `redact` on where you cannot.
 
 ## Supported Versions
 

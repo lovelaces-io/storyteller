@@ -7,7 +7,10 @@
  * (in memory, a file, SQLite, Postgres) answers the same questions, so the
  * questions — not each adapter's query language — are the contract.
  */
-import type { StoryEvent, StoryEventBase, StoryLevel, StoryOrigin } from "../storyteller";
+import type { StoryEvent, StoryEventBase, StoryLevel, StoryNote, StoryOrigin } from "../storyteller";
+import type { JsonValue } from "../normalize";
+import { DEFAULT_REDACT_KEYS } from "../normalize";
+import { normalizeKeyForMatching, redactJson, type RedactionStrictness } from "../redaction";
 import { meetsLevel } from "../environment";
 
 /** A story as kept: the record without the `summarize` method, with an id it can be fetched by */
@@ -56,25 +59,44 @@ export type StoryStore = {
   prune(before: Date): Promise<number>;
 };
 
+export type ToStoredStoryOptions = {
+  /**
+   * Redaction at the storage boundary. The normalizer already redacted at
+   * capture; this pass covers a record fed to a store by hand, or one
+   * normalized with redaction off, before it becomes durable. Default
+   * `balanced`; `off` trusts the record as given.
+   */
+  redactValues?: RedactionStrictness;
+};
+
+const DEFAULT_KEY_SET = new Set(DEFAULT_REDACT_KEYS.map(normalizeKeyForMatching));
+
 /**
  * The record as a store keeps it: a deep copy of the JSON-safe fields, so a
  * caller holding the event cannot change what was stored, and no method rides
- * along. A record without an id — one written before ids existed — is given one.
+ * along. A record without an id — one written before ids existed — is given
+ * one. Secrets are redacted once more on the way in: persisted is the moment
+ * a leaked value stops being a line that scrolled past.
  */
-export function toStoredStory(event: StoryEvent | StoredStory): StoredStory {
+export function toStoredStory(event: StoryEvent | StoredStory, options: ToStoredStoryOptions = {}): StoredStory {
   const { timestamp, level, title, storyId, parentStoryId, origin, notes, durationMs, droppedEmissions, error } = event;
+  const strictness = options.redactValues ?? "balanced";
+  const scrub = <T>(value: T): T =>
+    strictness === "off"
+      ? clone(value)
+      : (redactJson(clone(value) as unknown as JsonValue, { redactKeys: DEFAULT_KEY_SET, strictness }) as unknown as T);
   const record: StoredStory = {
     timestamp,
     level,
-    title,
+    title: scrub(title),
     storyId: storyId ?? generateStoryId(),
-    notes: clone(notes),
+    notes: scrub(notes) as StoryNote[],
   };
   if (parentStoryId !== undefined) record.parentStoryId = parentStoryId;
-  if (origin !== undefined) record.origin = clone(origin);
+  if (origin !== undefined) record.origin = scrub(origin);
   if (durationMs !== undefined) record.durationMs = durationMs;
   if (droppedEmissions !== undefined) record.droppedEmissions = droppedEmissions;
-  if (error !== undefined) record.error = clone(error);
+  if (error !== undefined) record.error = scrub(error);
   return record;
 }
 

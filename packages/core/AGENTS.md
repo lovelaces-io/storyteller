@@ -84,6 +84,10 @@ Values dropped for size are replaced with an explicit `{ "@truncated": { kind, o
 
 The normalizer never throws. A hostile object cannot break the pipeline.
 
+## Secrets
+
+Redaction happens at capture and again at the storage boundary: values under secret-named keys (`password`, `apiKey`, `dbPassword`, `x-api-key`), and recognisable secret formats inside any string (Stripe/OpenAI/GitHub keys, JWTs, PEM blocks, `Bearer …`, passwords in URLs, `?token=`), become `[redacted]` — error messages and stacks included. It is defense in depth, not a guarantee: a secret that looks like a word passes. Do not report a secret and rely on redaction; do not turn `redact` off in code that persists. `auditRedaction(value)` shows what would be removed, so check a real corpus before trusting coverage. `redactValues: "strict"` trades some legitimate content for more coverage.
+
 ## Output a program can read
 
 For machine consumption, use NDJSON — one JSON object per line, nothing else on the channel:
