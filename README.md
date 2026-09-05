@@ -326,7 +326,7 @@ const story = useStoryteller({ origin: { who: "worker" } });
 - [API Reference](docs/API.md) — full signatures and examples
 - [How It Works](docs/HOW-IT-WORKS.md) — narrative guide
 - [Changelog](CHANGELOG.md)
-- [For AI Agents](AGENTS.md) — guidance for AI coding assistants
+- [For AI Agents](packages/core/AGENTS.md) — the guide that ships in the package, for AI coding assistants
 - [The Library](https://storyteller.lovelaces.io/docs/library) — keep stories, ask in words, let an agent read them back
 - [Story view](https://storyteller.lovelaces.io/docs/view) — `@lovelaces-io/storyteller-view`, stories rendered for humans
 - [The Librarian](packages/mcp/README.md) — `@lovelaces-io/storyteller-mcp`, the read-only MCP server

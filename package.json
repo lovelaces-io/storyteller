@@ -18,7 +18,8 @@
     "check:package": "node ./scripts/checkPackage.mjs",
     "release": "npm publish -w @lovelaces-io/storyteller --access public",
     "release:view": "npm publish -w @lovelaces-io/storyteller-view --access public",
-    "release:mcp": "npm publish -w @lovelaces-io/storyteller-mcp --access public"
+    "release:mcp": "npm publish -w @lovelaces-io/storyteller-mcp --access public",
+    "check:links": "node ./scripts/checkLinks.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
