@@ -352,3 +352,13 @@ board.<span class="function">append</span>(<span class="function">renderStoryboa
     <span class="function">renderStory</span>(story),                                            <span class="comment">// and the full record beneath</span>
   ),
 <span class="punctuation">}</span>));`;
+
+export const liveCodeBoard = `<span class="keyword">import</span> <span class="punctuation">{</span> liveStoryboard <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller-view"</span>;
+
+<span class="keyword">const</span> live = <span class="function">liveStoryboard</span>(document.<span class="function">querySelector</span>(<span class="string">"#board"</span>));
+
+<span class="comment">// In the browser: it is an audience, hearing every beat and every story</span>
+story.audience.<span class="function">add</span>(live.audience);
+
+<span class="comment">// Anywhere else: hand it each line of a tailed stories.jsonl or an NDJSON stream</span>
+<span class="keyword">for await</span> (<span class="keyword">const</span> line <span class="keyword">of</span> lines) live.<span class="function">hear</span>(JSON.<span class="function">parse</span>(line));`;

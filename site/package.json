@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.2",
-    "@lovelaces-io/storyteller-view": "^0.2.0",
+    "@lovelaces-io/storyteller-view": "^0.3.0",
     "@vercel/analytics": "^2.0.1",
     "astro": "^5.18.1"
   },
