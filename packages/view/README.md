@@ -2,7 +2,7 @@
 
 Render [Storyteller](https://storyteller.lovelaces.io) stories, notes, and reports for humans. A story becomes a timeline of its notes, levels become badges, errors show their cause chain, nested values fold into a tree, and every marker the normalizer leaves (`@type`, `@truncated`, circular references, redaction) is shown as what it means instead of as a string.
 
-Two renderers, one look: DOM for frontends, text for consoles and agent transcripts. And a map: a whole run as a shape. Zero dependencies. Works on a `StoryEvent` straight from an audience, on a story read back from NDJSON or a database, and on a live `NoteEmission`.
+A visual language for stories. At a glance: the **storyboard**, a panel per story, a failure that looks like one. Click in: the **flow**, the story as numbered steps with arrows, green until it turns, every step unfolding to its logs, data and error. Plus a story view, a text renderer for consoles, a timeline map and a Mermaid export. Zero dependencies. Works on a `StoryEvent` straight from an audience, on a story read back from NDJSON or a database, and on a live `NoteEmission`.
 
 ```ts
 import { renderStory } from "@lovelaces-io/storyteller-view";
@@ -40,7 +40,24 @@ storyteller.audience.add({
 
 Options: `colors` (ANSI, default `false`), `stacks` (include stack traces, default `true`), `maxDepth` (nested values printed before folding to their shape, default `4`), `indent`, `locale`, `timeZone`, `showIds`.
 
-### The story map
+### The storyboard, and the flow
+
+```ts
+import { renderStoryboard, renderStoryFlow, renderStory } from "@lovelaces-io/storyteller-view";
+
+// At a glance: one panel per story, chapters as sub-scenes, the gap between panels labelled
+panel.append(renderStoryboard(run, {
+  onSelect: (story) => detail.replaceChildren(
+    renderStoryFlow(story, { chapters: run, unfold: "failed" }),   // click in: steps 1 → 2 → 3, arrows, where it turned
+    renderStory(story),                                            // and the full record beneath
+  ),
+}));
+```
+
+- `renderStoryboard(stories, options?)` → `HTMLElement`. Summary line (`5 stories · 1 failed`), then panels in the order things happened: title, beats as sentences with a small "+21 s", chapters indented under the beat that started them, how it ended. A beat with data or an error unfolds in place to the raw payload. Options: `onSelect` (adds an *open* button per panel), `maxBeats` (default 8), `title`.
+- `renderStoryFlow(story, options?)` → `HTMLElement`. Numbered steps with arrows coloured by how each went; the first failed step is marked as the turn; chapters (`chapters: [...]`, matched by `parentStoryId`) are steps with their own steps inside; the end says how it came out. `unfold: "none" | "failed" | "all"` controls which details start open.
+
+### The timeline map
 
 ```ts
 import { renderStoryMap, toMermaid } from "@lovelaces-io/storyteller-view";
@@ -64,6 +81,6 @@ Story content is user input, URLs, and stack traces. Everything is inserted as t
 
 ## Changelog
 
-- **0.2.0** — the story map: `renderStoryMap` (SVG, lanes, chapters, beats, click to open) and `toMermaid` (flowchart or gantt). `buildStoryMap` exposes the model.
+- **0.2.0** — the visual language: `renderStoryboard` (a panel per story, at a glance) and `renderStoryFlow` (numbered steps with arrows, click in), raw detail unfolding in place. Also `renderStoryMap` (a timeline), `toMermaid` (flowchart or gantt), and `buildStoryMap` for the model.
 - **0.1.1** — theme knobs set on an ancestor now apply: the stylesheet only reads `--stv-*`, it no longer defines them on the element itself.
 - **0.1.0** — first release: DOM and text renderers, zero dependencies.
