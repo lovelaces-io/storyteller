@@ -317,7 +317,7 @@ export function renderStory(story: StoryRecord, options: RenderOptions = {}): HT
   root.dataset["level"] = story.level;
   if (story.storyId) root.dataset["storyId"] = story.storyId;
 
-  const header = el(r, "header", "stv-story-head");
+  const header = el(r, "div", "stv-story-head");
   const titleRow = el(r, "div", "stv-title-row");
   titleRow.append(levelBadge(r, story.level), el(r, "div", "stv-title", story.title));
   header.append(titleRow);
@@ -358,7 +358,7 @@ export function renderStory(story: StoryRecord, options: RenderOptions = {}): HT
   root.append(list);
 
   if (story.error) {
-    const closing = el(r, "footer", "stv-story-error");
+    const closing = el(r, "div", "stv-story-error");
     closing.append(renderErrorWith(r, story.error));
     root.append(closing);
   }

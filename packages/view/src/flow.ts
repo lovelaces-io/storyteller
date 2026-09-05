@@ -61,12 +61,12 @@ export function renderStorySteps(node: MapNode, options: StoryFlowOptions = {}):
 
 function renderFlowFor(ctx: Ctx, node: MapNode, depth: number): HTMLElement {
   const { story } = node;
-  const flow = el(ctx, "section", "stv-flow");
+  const flow = el(ctx, "div", "stv-flow");
   flow.dataset["level"] = story.level;
   flow.dataset["depth"] = String(depth);
   flow.dataset["storyId"] = node.id;
 
-  const head = el(ctx, "header", "stv-flow-head");
+  const head = el(ctx, "div", "stv-flow-head");
   head.append(el(ctx, depth === 0 ? "h3" : "h4", "stv-flow-title", story.title));
   const status = el(ctx, "span", "stv-flow-status", STATUS_WORD[story.level]);
   status.dataset["level"] = story.level;
