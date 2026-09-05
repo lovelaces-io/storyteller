@@ -56,6 +56,7 @@ story.finish("Startup complete");
 - `useStoryteller(options?)` — get or create a shared singleton instance
 - `normalizeValue(input, options?)` — turn any value into a JSON-safe structure
 - `normalizeError(error, options?)` — turn any thrown value into a serializable error
+- `auditRedaction(value, options?)` — what redaction would remove, with paths and reasons, changing nothing; `redactString(text)` / `redactJson(value)` apply it
 - `formatStory(event, options?)` — format a story record as human-readable text
 - `writeStoryReport(stories[], options?)` — format multiple records grouped by day
 - `consoleAudience(options?)` — compact line per beat, grouped block per story (default)

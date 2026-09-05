@@ -22,10 +22,17 @@ export type NormalizeOptions = {
   redactKeys?: string[];
   /** Set false to keep secret-shaped values as-is */
   redact?: boolean;
+  /**
+   * How hard to look inside values for secrets: `balanced` (default) redacts
+   * recognisable token formats and random-looking strings under secret-shaped
+   * keys; `strict` also redacts any long random-looking run; `off` matches key
+   * names only.
+   */
+  redactValues?: RedactionStrictness;
 };
 
-/** Marker written in place of a value that matched a redacted key name */
-export const REDACTED = "[redacted]";
+import { REDACTED, keyLooksSecret, normalizeKeyForMatching, redactString, type RedactionStrictness } from "./redaction";
+export { REDACTED } from "./redaction";
 
 /**
  * Property names whose values are replaced with {@link REDACTED}.
@@ -64,6 +71,7 @@ type ResolvedOptions = {
   maxStringLength: number;
   redactKeys: Set<string>;
   redact: boolean;
+  redactValues: RedactionStrictness;
 };
 
 /**
@@ -100,6 +108,7 @@ export function normalizeValue(
       (options.redactKeys ?? DEFAULT_REDACT_KEYS).map(normalizeKeyForMatching)
     ),
     redact: options.redact ?? true,
+    redactValues: options.redactValues ?? "balanced",
   };
 
   try {
@@ -131,6 +140,7 @@ export function normalizeError(
       (options.redactKeys ?? DEFAULT_REDACT_KEYS).map(normalizeKeyForMatching)
     ),
     redact: options.redact ?? true,
+    redactValues: options.redactValues ?? "balanced",
   };
 
   return normalizeErrorInternal(rawError, resolved, 0);
@@ -146,7 +156,7 @@ function normalizeErrorInternal(
     if (isPlainRecord(rawError)) {
       // Error-shaped objects from across a serialization boundary are common
       const record = rawError as Record<string, unknown>;
-      const message = typeof record["message"] === "string" ? record["message"] : undefined;
+      const message = typeof record["message"] === "string" ? redactText(record["message"], options) : undefined;
       const name = typeof record["name"] === "string" ? record["name"] : undefined;
       if (message !== undefined || name !== undefined) {
         return {
@@ -155,16 +165,16 @@ function normalizeErrorInternal(
         };
       }
     }
-    return { message: safeStringify(rawError, options.maxStringLength) };
+    return { message: redactText(safeStringify(rawError, options.maxStringLength), options) };
   }
 
   const normalized: StoryError = {
     name: rawError.name,
-    message: rawError.message,
+    message: redactText(rawError.message, options),
   };
 
   if (rawError.stack !== undefined) {
-    normalized.stack = truncateString(rawError.stack, options.maxStringLength);
+    normalized.stack = truncateString(redactText(rawError.stack, options), options.maxStringLength);
   }
 
   const cause = (rawError as { cause?: unknown }).cause;
@@ -201,7 +211,7 @@ function normalizeUnknown(
   const valueType = typeof value;
 
   if (valueType === "string") {
-    return truncateString(value as string, options.maxStringLength);
+    return truncateString(redactText(value as string, options), options.maxStringLength);
   }
 
   if (valueType === "number") {
@@ -478,12 +488,15 @@ function redactOrNormalize(
   if (options.redact && options.redactKeys.has(normalizeKeyForMatching(key))) {
     return REDACTED;
   }
+  if (options.redact && options.redactValues !== "off" && keyLooksSecret(key, value)) {
+    return REDACTED;
+  }
   return normalizeUnknown(value, options, depth, path, ancestors);
 }
 
-/** Reduce a property name to letters and digits so casing and separators do not matter */
-function normalizeKeyForMatching(key: string): string {
-  return key.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+/** Replace recognisable secrets inside a string, when redaction is on */
+function redactText(value: string, options: ResolvedOptions): string {
+  return options.redact ? redactString(value, options.redactValues) : value;
 }
 
 /** Read a value's class name, tolerating null-prototype objects and hostile proxies */

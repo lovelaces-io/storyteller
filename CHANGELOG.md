@@ -10,6 +10,7 @@ All notable changes to Storyteller will be documented in this file.
 - **`memoryStore()`.** The reference implementation: a bounded in-memory store, zero dependencies, browser-safe.
 - **`fileStore(path)`.** One JSON-lines file, append-only, with `prune` rewriting it. Node only, so it ships from its own entry point: `@lovelaces-io/storyteller/store/file`.
 - **`storeAudience(store, options?)`.** The one-line bridge from delivery to persistence. Keeps every level by default.
+- **Redaction by value.** Recognisable secret formats (Stripe, OpenAI/Anthropic, GitHub, GitLab, npm, Slack, Google, SendGrid, AWS access key ids, JWTs, PEM private keys, `Bearer`/`Basic` credentials, passwords in URLs, secrets in query parameters) are redacted inside any string — error messages and stacks included — keeping the text around them. Secret-shaped keys (`dbPassword`, `x-api-key`, `STRIPE_SECRET_KEY`) count too. `redactValues: "balanced" | "strict" | "off"` tunes it. Stores run the same pass at the boundary. `auditRedaction()` reports what would be redacted without changing anything. SECURITY.md says honestly what this does not guarantee.
 
 ## 0.3.1 — 2026-09-04
 

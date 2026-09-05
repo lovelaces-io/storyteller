@@ -497,6 +497,7 @@ normalizeValue(input: unknown, options?: {
   maxStringLength?: number;   // 8000
   redactKeys?: string[];
   redact?: boolean;           // true
+  redactValues?: "balanced" | "strict" | "off";   // "balanced"
 }): JsonValue
 ```
 
@@ -518,6 +519,8 @@ normalizeValue(input: unknown, options?: {
 Values dropped for size become an explicit `{ "@truncated": { kind, omitted } }` marker, so a consumer can tell truncation from absence.
 
 Keys matching `password`, `token`, `secret`, `apiKey`, `authorization`, `cookie`, `sessionId`, `privateKey` and similar are replaced with `"[redacted]"`. Matching ignores case and separators, so `apiKey`, `api_key` and `API-KEY` all match. This is best-effort defense in depth, not a guarantee — it matches key names, not values.
+
+Values are inspected too. Recognisable secret formats inside any string — Stripe, OpenAI/Anthropic, GitHub, GitLab, npm, Slack, Google and SendGrid keys, AWS access key ids, JWTs, PEM private keys, `Bearer`/`Basic` credentials, passwords in URL userinfo, secrets in query parameters — are replaced with `[redacted]`, keeping the text around them; error messages and stacks included. Secret-shaped keys such as `dbPassword`, `x-api-key` or `STRIPE_SECRET_KEY` redact their string values; `…token` / `…key` / `…auth` keys redact only values that also look random, so `tokenCount: 12` is kept. `redactValues: "strict"` also removes any long random-looking string; `"off"` matches key names only. `auditRedaction(value)` reports what would be redacted, with a path, a reason and a four-character preview, without changing anything. See SECURITY.md for what none of this guarantees.
 
 **The function never throws.**
 

@@ -1,5 +1,5 @@
 export type { StoryEvent } from "../storyteller";
-export type { CanonicalRow, StoredStory, StoryQuery, StoryStore } from "./storyStore";
+export type { CanonicalRow, StoredStory, StoryQuery, StoryStore, ToStoredStoryOptions } from "./storyStore";
 export { applyQuery, canonicalRow, flattenOrigin, matchesQuery, storySearchText, toStoredStory } from "./storyStore";
 export type { MemoryStore, MemoryStoreOptions } from "./memoryStore";
 export { memoryStore } from "./memoryStore";
