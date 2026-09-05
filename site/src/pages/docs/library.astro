@@ -19,7 +19,6 @@ const sections = [
   <h2 id="keep">Keep them<a class="heading-anchor" href="#keep" aria-label="Link to this section">#</a></h2>
   <p>A <code>StoryStore</code> is where stories go and how they come back: <code>append</code>, <code>get</code>, <code>query</code>, <code>children</code>, <code>prune</code>. Two ship with the library and cost nothing: <code>memoryStore()</code>, a bounded map that runs anywhere, and <code>fileStore(path)</code>, one JSON-lines file for Node. <code>storeAudience</code> is the one-line bridge from delivery.</p>
   <Terminal title="keep.ts" code={storeCode} />
-  <p>Want to see what a file like that looks like before you keep one? <a href="/explore">Drop it on the explorer</a>: every story a panel, every failure obvious, nothing uploaded.</p>
   <p>Every level is kept by default. A store that only keeps failures can answer <em>what broke</em> but not <em>what happened</em>, and <code>prune()</code> is there for the rest. A rejecting store reports through <code>onAudienceError</code>, like any other audience.</p>
 
   <h2 id="ask">Ask in words<a class="heading-anchor" href="#ask" aria-label="Link to this section">#</a></h2>

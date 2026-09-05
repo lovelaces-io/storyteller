@@ -3,7 +3,6 @@ import Base from '../layouts/Base.astro';
 import Terminal from '../components/Terminal.astro';
 import Transform from "../components/Transform.astro";
 import AgentLinks from "../components/AgentLinks.astro";
-import Showcase from "../components/Showcase.astro";
 import { liveCode, anythingCode, discordCode } from "../content/samples";
 
 const beforeCode = `<span class="comment">[14:30:00]</span> User clicked checkout
@@ -96,17 +95,6 @@ const heroBefore = [
       <span>ESM + CJS</span>
       <span>MIT</span>
     </div>
-  </div>
-</section>
-
-<!-- The showcase: console firehose vs Storyteller, live -->
-<section>
-  <div class="container">
-    <span class="section-label">the same night, two ways</span>
-    <Showcase />
-    <p style="color: var(--text-muted); margin-top: 1.5rem; max-width: 650px;">
-      This runs in your browser. Drop your own <code>stories.jsonl</code> on <a href="/explore">the explorer</a> to see your runs this way, or keep them and <a href="/docs/library">ask the Librarian</a>.
-    </p>
   </div>
 </section>
 

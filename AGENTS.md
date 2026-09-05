@@ -9,7 +9,7 @@ packages/core/       @lovelaces-io/storyteller — the library. Zero dependencie
   AGENTS.md          the guide that ships in the package, for agents using the library
   llms.txt           the compressed version
   snippets/          the block `storyteller init` writes into a consumer's AGENTS.md
-packages/view/       @lovelaces-io/storyteller-view — renders stories for humans (DOM + text). Zero dependencies.
+packages/view/       @lovelaces-io/storyteller-view — renders stories for humans. Published, but parked: not linked from the site until it has had dedicated testing.
 packages/mcp/        @lovelaces-io/storyteller-mcp — the Librarian, an MCP server over any StoryStore. Read-only. Depends on the MCP SDK and zod, nothing else.
 packages/            further add-ons land here; ones with real dependencies (sqlite, mcp) are opt-in
 site/                storyteller.lovelaces.io — Astro, deployed by Vercel from this folder

@@ -273,7 +273,6 @@ Ask in words; every store answers the same question. Then let an agent ask: **th
 
 Redaction runs at capture and again at the storage boundary — secret-named keys and recognisable secret formats inside any string — so what is kept is what is safe to keep. Defense in depth, not a guarantee; [SECURITY.md](./SECURITY.md) says exactly what it does not promise.
 
-For a person, `@lovelaces-io/storyteller-view` renders a story as a timeline, in a page or a terminal: [storyteller.lovelaces.io/docs/view](https://storyteller.lovelaces.io/docs/view).
 
 ## Configuration
 
@@ -328,7 +327,6 @@ const story = useStoryteller({ origin: { who: "worker" } });
 - [Changelog](CHANGELOG.md)
 - [For AI Agents](packages/core/AGENTS.md) — the guide that ships in the package, for AI coding assistants
 - [The Library](https://storyteller.lovelaces.io/docs/library) — keep stories, ask in words, let an agent read them back
-- [Story view](https://storyteller.lovelaces.io/docs/view) — `@lovelaces-io/storyteller-view`, stories rendered for humans
 - [The Librarian](packages/mcp/README.md) — `@lovelaces-io/storyteller-mcp`, the read-only MCP server
 
 ## License

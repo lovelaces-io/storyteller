@@ -261,46 +261,6 @@ export const initOutputCode = `<span class="prompt">$</span> npx @lovelaces-io/s
 <span class="prompt">$</span> npx @lovelaces-io/storyteller init          <span class="comment"># again — nothing to do</span>
   <span class="comment">kept</span>     src/storyteller.ts (already exists)
   <span class="comment">kept</span>     AGENTS.md (already up to date)`;
-
-export const viewInstallCode = `<span class="prompt">$</span> npm install @lovelaces-io/storyteller-view`;
-
-export const viewDomCode = `<span class="keyword">import</span> <span class="punctuation">{</span> renderStory <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller-view"</span>;
-<span class="keyword">import</span> <span class="string">"@lovelaces-io/storyteller-view/style.css"</span>;
-
-story.audience.<span class="function">add</span>(<span class="punctuation">{</span>
-  name: <span class="string">"panel"</span>,
-  hear: (event) =&gt; panel.<span class="function">append</span>(<span class="function">renderStory</span>(event)),
-<span class="punctuation">}</span>);
-
-<span class="comment">// Or anything you kept: a row from your database, a line of NDJSON</span>
-panel.<span class="function">append</span>(<span class="function">renderStory</span>(JSON.<span class="function">parse</span>(line), <span class="punctuation">{</span> expandDepth: <span class="type">2</span> <span class="punctuation">}</span>));`;
-
-export const viewTextCode = `<span class="keyword">import</span> <span class="punctuation">{</span> renderStoryText <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller-view"</span>;
-
-story.audience.<span class="function">add</span>(<span class="punctuation">{</span>
-  name: <span class="string">"terminal"</span>,
-  hear: (event) =&gt; console.<span class="function">log</span>(<span class="function">renderStoryText</span>(event, <span class="punctuation">{</span> colors: process.stdout.isTTY <span class="punctuation">}</span>)),
-<span class="punctuation">}</span>);`;
-
-export const viewThemeCode = `<span class="comment">/* Set the knobs on any ancestor; the stylesheet only reads them */</span>
-.log-panel <span class="punctuation">{</span>
-  --stv-bg: var(--surface);
-  --stv-fg: var(--text);
-  --stv-muted: var(--text-dim);
-  --stv-border: var(--border);
-  --stv-error: var(--red);
-  --stv-font: var(--font-body);
-  --stv-mono: var(--font-mono);
-<span class="punctuation">}</span>`;
-
-export const viewReactCode = `<span class="keyword">function</span> <span class="function">StoryView</span>(<span class="punctuation">{</span> story <span class="punctuation">}</span>: <span class="punctuation">{</span> story: StoryRecord <span class="punctuation">}</span>) <span class="punctuation">{</span>
-  <span class="keyword">const</span> host = <span class="function">useRef</span>&lt;HTMLDivElement&gt;(<span class="type">null</span>);
-  <span class="function">useEffect</span>(() =&gt; <span class="punctuation">{</span>
-    host.current?.<span class="function">replaceChildren</span>(<span class="function">renderStory</span>(story));
-  <span class="punctuation">}</span>, [story]);
-  <span class="keyword">return</span> &lt;div ref=<span class="punctuation">{</span>host<span class="punctuation">}</span> /&gt;;
-<span class="punctuation">}</span>`;
-
 export const storeCode = `<span class="keyword">import</span> <span class="punctuation">{</span> storeAudience <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller"</span>;
 <span class="keyword">import</span> <span class="punctuation">{</span> fileStore <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller/store/file"</span>;
 
@@ -342,23 +302,3 @@ export const adapterCode = `<span class="keyword">import</span> <span class="pun
 <span class="comment">// { story_id, parent_story_id, timestamp, level, title,</span>
 <span class="comment">//   origin_who, origin_what, origin_where, duration_ms, error_message,</span>
 <span class="comment">//   notes, search_text, record }</span>`;
-
-export const storyboardCode = `<span class="keyword">import</span> <span class="punctuation">{</span> renderStoryboard, renderStoryFlow, renderStory <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller-view"</span>;
-
-<span class="comment">// At a glance: one panel per story, chapters as sub-scenes, a failure that looks like one</span>
-board.<span class="function">append</span>(<span class="function">renderStoryboard</span>(run, <span class="punctuation">{</span>
-  onSelect: (story) =&gt; detail.<span class="function">replaceChildren</span>(
-    <span class="function">renderStoryFlow</span>(story, <span class="punctuation">{</span> chapters: run, unfold: <span class="string">"failed"</span> <span class="punctuation">}</span>),   <span class="comment">// click in: steps 1 → 2 → 3, where it turned</span>
-    <span class="function">renderStory</span>(story),                                            <span class="comment">// and the full record beneath</span>
-  ),
-<span class="punctuation">}</span>));`;
-
-export const liveCodeBoard = `<span class="keyword">import</span> <span class="punctuation">{</span> liveStoryboard <span class="punctuation">}</span> <span class="keyword">from</span> <span class="string">"@lovelaces-io/storyteller-view"</span>;
-
-<span class="keyword">const</span> live = <span class="function">liveStoryboard</span>(document.<span class="function">querySelector</span>(<span class="string">"#board"</span>));
-
-<span class="comment">// In the browser: it is an audience, hearing every beat and every story</span>
-story.audience.<span class="function">add</span>(live.audience);
-
-<span class="comment">// Anywhere else: hand it each line of a tailed stories.jsonl or an NDJSON stream</span>
-<span class="keyword">for await</span> (<span class="keyword">const</span> line <span class="keyword">of</span> lines) live.<span class="function">hear</span>(JSON.<span class="function">parse</span>(line));`;

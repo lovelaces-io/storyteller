@@ -208,19 +208,6 @@ await kept.prune(new Date(Date.now() - 30 * 86_400_000));
 
 `stories(store)` is the vocabulary: `about`, `from`, `level`, `atLeast`, `failing`, `succeeding`, `slowerThan`, `since`, `until`, `under`, `newest`, `oldest`, `limit`, `skip`; then `all()`, `first()` or `count()`, or just `await` it. It compiles to a `StoryQuery` object, never a string. `about` searches title, note text, scalar context and error messages; `from` searches the origin. To write an adapter for a database, store `canonicalRow(story)` and make its query agree with `matchesQuery` — that agreement is the contract.
 
-## Rendering stories for humans
-
-Stories are JSON so programs can read them. When a person needs to read one — an admin log screen, a terminal, a chat transcript — use `@lovelaces-io/storyteller-view`, a separate zero-dependency package from the same repo:
-
-```ts
-import { renderStory, renderStoryText } from "@lovelaces-io/storyteller-view";
-
-renderStory(event);            // HTMLElement: timeline of notes, context trees, error with cause chain
-renderStoryText(event, { colors: true }); // string: the same layout as indented text
-```
-
-Both accept a `StoryEvent`, a `NoteEmission`, or a stored record read back from a database or NDJSON. Every marker the normalizer leaves (`@type`, `@truncated`, `[Circular → path]`, `[redacted]`) is shown as what it means rather than as a string, and the DOM renderer inserts text nodes only — never `innerHTML` — because story content is user input. Do not hand-roll a story renderer in an app; reach for the view and theme it with the `--stv-*` custom properties.
-
 ## Architecture
 
 ```
