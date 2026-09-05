@@ -34,6 +34,7 @@ npm test               every package's suites
 npm run build          every package → packages/*/dist
 npm run check:docs     no deprecated verbs in docs or site samples
 npm run check:snippet  the guidance block is identical everywhere it appears
+npm run check:links    every link into this repository's files resolves
 npm run check:package  zero dependencies, intended files only
 npm run release        publish core (needs an npm OTP); release:view, release:mcp for the add-ons
 cd site && npm run build   the site, with Pagefind indexing

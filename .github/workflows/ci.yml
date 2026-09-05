@@ -34,6 +34,9 @@ jobs:
       - name: Check snippet
         run: npm run check:snippet
 
+      - name: Check links
+        run: npm run check:links
+
       - name: Test
         run: npm test
 
