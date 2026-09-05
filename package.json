@@ -19,7 +19,10 @@
     "release": "npm publish -w @lovelaces-io/storyteller --access public",
     "release:view": "npm publish -w @lovelaces-io/storyteller-view --access public",
     "release:mcp": "npm publish -w @lovelaces-io/storyteller-mcp --access public",
-    "check:links": "node ./scripts/checkLinks.mjs"
+    "check:links": "node ./scripts/checkLinks.mjs",
+    "gate": "node scripts/deployGate.mjs",
+    "gate:open": "node scripts/deployGate.mjs open",
+    "gate:close": "node scripts/deployGate.mjs close"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

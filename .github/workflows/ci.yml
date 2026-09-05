@@ -3,9 +3,17 @@ name: CI
 on:
   push:
     branches: [main]
+    # A deploy-gate flip touches only site/vercel.json; nothing to check
+    paths-ignore:
+      - "site/vercel.json"
   # Every pull request, not only those targeting main — a stacked PR based on
   # another feature branch was silently getting no build at all
   pull_request:
+
+# A superseded push stops running, instead of finishing on minutes nobody reads
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:
