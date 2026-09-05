@@ -19,6 +19,7 @@ export type Beat = {
   chapter?: { origin: { what: string }; beats: Beat[]; finish: Finish };
 };
 
+/** `{order}` in a title becomes a fresh order id each time the run plays */
 export type Finish = { title: string; level?: Level; error?: { name?: string; message: string } };
 
 export type Run = {
@@ -40,8 +41,6 @@ export type Scenario = {
   autoplay: number[];
 };
 
-const order = () => `ord_${Math.random().toString(16).slice(2, 6)}`;
-
 export const scenarios: Scenario[] = [
   {
     id: "checkout",
@@ -59,7 +58,7 @@ export const scenarios: Scenario[] = [
           { after: 600, note: "Card charged", what: { amount: 42.5, currency: "USD", gateway: "stripe" } },
           { after: 300, note: "Confirmation queued" },
         ],
-        finish: { title: `Checkout for ${order()}` },
+        finish: { title: "Checkout for {order}" },
       },
       {
         label: "Slow gateway",
@@ -71,7 +70,7 @@ export const scenarios: Scenario[] = [
           { after: 2200, note: "Gateway slow, retrying once", level: "Warning", what: { attempt: 1, waitedMs: 2200 } },
           { after: 900, note: "Card charged", what: { amount: 18, currency: "USD" } },
         ],
-        finish: { title: `Checkout for ${order()}`, level: "Warning" },
+        finish: { title: "Checkout for {order}", level: "Warning" },
       },
       {
         label: "Card declined",
@@ -83,7 +82,7 @@ export const scenarios: Scenario[] = [
           { after: 700, note: "Charge declined", level: "Error", what: { amount: 64, currency: "USD", code: "card_declined" }, error: { name: "CardDeclinedError", message: "The card was declined", stack: "CardDeclinedError: The card was declined\n    at charge (payments/stripe.ts:71:9)\n    at checkout (api/checkout.ts:40:5)" } },
           { after: 200, note: "Stock released" },
         ],
-        finish: { title: `Checkout for ${order()} failed`, level: "Error", error: { name: "CardDeclinedError", message: "The card was declined" } },
+        finish: { title: "Checkout for {order} failed", level: "Error", error: { name: "CardDeclinedError", message: "The card was declined" } },
       },
     ],
   },

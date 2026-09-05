@@ -104,12 +104,13 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
 
   function play(run: Run, origin = run.origin, parentStoryId?: string, done?: () => void) {
     const storyId = `${run.origin.who}-${rid()}`;
+    const title = run.finish.title.replace("{order}", `ord_${rid().slice(0, 4)}`);
     const notes: { timestamp: string; sequence: number; note: string; level?: string; what?: unknown; where?: string; error?: unknown }[] = [];
     let clock = 0;
     let open = 0;
     const finish = () => {
       const first = Date.parse(notes[0]?.timestamp ?? new Date().toISOString());
-      live.hear({ kind: "story", storyId, ...(parentStoryId ? { parentStoryId } : {}), timestamp: new Date().toISOString(), level: run.finish.level ?? "Information", title: run.finish.title, origin, notes, durationMs: Date.now() - first, ...(run.finish.error ? { error: run.finish.error } : {}) });
+      live.hear({ kind: "story", storyId, ...(parentStoryId ? { parentStoryId } : {}), timestamp: new Date().toISOString(), level: run.finish.level ?? "Information", title, origin, notes, durationMs: Date.now() - first, ...(run.finish.error ? { error: run.finish.error } : {}) });
       done?.();
     };
     run.beats.forEach((beat: Beat, index) => {
