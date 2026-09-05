@@ -98,6 +98,8 @@ function renderFlowFor(ctx: Ctx, node: MapNode, depth: number): HTMLElement {
     item.dataset["kind"] = step.kind;
     if (index === failedAt) item.dataset["turn"] = "true";
     if (failedAt !== -1 && index > failedAt) item.dataset["after"] = "true";
+    const key = `${node.id}:${index}`;
+    item.dataset["key"] = key;
 
     const marker = el(ctx, "span", "stv-step-marker");
     marker.dataset["level"] = level;
@@ -105,17 +107,21 @@ function renderFlowFor(ctx: Ctx, node: MapNode, depth: number): HTMLElement {
     marker.setAttribute("aria-label", `step ${index + 1}, ${STATUS_WORD[level]}`);
 
     const body = el(ctx, "div", "stv-step-body");
+    const head = el(ctx, "div", "stv-step-head");
+    const title = el(ctx, "div", "stv-step-title");
     if (step.kind === "beat") {
-      const title = el(ctx, "div", "stv-step-title");
-      title.append(el(ctx, "span", "stv-step-text", step.note.note), el(ctx, "span", "stv-step-when", offsetLabel(node.start, step.at)));
-      body.append(title);
-      if (step.note.error?.message && step.note.error.message !== step.note.note) body.append(el(ctx, "div", "stv-step-reason", step.note.error.message));
-      const detail = beatDetail(ctx, step.note);
-      if (detail) body.append(unfold(ctx, "logs and data", detail, shouldOpen(ctx, level)));
+      title.append(el(ctx, "span", "stv-step-text", step.note.note));
+      if (step.note.error?.message && step.note.error.message !== step.note.note) title.append(el(ctx, "span", "stv-step-reason", step.note.error.message));
     } else {
-      const title = el(ctx, "div", "stv-step-title");
-      title.append(el(ctx, "span", "stv-step-text", step.node.story.title), el(ctx, "span", "stv-step-kind", "chapter"), el(ctx, "span", "stv-step-when", offsetLabel(node.start, step.at)));
-      body.append(title);
+      title.append(el(ctx, "span", "stv-step-text", step.node.story.title), el(ctx, "span", "stv-step-kind", "chapter"));
+    }
+    head.append(title, el(ctx, "span", "stv-step-when", offsetLabel(node.start, step.at)));
+    body.append(head);
+
+    if (step.kind === "beat") {
+      const detail = beatDetail(ctx, step.note);
+      if (detail) body.append(unfold(ctx, "Details", detail, shouldOpen(ctx, level), key));
+    } else {
       body.append(renderFlowFor(ctx, step.node, depth + 1));
     }
 
@@ -136,10 +142,17 @@ function renderFlowFor(ctx: Ctx, node: MapNode, depth: number): HTMLElement {
   endMarker.dataset["level"] = story.level;
   endMarker.append(el(ctx, "span", "stv-step-number", story.level === "Error" ? "✕" : story.level === "Warning" ? "!" : "✓"));
   const endBody = el(ctx, "div", "stv-step-body");
-  const outcome = story.error?.message ? `failed: ${story.error.message}` : story.level === "Error" ? "failed" : story.level === "Warning" ? "finished with warnings" : "finished";
-  endBody.append(el(ctx, "div", "stv-step-title stv-step-outcome", outcome));
+  const outcome = story.error?.message ? `Failed: ${story.error.message}` : story.level === "Error" ? "Failed" : story.level === "Warning" ? "Finished with warnings" : "Finished";
+  const endHead = el(ctx, "div", "stv-step-head");
+  endHead.append(el(ctx, "div", "stv-step-title stv-step-outcome", outcome));
+  if (story.durationMs !== undefined) endHead.append(el(ctx, "span", "stv-step-when", formatDuration(story.durationMs)));
+  endBody.append(endHead);
   if (story.error && (story.error.stack || story.error.cause !== undefined || story.error.errors)) {
-    endBody.append(unfold(ctx, "the error", renderError(story.error, ctx.options), shouldOpen(ctx, "Error")));
+    const card = el(ctx, "div", "stv-step-detail");
+    const section = el(ctx, "div", "stv-detail-section");
+    section.append(el(ctx, "div", "stv-detail-label", "Error"), renderError(story.error, ctx.options));
+    card.append(section);
+    endBody.append(unfold(ctx, "Details", card, shouldOpen(ctx, "Error"), `${node.id}:end`));
   }
   end.append(endMarker, endBody);
   list.append(end);
@@ -158,26 +171,38 @@ function shouldOpen(ctx: Ctx, level: Level): boolean {
   return mode === "all" || (mode === "failed" && level === "Error");
 }
 
-function unfold(ctx: Ctx, label: string, content: HTMLElement, open: boolean): HTMLDetailsElement {
+function unfold(ctx: Ctx, label: string, content: HTMLElement, open: boolean, key: string): HTMLDetailsElement {
   const details = el(ctx, "details", "stv-step-unfold");
   details.open = open;
-  details.append(el(ctx, "summary", "stv-step-summary", label), content);
+  details.dataset["key"] = key;
+  const summary = el(ctx, "summary", "stv-step-summary");
+  summary.append(el(ctx, "span", "stv-step-summary-label", label), el(ctx, "span", "stv-step-summary-chevron", "›"));
+  details.append(summary, content);
   return details;
 }
 
 function beatDetail(ctx: Ctx, note: NoteRecord): HTMLElement | undefined {
-  const parts: HTMLElement[] = [];
-  for (const key of ["who", "what", "where"] as const) {
-    const value: JsonValue | undefined = note[key];
-    if (value === undefined) continue;
-    const block = el(ctx, "div", "stv-step-context");
-    block.append(el(ctx, "span", "stv-key", key), renderValue(value, { ...ctx.options, expandDepth: ctx.options.expandDepth ?? 2 }));
-    parts.push(block);
+  const sections: HTMLElement[] = [];
+  const context = (["who", "what", "where"] as const).filter((key) => note[key] !== undefined);
+  if (context.length) {
+    const section = el(ctx, "div", "stv-detail-section");
+    section.append(el(ctx, "div", "stv-detail-label", "Data"));
+    for (const key of context) {
+      const value = note[key] as JsonValue;
+      const block = el(ctx, "div", "stv-step-context");
+      block.append(el(ctx, "span", "stv-key", key), renderValue(value, { ...ctx.options, expandDepth: ctx.options.expandDepth ?? 2 }));
+      section.append(block);
+    }
+    sections.push(section);
   }
   const error: ErrorRecord | undefined = note.error;
-  if (error) parts.push(renderError(error, ctx.options));
-  if (!parts.length) return undefined;
+  if (error) {
+    const section = el(ctx, "div", "stv-detail-section");
+    section.append(el(ctx, "div", "stv-detail-label", "Error"), renderError(error, ctx.options));
+    sections.push(section);
+  }
+  if (!sections.length) return undefined;
   const detail = el(ctx, "div", "stv-step-detail");
-  detail.append(...parts);
+  detail.append(...sections);
   return detail;
 }

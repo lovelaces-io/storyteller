@@ -161,7 +161,7 @@ describe("the dialog and the pins", () => {
     expect(dialog.hasAttribute("open")).toBe(true);
     expect(dialog.querySelector(".stv-dialog-title")!.textContent).toBe("Nightly sync failed");
     expect(dialog.querySelector(".stv-dialog-sub")!.textContent).toBe("deadlock detected · turned at step 2 of 2");
-    expect(dialog.querySelector(".stv-dialog-meta")!.textContent).toContain("sync-agent · 31.0 s");
+    expect([...dialog.querySelectorAll(".stv-badge")].map((b) => b.textContent).slice(0, 3)).toEqual(["failed", "sync-agent", "31.0 s"]);
     expect([...dialog.querySelectorAll(".stv-flow-steps > .stv-step > .stv-step-marker > .stv-step-number")].map((n) => n.textContent)).toEqual(["1", "2", "✕"]);
     expect((dialog.querySelector(".stv-dialog-record") as HTMLDetailsElement).open).toBe(false);
     expect(dialog.querySelector(".stv-dialog-record .stv-story")).not.toBeNull();
@@ -172,6 +172,26 @@ describe("the dialog and the pins", () => {
     board.open("digest");
     expect(dialog.querySelector(".stv-dialog-title")!.textContent).toBe("Digest sent");
     board.close();
+    board.element.remove();
+  });
+
+  it("leaves an open dialog alone while unrelated stories arrive, keeping what the reader opened", () => {
+    const board = createStoryboard(run, { now: NOW, detail: "dialog", pinsKey: null });
+    document.body.append(board.element);
+    board.open("root");
+    const dialog = board.element.querySelector("dialog.stv-dialog") as HTMLDialogElement;
+    const details = dialog.querySelector('details[data-key="root:0"]') as HTMLDetailsElement;
+    expect(details.open).toBe(false);
+    details.open = true;
+    const before = dialog.querySelector(".stv-dialog-body");
+    board.update([...run, { storyId: "new", timestamp: at(60000), level: "Information", title: "Something else", notes: [] }]);
+    // same body element: nothing was rebuilt
+    expect(dialog.querySelector(".stv-dialog-body")).toBe(before);
+    expect((dialog.querySelector('details[data-key="root:0"]') as HTMLDetailsElement).open).toBe(true);
+    // the story itself changing does rebuild, but what was open stays open
+    board.update([{ ...run[0]!, notes: [...run[0]!.notes, { timestamp: at(32000), sequence: 2, note: "Cleanup ran" }] }, run[1]!]);
+    expect(dialog.querySelector(".stv-dialog-body")).not.toBe(before);
+    expect((dialog.querySelector('details[data-key="root:0"]') as HTMLDetailsElement).open).toBe(true);
     board.element.remove();
   });
 

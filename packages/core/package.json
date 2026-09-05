@@ -17,7 +17,7 @@
     "type": "git",
     "url": "git+https://github.com/lovelaces-io/storyteller.git"
   },
-  "author": "Lovelaces <contact@lovelaces.io> (https://lovelaces.io)",
+  "author": "Lovelaces.io <contact@lovelaces.io> (https://lovelaces.io)",
   "homepage": "https://storyteller.lovelaces.io",
   "bugs": {
     "url": "https://github.com/lovelaces-io/storyteller/issues"
