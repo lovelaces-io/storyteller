@@ -245,6 +245,7 @@ const { framed = true } = Astro.props;
   .showcase-cap b { color: var(--text); font-weight: 500; }
   @media (max-width: 900px) { .showcase-cap { grid-template-columns: 1fr; } }
   .showcase .view-demo {
+    --stv-board-height: none; /* the window is the scroller */
     --stv-bg: var(--bg-surface); --stv-fg: var(--text); --stv-muted: var(--text-muted); --stv-border: var(--border); --stv-surface: var(--bg-elevated);
     --stv-info: var(--green); --stv-warn: var(--warn); --stv-error: var(--oops); --stv-accent: #7fb3ff;
     --stv-font: var(--font-body); --stv-mono: var(--font-mono); --stv-radius: 8px; --stv-size: 12.5px;
