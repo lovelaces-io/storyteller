@@ -18,6 +18,7 @@ const PACKAGES = [
   {
     name: "@lovelaces-io/storyteller",
     dir: "packages/core",
+    allowedDependencies: [],
     copies: ["README.md", "LICENSE"],
     allowed: /^(dist\/|snippets\/agents-section\.md$|llms\.txt$|AGENTS\.md$|README\.md$|LICENSE$|package\.json$)/,
     required: ["README.md", "LICENSE", "package.json", "dist/cli.cjs", "dist/store/file.js", "dist/store/file.cjs", "dist/store/file.d.ts", "llms.txt", "AGENTS.md"],
@@ -25,9 +26,21 @@ const PACKAGES = [
   {
     name: "@lovelaces-io/storyteller-view",
     dir: "packages/view",
+    allowedDependencies: [],
     copies: ["LICENSE"],
     allowed: /^(dist\/|README\.md$|LICENSE$|package\.json$)/,
     required: ["README.md", "LICENSE", "package.json", "dist/index.js", "dist/index.cjs", "dist/index.d.ts", "dist/story-view.css"],
+  },
+  {
+    // The Librarian needs the MCP SDK and zod for its schemas, and nothing else.
+    // Core is a peer it talks to only through the StoryStore contract.
+    name: "@lovelaces-io/storyteller-mcp",
+    dir: "packages/mcp",
+    allowedDependencies: ["@modelcontextprotocol/sdk", "zod"],
+    allowedPeerDependencies: ["@lovelaces-io/storyteller"],
+    copies: ["LICENSE"],
+    allowed: /^(dist\/|README\.md$|LICENSE$|package\.json$)/,
+    required: ["README.md", "LICENSE", "package.json", "dist/index.js", "dist/index.d.ts", "dist/cli.js"],
   },
 ];
 
@@ -36,9 +49,14 @@ const summary = [];
 
 for (const pkg of PACKAGES) {
   const manifest = JSON.parse(readFileSync(`${pkg.dir}/package.json`, "utf8"));
-  for (const field of ["dependencies", "peerDependencies", "optionalDependencies"]) {
-    const entries = Object.keys(manifest[field] ?? {});
-    if (entries.length) failures.push(`${pkg.dir}/package.json has ${field}: ${entries.join(", ")}`);
+  const allowedBy = {
+    dependencies: pkg.allowedDependencies ?? [],
+    peerDependencies: pkg.allowedPeerDependencies ?? [],
+    optionalDependencies: [],
+  };
+  for (const [field, allowedNames] of Object.entries(allowedBy)) {
+    const entries = Object.keys(manifest[field] ?? {}).filter((name) => !allowedNames.includes(name));
+    if (entries.length) failures.push(`${pkg.dir}/package.json has ${field} it may not: ${entries.join(", ")}`);
   }
   if (manifest.name !== pkg.name) failures.push(`${pkg.dir} has unexpected package name ${manifest.name}`);
   if (manifest.private) failures.push(`${pkg.name} is marked private`);
@@ -63,4 +81,4 @@ if (failures.length) {
   console.error(`Package check failed:\n  - ${failures.join("\n  - ")}`);
   process.exit(1);
 }
-console.log(`Package check passed — zero dependencies, all intended files (${summary.join("; ")}).`);
+console.log(`Package check passed — only the allowed dependencies, all intended files (${summary.join("; ")}).`);

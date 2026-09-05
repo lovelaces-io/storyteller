@@ -10,6 +10,7 @@ packages/core/       @lovelaces-io/storyteller — the library. Zero dependencie
   llms.txt           the compressed version
   snippets/          the block `storyteller init` writes into a consumer's AGENTS.md
 packages/view/       @lovelaces-io/storyteller-view — renders stories for humans (DOM + text). Zero dependencies.
+packages/mcp/        @lovelaces-io/storyteller-mcp — the Librarian, an MCP server over any StoryStore. Read-only. Depends on the MCP SDK and zod, nothing else.
 packages/            further add-ons land here; ones with real dependencies (sqlite, mcp) are opt-in
 site/                storyteller.lovelaces.io — Astro, deployed by Vercel from this folder
 docs/                API reference and the narrative guide
@@ -34,7 +35,7 @@ npm run build          every package → packages/*/dist
 npm run check:docs     no deprecated verbs in docs or site samples
 npm run check:snippet  the guidance block is identical everywhere it appears
 npm run check:package  zero dependencies, intended files only
-npm run release        publish core (needs an npm OTP)
+npm run release        publish core (needs an npm OTP); release:view, release:mcp for the add-ons
 cd site && npm run build   the site, with Pagefind indexing
 ```
 
