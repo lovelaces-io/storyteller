@@ -1,0 +1,181 @@
+---
+import Base from "../layouts/Base.astro";
+
+const title = "Explore your stories";
+const description = "Drop a stories.jsonl or paste NDJSON and see your runs as a storyboard: every story a panel, every failure obvious, every step one click from its raw data. Nothing leaves your browser.";
+---
+
+<Base title={`${title} — Storyteller`} description={description} path="/explore">
+  <div class="container explore">
+    <header class="explore-head">
+      <h1>{title}</h1>
+      <p class="lede">Drop the file a <code>fileStore</code> writes, or anything with one JSON object per line: stories, live beats, or both. It stays on this page. Nothing is uploaded.</p>
+    </header>
+
+    <section class="explore-input" aria-label="Load stories">
+      <label class="dropzone" id="dropzone" for="file-input">
+        <span class="dropzone-title">Drop <code>stories.jsonl</code> here</span>
+        <span class="dropzone-sub">or click to choose a file · or paste below</span>
+        <input type="file" id="file-input" accept=".jsonl,.ndjson,.json,.txt,text/plain,application/json" hidden />
+      </label>
+      <div class="explore-paste">
+        <textarea id="paste-input" rows="4" spellcheck="false" placeholder='{"kind":"story","title":"Nightly sync failed", ...}'></textarea>
+        <div class="explore-actions">
+          <button type="button" class="copy-btn" id="load-paste">load pasted text</button>
+          <button type="button" class="copy-btn" id="load-sample">load a sample run</button>
+          <button type="button" class="copy-btn" id="clear-board" hidden>clear</button>
+        </div>
+      </div>
+      <p class="explore-status" id="explore-status" aria-live="polite"></p>
+    </section>
+
+    <section class="explore-board" id="explore-board" hidden aria-label="Storyboard">
+      <div class="explore-toolbar">
+        <label class="explore-filter"><input type="checkbox" id="filter-failing" /> only failures</label>
+        <input type="search" id="filter-about" placeholder="mentions…" aria-label="Only stories that mention" />
+        <button type="button" class="copy-btn" id="copy-mermaid">copy as Mermaid</button>
+      </div>
+      <div class="view-demo" id="board-host"></div>
+      <div class="view-demo explore-detail" id="detail-host" hidden></div>
+    </section>
+
+    <section class="explore-how">
+      <h2>Where a file like that comes from</h2>
+      <p>Two lines in any Node app, and every story it tells lands in a file you can drop here:</p>
+      <pre class="explore-code">import &#123; storeAudience &#125; from "@lovelaces-io/storyteller";
+import &#123; fileStore &#125; from "@lovelaces-io/storyteller/store/file";
+
+story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
+      <p>Or stream beats live with <code>STORYTELLER_FORMAT=ndjson</code> and paste what came out. Redaction happened where the story was written; this page redacts nothing and keeps nothing. To keep stories somewhere and ask them questions, see <a href="/docs/library">The Library</a>.</p>
+    </section>
+  </div>
+</Base>
+
+<script>
+  import { liveStoryboard, renderStory, renderStoryFlow, renderStoryboard, toMermaid } from "@lovelaces-io/storyteller-view";
+  import demoRun from "../content/demoRun.json";
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const dropzone = $<HTMLLabelElement>("dropzone");
+  const fileInput = $<HTMLInputElement>("file-input");
+  const pasteInput = $<HTMLTextAreaElement>("paste-input");
+  const status = $<HTMLParagraphElement>("explore-status");
+  const boardSection = $<HTMLElement>("explore-board");
+  const boardHost = $<HTMLDivElement>("board-host");
+  const detailHost = $<HTMLDivElement>("detail-host");
+  const clearButton = $<HTMLButtonElement>("clear-board");
+  const failingOnly = $<HTMLInputElement>("filter-failing");
+  const aboutInput = $<HTMLInputElement>("filter-about");
+
+  type Record = Parameters<typeof renderStoryboard>[0][number];
+  // The live controller reassembles beats into stories and ignores anything else;
+  // its board is never shown — the filtered board below is what the page draws.
+  let live = liveStoryboard(document.createElement("div"), { capacity: 100_000 });
+  let loaded = 0;
+  let skipped = 0;
+
+  function draw() {
+    let stories = live.stories() as Record[];
+    if (failingOnly.checked) stories = stories.filter((story) => story.level === "Error" || story.error);
+    const about = aboutInput.value.trim().toLowerCase();
+    if (about) {
+      stories = stories.filter((story) =>
+        [story.title, ...story.notes.map((note) => note.note), story.error?.message ?? ""].some((text) => text.toLowerCase().includes(about))
+      );
+    }
+    boardHost.replaceChildren(
+      renderStoryboard(stories, {
+        onSelect: (story) => {
+          detailHost.hidden = false;
+          detailHost.replaceChildren(renderStoryFlow(story, { chapters: live.stories() as Record[], unfold: "failed" }), renderStory(story, { expandDepth: 1 }));
+          detailHost.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        },
+      })
+    );
+    boardSection.hidden = false;
+    clearButton.hidden = false;
+    const total = live.stories().length;
+    status.textContent = `${total} ${total === 1 ? "story" : "stories"} from ${loaded} ${loaded === 1 ? "line" : "lines"}${skipped ? `, ${skipped} skipped` : ""}${stories.length !== total ? ` · showing ${stories.length}` : ""}. Nothing left your browser.`;
+  }
+
+  /** Parse one JSON object per line (or one JSON array), in slices so a big file does not freeze the page */
+  function load(text: string, onDone: () => void) {
+    const trimmed = text.trim();
+    if (!trimmed) return onDone();
+    if (trimmed.startsWith("[")) {
+      try {
+        for (const item of JSON.parse(trimmed) as unknown[]) { live.hear(item); loaded++; }
+      } catch { skipped++; }
+      return onDone();
+    }
+    const lines = trimmed.split("\n");
+    let index = 0;
+    const slice = () => {
+      const end = Math.min(index + 2000, lines.length);
+      for (; index < end; index++) {
+        const line = lines[index]!.trim();
+        if (!line) continue;
+        try { live.hear(JSON.parse(line)); loaded++; } catch { skipped++; }
+      }
+      if (index < lines.length) { status.textContent = `reading… ${index} of ${lines.length} lines`; setTimeout(slice, 0); }
+      else onDone();
+    };
+    slice();
+  }
+
+  function loadText(text: string) { load(text, () => { live.flush(); draw(); }); }
+  function loadFile(file: File) { file.text().then(loadText); }
+
+  fileInput.addEventListener("change", () => { if (fileInput.files?.[0]) loadFile(fileInput.files[0]); });
+  for (const type of ["dragenter", "dragover"]) dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.add("is-over"); });
+  for (const type of ["dragleave", "drop"]) dropzone.addEventListener(type, (event) => { event.preventDefault(); dropzone.classList.remove("is-over"); });
+  dropzone.addEventListener("drop", (event) => { const file = (event as DragEvent).dataTransfer?.files?.[0]; if (file) loadFile(file); });
+  document.addEventListener("paste", (event) => {
+    if (event.target === pasteInput) return;
+    const text = event.clipboardData?.getData("text");
+    if (text && text.trim().startsWith("{")) { event.preventDefault(); loadText(text); }
+  });
+  $("load-paste").addEventListener("click", () => loadText(pasteInput.value));
+  $("load-sample").addEventListener("click", () => loadText((demoRun as unknown[]).map((record) => JSON.stringify(record)).join("\n")));
+  clearButton.addEventListener("click", () => {
+    live.destroy();
+    live = liveStoryboard(document.createElement("div"), { capacity: 100_000 });
+    loaded = 0; skipped = 0;
+    boardHost.replaceChildren(); detailHost.replaceChildren(); detailHost.hidden = true; boardSection.hidden = true; clearButton.hidden = true;
+    status.textContent = "";
+  });
+  failingOnly.addEventListener("change", draw);
+  aboutInput.addEventListener("input", draw);
+  $("copy-mermaid").addEventListener("click", async () => {
+    const button = $<HTMLButtonElement>("copy-mermaid");
+    try { await navigator.clipboard.writeText(toMermaid(live.stories() as Record[])); button.textContent = "copied"; }
+    catch { button.textContent = "copy failed"; }
+    setTimeout(() => { button.textContent = "copy as Mermaid"; }, 1400);
+  });
+</script>
+
+<style>
+  .explore { max-width: 1100px; }
+  .explore-head { padding: 2.5rem 0 1rem; }
+  .explore-head h1 { margin: 0 0 0.5rem; }
+  .explore-input { display: grid; gap: 12px; margin: 0 0 1.5rem; }
+  .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 120px; padding: 20px; border: 1px dashed var(--green-dim); border-radius: var(--radius); background: var(--bg-surface); color: var(--text); cursor: pointer; text-align: center; transition: border-color 0.15s, background 0.15s; }
+  .dropzone:hover, .dropzone.is-over { border-color: var(--green); background: var(--bg-elevated); }
+  .dropzone-title { font-weight: 600; }
+  .dropzone-sub { color: var(--text-muted); font-size: 0.9em; }
+  .explore-paste textarea { width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); color: var(--text); font-family: var(--font-mono); font-size: 12px; resize: vertical; }
+  .explore-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .explore-status { min-height: 1.4em; margin: 0; color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
+  .explore-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 0 0 12px; }
+  .explore-filter { display: inline-flex; gap: 6px; align-items: center; color: var(--text-muted); font-size: 0.9em; }
+  .explore-toolbar input[type="search"] { padding: 5px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); color: var(--text); font-family: var(--font-mono); font-size: 12px; }
+  .explore-detail { display: grid; gap: 16px; margin-top: 16px; }
+  .explore-how { margin: 2.5rem 0 3rem; }
+  .explore-code { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); font-family: var(--font-mono); font-size: 12.5px; overflow-x: auto; }
+  .view-demo {
+    --stv-bg: var(--bg-surface); --stv-fg: var(--text); --stv-muted: var(--text-muted); --stv-border: var(--border); --stv-surface: var(--bg-elevated);
+    --stv-info: var(--green); --stv-warn: var(--warn); --stv-error: var(--oops); --stv-accent: var(--green);
+    --stv-font: var(--font-body); --stv-mono: var(--font-mono); --stv-radius: var(--radius); --stv-size: 13px;
+    min-width: 0;
+  }
+</style>
