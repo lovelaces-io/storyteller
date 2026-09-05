@@ -568,6 +568,36 @@ type StoryStore = {
 | `failed` | carries an error or closed at `Error` |
 | `limit` / `offset` / `order` | paging; newest first unless `order: "oldest"` |
 
+### stories(store, options?)
+
+Ask in the library's own words. Chainable and immutable: every clause returns a new question; awaiting one runs `.all()`.
+
+```ts
+import { stories } from "@lovelaces-io/storyteller";
+
+const recent = stories(store);
+
+await recent.failing().since("1h");
+await recent.about("checkout").from("payment-service").level("oops").since("24h");
+await recent.slowerThan("5s").since("7d").oldest().limit(10);
+await recent.under(parentStoryId).count();
+```
+
+| clause | criteria |
+|---|---|
+| `about(text)` | title, note text, scalar context or error message mentions it |
+| `from(origin)` | the origin's who / what / where mentions it |
+| `level(level)` | exactly this level; `"info"` / `"warn"` / `"oops"` accepted |
+| `atLeast(level)` | this level or worse |
+| `failing()` / `succeeding()` | carried an error or closed at `Error`, or did not |
+| `slowerThan(duration)` | took longer than `"5s"`, `"2m"`, or milliseconds |
+| `since(when)` / `until(when)` | a duration ago (`"24h"`, `"7d"`, `"2w"`) or a `Date` |
+| `under(parentStoryId)` | the chapters of one story |
+| `newest()` / `oldest()` | order; newest is the default |
+| `limit(n)` / `skip(n)` | paging |
+
+Terminals: `all()`, `first()`, `count()` (ignores paging), and `toQuery()` — the `StoryQuery` the question compiles to, which is what an adapter receives. `parseDuration("24h")` is exported; it throws on anything that is not a duration, so a typo cannot mean "since forever". Pass `{ now: () => Date }` to pin the clock in tests. One consequence of being awaitable: returning a builder from an `async` function resolves it into its results, so hand back the store or `toQuery()` when a caller should get the question rather than the answer.
+
 ### memoryStore(options?)
 
 The reference implementation: a bounded Map. Zero dependencies, browser-safe, right for tests and for a process that reads its own stories back.

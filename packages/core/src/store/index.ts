@@ -5,3 +5,5 @@ export type { MemoryStore, MemoryStoreOptions } from "./memoryStore";
 export { memoryStore } from "./memoryStore";
 export type { StoreAudienceOptions } from "./storeAudience";
 export { storeAudience } from "./storeAudience";
+export type { DurationInput, StoriesOptions } from "./stories";
+export { parseDuration, stories, StoryQueryBuilder } from "./stories";

@@ -65,6 +65,7 @@ story.finish("Startup complete");
 - `storeAudience(store, options?)` — keeps every story in a `StoryStore`
 - `memoryStore(options?)` — the reference store: bounded, in memory, browser-safe
 - `fileStore(path)` — JSON-lines file store, Node only, from `@lovelaces-io/storyteller/store/file`
+- `stories(store)` — the query vocabulary: `.about(text).from(origin).level(l).atLeast(l).failing().succeeding().slowerThan("5s").since("24h").until(d).under(parentStoryId).newest().oldest().limit(n).skip(n)`; terminals `all()` / `first()` / `count()`; an awaited builder is `all()`
 - `StoryStore` — `append` / `get(storyId)` / `query(criteria)` / `children(parentStoryId)` / `prune(before)`; criteria: `since`, `until`, `level`, `minimumLevel`, `about`, `from`, `parentStoryId`, `slowerThanMs`, `failed`, `limit`, `offset`, `order`
 - `storyteller init` — CLI that sets a project up in one command; safe to re-run
 - `ANSI` / `getLevelColor(level)` / `formatOrigin(origin?)` / `summarizeContext(note)` / `formatDuration(ms)`
