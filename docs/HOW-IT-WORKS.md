@@ -247,7 +247,7 @@ In a real app, the user's journey spans multiple components and services. `useSt
 // In your auth service
 import { useStoryteller } from "@lovelaces-io/storyteller";
 const story = useStoryteller();
-story.report("Session validated", { who: { id: "user:42" } });
+story.report("Session validated", { who: { service: "auth", region: "us-east-1" } });
 
 // In your API layer
 const story = useStoryteller();  // same instance
@@ -313,7 +313,7 @@ const story = new Storyteller({
 // User action
 story.report("User updated email", {
   who: { id: "user:99", role: "member" },
-  what: { field: "email", value: "new@example.com" },
+  what: { setting: "timezone", value: "Europe/Berlin" },
   where: { component: "ProfileForm" },
 });
 
@@ -322,7 +322,7 @@ story.report("Validation passed", { what: "email format check" });
 
 // Database write fails
 try {
-  await db.update("users", { email: "new@example.com" });
+  await db.update("settings", { timezone: "Europe/Berlin" });
   story.finish("Profile updated");
 } catch (error) {
   story.report("Write failed", {
@@ -382,7 +382,7 @@ Every field has a clear, unabbreviated name. `timestamp` not `ts`. `error` not `
 story.report(await response.json());          // any API payload
 story.report(caughtError);                     // cause chain preserved
 story.report(new Map([["region", "us-east"]]));
-story.report({ apiKey: "sk-live-abc" });       // → "[redacted]"
+story.report({ deployToken: "dt-9f2c-abc" });   // → "[redacted]"
 ```
 
 Errors keep their `cause` chain. Maps and Sets are tagged. Class instances get an `@type`. A circular reference becomes `[Circular → path]`. Something enormous is truncated with an explicit marker, so you can tell "empty" from "too big." Secret-looking keys are redacted — best effort, by key name, so don't make it your only line of defense.

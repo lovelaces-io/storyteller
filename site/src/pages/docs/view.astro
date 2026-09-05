@@ -3,17 +3,11 @@ import DocsLayout from "../../layouts/DocsLayout.astro";
 import Terminal from "../../components/Terminal.astro";
 import Showcase from "../../components/Showcase.astro";
 import { viewInstallCode, viewDomCode, viewTextCode, viewThemeCode, viewReactCode, storyboardCode, liveCodeBoard } from "../../content/samples";
-import { renderStoryText, toMermaid, type StoryRecord } from "@lovelaces-io/storyteller-view";
+import { toMermaid, type StoryRecord } from "@lovelaces-io/storyteller-view";
 import demoRunJson from "../../content/demoRun.json";
-import demoStoryJson from "../../content/demoStory.json";
 
-// The same record drives both demos. The text version is rendered here at
-// build time, so the page reads without JavaScript; the DOM version is drawn
-// in the browser by the package itself.
-const demoStory = demoStoryJson as StoryRecord;
 const escapeHtml = (text: string) =>
   text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-const demoText = escapeHtml(renderStoryText(demoStory, { locale: "en-US", timeZone: "UTC" }));
 const demoRun = demoRunJson as StoryRecord[];
 const demoMermaid = escapeHtml(toMermaid(demoRun));
 
@@ -26,7 +20,6 @@ const sections = [
   { id: "react", label: "React and friends" },
   { id: "storyboard", label: "The storyboard" },
   { id: "live", label: "Live" },
-  { id: "live-demo", label: "Live demo" },
 ];
 ---
 
@@ -83,22 +76,13 @@ const sections = [
   <p>Watch a checkout site under load, twice: the console on the left, Storyteller on the right, the same facts.</p>
   <div class="view-wide"><Showcase framed={false} /></div>
 
-  <h2 id="live-demo">Live demo<a class="heading-anchor" href="#live-demo" aria-label="Link to this section">#</a></h2>
-  <p>One stored record, rendered both ways by the package on this page. Open the trees; the redaction, the truncated array, the circular reference and the capped cause chain are all in there.</p>
-  <div class="view-demo" id="view-demo" data-demo="dom" aria-live="polite">
-    <noscript><p>The DOM renderer runs in the browser; the text renderer's output is below.</p></noscript>
-  </div>
-  <Terminal title="renderStoryText(record)" code={demoText} />
 </DocsLayout>
 
 <script>
   import { renderStory, renderStoryboard, renderStoryFlow } from "@lovelaces-io/storyteller-view";
   import demoRun from "../../content/demoRun.json";
   import "@lovelaces-io/storyteller-view/style.css";
-  import demoStory from "../../content/demoStory.json";
 
-  const host = document.getElementById("view-demo");
-  if (host) host.replaceChildren(renderStory(demoStory as Parameters<typeof renderStory>[0], { expandDepth: 2 }));
 
   const boardHost = document.getElementById("board-demo");
   const boardDetail = document.getElementById("board-detail");

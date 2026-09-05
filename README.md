@@ -193,7 +193,7 @@ Levels work on individual beats too: `story.report("Retrying", { level: "warn" }
 ```ts
 story.report("Write failed", {
   who: { id: "user:99" },
-  what: { field: "email" },
+  what: { field: "quantity" },
   where: "primary-db",
   error: new Error("db timeout"),
 });

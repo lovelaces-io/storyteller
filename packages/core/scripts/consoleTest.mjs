@@ -20,7 +20,7 @@ class ConsoleTestRunner {
     console.log("\n--- Demo: info ---");
     const story = new Storyteller({ origin: { where: { app: "web", page: "Dashboard" } } });
 
-    story.report("User opened dashboard", { who: { id: "user:42" }, where: { component: "DashboardPage" } });
+    story.report("User opened dashboard", { who: { service: "web" }, where: { component: "DashboardPage" } });
     story.report("Loaded widgets", { what: { count: 6 }, where: { component: "WidgetGrid" } });
     story.report("Dashboard ready", { what: "initial render complete" });
 

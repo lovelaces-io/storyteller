@@ -12,7 +12,7 @@ const description = "Drop a stories.jsonl or paste NDJSON and see your runs as a
       <p class="lede">Drop the file a <code>fileStore</code> writes, or anything with one JSON object per line: stories, live beats, or both. It stays on this page. Nothing is uploaded.</p>
     </header>
 
-    <section class="explore-input" aria-label="Load stories">
+    <div class="explore-input" aria-label="Load stories">
       <div class="explore-start">
         <button type="button" class="btn btn-primary" id="load-sample">Show me a sample run</button>
         <label class="dropzone" id="dropzone" for="file-input">
@@ -29,18 +29,18 @@ const description = "Drop a stories.jsonl or paste NDJSON and see your runs as a
         </div>
       </details>
       <p class="explore-status" id="explore-status" aria-live="polite"></p>
-    </section>
+    </div>
 
-    <section class="explore-board" id="explore-board" hidden aria-label="Storyboard">
+    <div class="explore-board" id="explore-board" hidden aria-label="Storyboard">
       <div class="explore-toolbar">
         <button type="button" class="copy-btn" id="copy-mermaid">copy as Mermaid</button>
         <button type="button" class="copy-btn" id="clear-board">clear</button>
       </div>
       <div class="view-demo" id="board-host"></div>
       <div class="view-demo explore-detail" id="detail-host" hidden></div>
-    </section>
+    </div>
 
-    <section class="explore-how">
+    <div class="explore-how">
       <h2>Where a file like that comes from</h2>
       <p>Two lines in any Node app, and every story it tells lands in a file you can drop here:</p>
       <pre class="explore-code">import &#123; storeAudience &#125; from "@lovelaces-io/storyteller";
@@ -48,7 +48,7 @@ import &#123; fileStore &#125; from "@lovelaces-io/storyteller/store/file";
 
 story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
       <p>Or stream beats live with <code>STORYTELLER_FORMAT=ndjson</code> and paste what came out. Redaction happened where the story was written; this page redacts nothing and keeps nothing. To keep stories somewhere and ask them questions, see <a href="/docs/library">The Library</a>.</p>
-    </section>
+    </div>
   </div>
 </Base>
 
@@ -175,7 +175,7 @@ story.audience.add(storeAudience(fileStore("./stories.jsonl")));</pre>
   .explore-status { min-height: 1.4em; margin: 0; color: var(--text-muted); font-family: var(--font-mono); font-size: 12px; }
   .explore-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: flex-end; margin: 0 0 10px; }
   .explore-detail { display: grid; gap: 16px; margin-top: 16px; }
-  .explore-how { margin: 2.5rem 0 3rem; }
+  .explore-how { margin: 2.5rem 0 3rem; padding-top: 2rem; border-top: 1px solid var(--border); }
   .explore-code { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-surface); font-family: var(--font-mono); font-size: 12.5px; overflow-x: auto; }
   .view-demo {
     --stv-bg: var(--bg-surface); --stv-fg: var(--text); --stv-muted: var(--text-muted); --stv-border: var(--border); --stv-surface: var(--bg-elevated);

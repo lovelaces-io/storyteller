@@ -4,7 +4,7 @@
   "title": "The app shell crashed",
   "storyId": "st_01J6YV3PQ8K2N4M7R9T1W3X5Z7",
   "origin": {
-    "who": { "userId": "d061a841-a243-44d0-9a5b-463e5e6184ed" },
+    "who": { "requestId": "d061a841-a243-44d0-9a5b-463e5e6184ed" },
     "where": "global-error-boundary"
   },
   "notes": [
