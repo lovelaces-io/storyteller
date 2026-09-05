@@ -248,6 +248,33 @@ story.audience.add({
 
 When an audience throws, the failure is reported rather than swallowed, and never reaches your code. When one is too slow, emissions past `maxInFlight` are dropped and counted in `droppedEmissions` on the closing record — visible loss beats silent loss.
 
+## Keep Them, Ask Them
+
+A story is the unit of retrieval: complete, ordered, small enough for a context window. Keep them in a store and the question *why did last night's sync fail?* has somewhere to look.
+
+```ts
+import { stories, storeAudience } from "@lovelaces-io/storyteller";
+import { fileStore } from "@lovelaces-io/storyteller/store/file";
+
+const kept = fileStore("./stories.jsonl");   // or memoryStore() anywhere
+story.audience.add(storeAudience(kept));
+
+await stories(kept).failing().since("1h");
+await stories(kept).about("checkout").from("payment-service").level("oops").since("24h");
+await stories(kept).slowerThan("5s").since("7d").oldest().limit(10);
+```
+
+Ask in words; every store answers the same question. Then let an agent ask: **the Librarian** is a read-only MCP server over any store.
+
+```jsonc
+// .mcp.json
+{ "mcpServers": { "storyteller": { "command": "npx", "args": ["-y", "@lovelaces-io/storyteller-mcp", "./stories.jsonl"] } } }
+```
+
+Redaction runs at capture and again at the storage boundary — secret-named keys and recognisable secret formats inside any string — so what is kept is what is safe to keep. Defense in depth, not a guarantee; [SECURITY.md](./SECURITY.md) says exactly what it does not promise.
+
+For a person, `@lovelaces-io/storyteller-view` renders a story as a timeline, in a page or a terminal: [storyteller.lovelaces.io/docs/view](https://storyteller.lovelaces.io/docs/view).
+
 ## Configuration
 
 Every option can also come from the environment, so you can change behavior without touching code:
@@ -300,6 +327,9 @@ const story = useStoryteller({ origin: { who: "worker" } });
 - [How It Works](docs/HOW-IT-WORKS.md) — narrative guide
 - [Changelog](CHANGELOG.md)
 - [For AI Agents](AGENTS.md) — guidance for AI coding assistants
+- [The Library](https://storyteller.lovelaces.io/docs/library) — keep stories, ask in words, let an agent read them back
+- [Story view](https://storyteller.lovelaces.io/docs/view) — `@lovelaces-io/storyteller-view`, stories rendered for humans
+- [The Librarian](packages/mcp/README.md) — `@lovelaces-io/storyteller-mcp`, the read-only MCP server
 
 ## License
 
