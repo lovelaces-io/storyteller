@@ -132,9 +132,12 @@ export function createStoryboard(initial: StoryRecord[], options: StoryboardOpti
   };
   const now = options.now ?? (() => new Date());
 
-  const board = el(ctx, "section", "stv-board");
+  // Plain divs on purpose: a host page's bare `section` / `header` rules would
+  // otherwise restyle an embedded board (the docs site pads every section)
+  const board = el(ctx, "div", "stv-board");
+  board.setAttribute("role", "region");
   board.setAttribute("aria-label", "Storyboard");
-  const head = el(ctx, "header", "stv-board-head");
+  const head = el(ctx, "div", "stv-board-head");
   const toolbar = el(ctx, "div", "stv-board-toolbar");
   const table = el(ctx, "div", "stv-board-rows");
   table.setAttribute("role", "list");
