@@ -47,3 +47,8 @@ Set the custom properties on `.stv-story`, `.stv-note`, or any ancestor (the sty
 ## Safety
 
 Story content is user input, URLs, and stack traces. Everything is inserted as text nodes; the package never assigns `innerHTML`.
+
+## Changelog
+
+- **0.1.1** — theme knobs set on an ancestor now apply: the stylesheet only reads `--stv-*`, it no longer defines them on the element itself.
+- **0.1.0** — first release: DOM and text renderers, zero dependencies.
