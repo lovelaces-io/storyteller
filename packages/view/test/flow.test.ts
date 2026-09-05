@@ -19,7 +19,7 @@ const chapters: StoryRecord[] = [
 describe("renderStoryFlow", () => {
   const flow = renderStoryFlow(root, { chapters });
   const steps = [...flow.querySelectorAll(":scope > .stv-flow-steps > .stv-step")];
-  const text = (step: Element) => step.querySelector(":scope > .stv-step-body > .stv-step-title")!.textContent;
+  const text = (step: Element) => { const head = step.querySelector(":scope > .stv-step-body > .stv-step-head")!; return head.querySelector(".stv-step-title")!.textContent + (head.querySelector(".stv-step-when")?.textContent ?? ""); };
 
   it("lays the story out as numbered steps in the order they happened, chapters included, ending with the outcome", () => {
     expect(flow.querySelector(".stv-flow-title")!.textContent).toBe("Nightly sync failed");
@@ -32,8 +32,8 @@ describe("renderStoryFlow", () => {
       "Batch 1 of 3 upserted+4.00 s",
       "Retrying batch 3+21.0 s",
       "Batch 3 retried twicechapter+21.0 s",
-      "Upsert failed+31.0 s",
-      "failed: deadlock detected",
+      "Upsert faileddeadlock detected+31.0 s",
+      "Failed: deadlock detected31.0 s",
     ]);
     expect(flow.querySelector('.stv-flow[data-story-id="unrelated"]')).toBeNull();
   });
@@ -47,7 +47,7 @@ describe("renderStoryFlow", () => {
     const fineSteps = [...fine.querySelectorAll(".stv-step")];
     expect(fineSteps.map((s) => s.getAttribute("data-turn"))).toEqual([null, null]);
     expect(fineSteps[1]!.querySelector(".stv-step-number")!.textContent).toBe("✓");
-    expect(fineSteps[1]!.querySelector(".stv-step-outcome")!.textContent).toBe("finished");
+    expect(fineSteps[1]!.querySelector(".stv-step-outcome")!.textContent).toBe("Finished");
   });
 
   it("nests a chapter's own steps inside its step, arrows and all", () => {
@@ -55,22 +55,26 @@ describe("renderStoryFlow", () => {
     const inner = retry.querySelector(":scope > .stv-step-body > .stv-flow") as HTMLElement;
     expect(inner.dataset["depth"]).toBe("1");
     expect(inner.dataset["storyId"]).toBe("retry");
-    expect([...inner.querySelectorAll(":scope > .stv-flow-steps > .stv-step")].map((s) => s.querySelector(".stv-step-title")!.textContent)).toEqual(["Attempt 1 timed outstart", "Attempt 2 timed out+6.00 s", "finished with warnings"]);
+    expect([...inner.querySelectorAll(":scope > .stv-flow-steps > .stv-step")].map(text)).toEqual(["Attempt 1 timed outstart", "Attempt 2 timed out+6.00 s", "Finished with warnings10.0 s"]);
     const quiet = steps[1]!.querySelector(":scope > .stv-step-body > .stv-flow") as HTMLElement;
-    expect([...quiet.querySelectorAll(":scope > .stv-flow-steps > .stv-step")].map((s) => s.querySelector(".stv-step-title")!.textContent)).toEqual(["42 columns matchstart"]);
+    expect([...quiet.querySelectorAll(":scope > .stv-flow-steps > .stv-step")].map(text)).toEqual(["42 columns matchstart"]);
   });
 
   it("unfolds a step to its logs and data, and the end to the error, closed unless asked", () => {
     const first = steps[0]!;
     const unfold = first.querySelector("details.stv-step-unfold") as HTMLDetailsElement;
     expect(unfold.open).toBe(false);
-    expect(unfold.querySelector("summary")!.textContent).toBe("logs and data");
+    expect(unfold.querySelector("summary .stv-step-summary-label")!.textContent).toBe("Details");
+    expect(unfold.dataset["key"]).toBe("root:0");
+    expect([...unfold.querySelectorAll(".stv-detail-label")].map((l) => l.textContent)).toEqual(["Data"]);
     expect(unfold.querySelector(".stv-step-context .stv-key")!.textContent).toBe("what");
     expect(unfold.textContent).toContain("1200");
     expect(steps[2]!.querySelector("details")).toBeNull();
     expect(steps[5]!.querySelector(".stv-step-reason")!.textContent).toBe("deadlock detected");
     expect(steps[5]!.querySelector(".stv-step-detail .stv-error .stv-pre")!.textContent).toContain("sync.ts:88:11");
-    expect(steps[6]!.querySelector("details summary")!.textContent).toBe("the error");
+    expect([...steps[5]!.querySelectorAll(".stv-detail-label")].map((l) => l.textContent)).toEqual(["Error"]);
+    expect(steps[6]!.querySelector("details summary .stv-step-summary-label")!.textContent).toBe("Details");
+    expect(steps[6]!.querySelector("details")!.getAttribute("data-key")).toBe("root:end");
 
     const failedOpen = renderStoryFlow(root, { chapters, unfold: "failed" });
     const opened = [...failedOpen.querySelectorAll(":scope > .stv-flow-steps > .stv-step > .stv-step-body > details")].map((d) => (d as HTMLDetailsElement).open);

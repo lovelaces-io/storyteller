@@ -294,6 +294,7 @@ export function createStoryboard(initial: StoryRecord[], options: StoryboardOpti
   }
 
   function drawRows(): void {
+    const memory = remember(table);
     const map = currentMap();
     const nodes = map.roots.filter((node) => matches(node, state.tab, state.query));
     // Newest first: a monitor reads from the top
@@ -309,6 +310,7 @@ export function createStoryboard(initial: StoryRecord[], options: StoryboardOpti
     for (const [cls, text] of [["stv-cell-status", ""], ["stv-cell-story", "story"], ["stv-cell-origin", "origin"], ["stv-cell-beats", "beats"], ["stv-cell-took", "took"], ["stv-cell-when", "when"], ["stv-cell-chevron", ""]]) header.append(el(ctx, "span", cls, text));
     table.append(header);
     for (const node of nodes) table.append(...renderRow(node, false));
+    restore(table, memory);
   }
 
   function renderRow(node: MapNode, inPinnedStrip: boolean): HTMLElement[] {
@@ -381,8 +383,32 @@ export function createStoryboard(initial: StoryRecord[], options: StoryboardOpti
     return [row, steps];
   }
 
+  /** What a reader has opened and where they scrolled, so a redraw does not take it away */
+  function remember(root: ParentNode): { open: Set<string>; scroll: number } {
+    const open = new Set<string>();
+    for (const details of root.querySelectorAll("details[data-key]")) if ((details as HTMLDetailsElement).open) open.add((details as HTMLElement).dataset["key"]!);
+    const scroller = root.querySelector(".stv-dialog-body");
+    return { open, scroll: scroller ? scroller.scrollTop : 0 };
+  }
+  function restore(root: ParentNode, memory: { open: Set<string>; scroll: number }): void {
+    for (const details of root.querySelectorAll("details[data-key]")) {
+      const key = (details as HTMLElement).dataset["key"]!;
+      if (memory.open.has(key)) (details as HTMLDetailsElement).open = true;
+    }
+    const scroller = root.querySelector(".stv-dialog-body");
+    if (scroller && memory.scroll) scroller.scrollTop = memory.scroll;
+  }
+
+  /** Enough of a story to know whether the dialog needs redrawing */
+  function signature(story: StoryRecord): string {
+    return [story.title, story.level, story.timestamp, story.notes.length, story.running ? "running" : "", story.error?.message ?? ""].join("\u0000");
+  }
+  let dialogSignature = "";
+
   function fillDialog(node: MapNode): void {
     const { story } = node;
+    const memory = remember(dialog);
+    dialogSignature = signature(story);
     dialog.replaceChildren();
     dialog.dataset["level"] = story.level;
     if (story.running) dialog.dataset["running"] = "true";
@@ -397,13 +423,16 @@ export function createStoryboard(initial: StoryRecord[], options: StoryboardOpti
     titles.append(el(ctx, "div", "stv-dialog-title", story.title));
     const sub = subtitle(node);
     if (sub) titles.append(el(ctx, "div", "stv-dialog-sub", sub));
-    const meta: string[] = [];
-    if (node.lane !== "stories") meta.push(node.lane);
-    if (story.durationMs !== undefined) meta.push(formatDuration(story.durationMs));
-    if (story.running) meta.push("still running");
-    meta.push(formatTime(options.locale, options.timeZone, story.timestamp));
-    if (story.storyId) meta.push(story.storyId);
-    titles.append(el(ctx, "div", "stv-dialog-meta", meta.join(" · ")));
+    const meta = el(ctx, "div", "stv-dialog-meta");
+    const badge = (cls: string, text: string) => { const b = el(ctx, "span", `stv-badge ${cls}`, text); meta.append(b); return b; };
+    const levelBadge = badge("stv-badge-level", st.word);
+    levelBadge.dataset["level"] = st.level;
+    if (st.running) levelBadge.dataset["running"] = "true";
+    if (node.lane !== "stories") badge("stv-badge-origin", node.lane);
+    if (story.durationMs !== undefined) badge("stv-badge-mono", formatDuration(story.durationMs));
+    badge("stv-badge-mono", formatTime(options.locale, options.timeZone, story.timestamp));
+    if (story.storyId) { const id = badge("stv-badge-mono stv-badge-id", story.storyId); id.title = story.storyId; }
+    titles.append(meta);
     const actions = el(ctx, "div", "stv-dialog-actions");
     if (pinsEnabled) {
       const pinned = state.pinned.has(node.id);
@@ -430,6 +459,7 @@ export function createStoryboard(initial: StoryRecord[], options: StoryboardOpti
     record.append(renderStory(story, { ...options, expandDepth: options.expandDepth ?? 1 }));
     body.append(record);
     dialog.append(dhead, body);
+    restore(dialog, memory);
   }
 
   function openDialog(storyId: string): void {
@@ -475,7 +505,10 @@ export function createStoryboard(initial: StoryRecord[], options: StoryboardOpti
     drawToolbar(map);
     drawPinned();
     drawRows();
-    if (state.dialogFor) { const node = nodeFor(state.dialogFor); if (node) fillDialog(node); }
+    if (state.dialogFor) {
+      const node = nodeFor(state.dialogFor);
+      if (node && signature(node.story) !== dialogSignature) fillDialog(node);
+    }
   }
 
   draw();

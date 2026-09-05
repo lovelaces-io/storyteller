@@ -22,7 +22,7 @@ storyteller.audience.add({
 - `renderNote(note, options?)` → `HTMLElement` — one note on its own.
 - `renderError(error, options?)` and `renderValue(value, options?)` — the building blocks, exported for custom layouts.
 
-Options: `document` (required outside a browser), `expandDepth` (levels of nested values open by default, `1`), `locale`, `timeZone`, `showIds`.
+Options: `document` (required outside a browser), `expandDepth` (levels of nested values open by default, `1`), `locale`, `timeZone`, `showIds`. The board's height is `--stv-board-height` on any ancestor (default `min(72vh, 760px)`); its rows scroll inside it.
 
 ### Consoles
 
@@ -97,6 +97,7 @@ Story content is user input, URLs, and stack traces. Everything is inserted as t
 
 ## Changelog
 
+- **0.6.0** — steps redesigned: a quiet rail, numbered markers filled by outcome, timings in their own column, details as a labelled card (Data / Error). The board keeps to a height (`--stv-board-height`, default a share of the viewport) and its rows scroll inside it with a sticky header. A live update no longer rebuilds an open dialog unless its story changed, and what a reader opened stays open. Dialog meta as badges.
 - **0.5.1** — the dialog centres on the viewport (it was anchored to the board, whose size container was its positioning root) and opens with a fade on desktop, as a sheet from the bottom on phones.
 - **0.5.0** — rows can open in a dialog over the feed (`detail: "dialog"`); pins with a pinned strip that survives updates and the session; `onSave` for a save-for-later action; `open`/`close`/`pin`/`unpin`/`pinned` on the board.
 - **0.4.0** — the storyboard is a run inspector: rows with status, subtitle, origin, beats, took, when; tabs and search; rows unfold to steps, steps to detail; `createStoryboard` updates in place and keeps the reader's state, which `liveStoryboard` now uses. Card panels are gone. Durations read in hours and days.
