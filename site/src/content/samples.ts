@@ -171,7 +171,7 @@ export const anythingCode = `story.<span class="function">report</span>(<span cl
 story.<span class="function">report</span>(caughtError);                 <span class="comment">// cause chain preserved</span>
 story.<span class="function">report</span>(<span class="keyword">new</span> <span class="function">Map</span>([[<span class="string">"region"</span>, <span class="string">"us-east"</span>]]));
 story.<span class="function">report</span>(circularObject);              <span class="comment">// marked, never thrown</span>
-story.<span class="function">report</span>(<span class="punctuation">{</span> apiKey: <span class="string">"sk-live-abc"</span> <span class="punctuation">}</span>);      <span class="comment">// → "[redacted]"</span>`;
+story.<span class="function">report</span>(<span class="punctuation">{</span> deployToken: <span class="string">"dt-9f2c-abc"</span> <span class="punctuation">}</span>);      <span class="comment">// → "[redacted]"</span>`;
 
 export const discordCode = `<span class="comment">// Only the failures, straight to your Discord</span>
 story.audience.<span class="function">add</span>(<span class="punctuation">{</span>

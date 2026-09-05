@@ -188,8 +188,8 @@ Returns `this` for chaining.
 story.report("User submitted form");
 
 story.report("Validation failed", {
-  who: { id: "user:42", role: "admin" },
-  what: { field: "email", reason: "invalid format" },
+  who: { service: "api", role: "validator" },
+  what: { field: "quantity", reason: "must be positive" },
   where: { component: "SignupForm" },
   error: new Error("invalid email"),
 });
