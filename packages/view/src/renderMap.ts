@@ -161,19 +161,38 @@ function renderRow(layout: Layout, node: MapNode, top: number, options: StoryMap
   if (node.orphan) bar.setAttribute("data-orphan", "true");
   row.append(bar);
 
+  // Beats are thin ticks across the bar: they read under a label, and an
+  // error beat is a wider one. The first beat is the bar's own left edge.
   for (const note of node.story.notes) {
     const time = Date.parse(note.timestamp);
     if (Number.isNaN(time)) continue;
-    const beat = svg(doc, "circle", { cx: Math.min(barX + barWidth, Math.max(barX, x(time))), cy: top + rowHeight / 2, r: note.level === "Error" || note.error ? 3.5 : 2.5 }, "stv-map-beat");
-    beat.setAttribute("data-level", note.level ?? "Information");
+    const failed = note.level === "Error" || note.error !== undefined;
+    const tickWidth = failed ? 4 : 2;
+    const at = Math.min(barX + barWidth - tickWidth, Math.max(barX, x(time) - tickWidth / 2));
+    const beat = svg(doc, "rect", { x: at, y: barY + 2, width: tickWidth, height: barHeight - 4, rx: 1 }, "stv-map-beat");
+    beat.setAttribute("data-level", failed ? "Error" : (note.level ?? "Information"));
     row.append(beat);
   }
 
-  // The label sits after the bar, indented by depth so chapters read as chapters
-  const labelX = barX + barWidth + 8 + node.depth * 10;
-  const room = width - 16 - labelX;
-  const label = svg(doc, "text", { x: room >= 60 ? labelX : barX - 8, y: top + rowHeight / 2 + 4, "text-anchor": room >= 60 ? "start" : "end" }, "stv-map-label");
-  label.textContent = fit(node.story.title, room >= 60 ? room : barX - 16 - layout.gutter);
+  // Where the label goes: after the bar when there is room, inside it when
+  // the bar is wide (a long-running story), otherwise before it. Indented by
+  // depth so chapters read as chapters.
+  const indent = node.depth * 10;
+  const afterX = barX + barWidth + 8 + indent;
+  const roomAfter = width - 16 - afterX;
+  const roomBefore = barX - 8 - layout.gutter - indent;
+  const labelY = top + rowHeight / 2 + 4;
+  let label: SVGTextElement;
+  if (roomAfter >= 60) {
+    label = svg(doc, "text", { x: afterX, y: labelY, "text-anchor": "start" }, "stv-map-label");
+    label.textContent = fit(node.story.title, roomAfter);
+  } else if (barWidth >= 80) {
+    label = svg(doc, "text", { x: barX + 8 + indent, y: labelY, "text-anchor": "start" }, "stv-map-label stv-map-label-inside");
+    label.textContent = fit(node.story.title, barWidth - 16 - indent);
+  } else {
+    label = svg(doc, "text", { x: barX - 8, y: labelY, "text-anchor": "end" }, "stv-map-label");
+    label.textContent = fit(node.story.title, Math.max(roomBefore, 24));
+  }
   row.append(label);
 
   if (options.onSelect) {

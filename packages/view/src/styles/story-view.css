@@ -181,8 +181,9 @@ article.stv-note { padding: 8px 14px; border: 1px solid var(--_stv-border); bord
 .stv-map-row:focus { outline: none; }
 .stv-map-row:focus .stv-map-bar { stroke: var(--_stv-fg); stroke-width: 1.5; }
 .stv-map-label { fill: var(--_stv-fg); font-size: 12px; }
-.stv-map-beat { fill: var(--_stv-bg); stroke: var(--_stv-fg); stroke-width: 1; }
-.stv-map-beat[data-level="Warning"] { fill: var(--_stv-warn); stroke: none; }
-.stv-map-beat[data-level="Error"] { fill: var(--_stv-error); stroke: none; }
+.stv-map-label-inside { fill: var(--_stv-bg); font-weight: 600; }
+.stv-map-beat { fill: var(--_stv-bg); opacity: 0.55; }
+.stv-map-beat[data-level="Warning"] { fill: var(--_stv-bg); opacity: 0.8; }
+.stv-map-beat[data-level="Error"] { fill: var(--_stv-bg); opacity: 0.95; }
 .stv-map-link { fill: none; stroke: var(--_stv-muted); stroke-width: 1; stroke-dasharray: 2 2; }
 .stv-map-empty { fill: var(--_stv-muted); font-size: 12px; }

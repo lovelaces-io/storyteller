@@ -128,6 +128,11 @@ describe("renderStoryMap", () => {
     expect(Number(rootBar.getAttribute("width"))).toBeGreaterThan(Number(chapterBar.getAttribute("width")));
     expect(Number(chapterBar.getAttribute("x"))).toBeGreaterThan(Number(rootBar.getAttribute("x")));
     expect(map.querySelectorAll(".stv-map-tick").length).toBe(6);
+    // The root spans the whole width, so its label sits inside the bar, whole
+    const rootLabel = map.querySelector('.stv-map-row[data-story-id="root"] .stv-map-label')!;
+    expect(rootLabel.classList.contains("stv-map-label-inside")).toBe(true);
+    expect(rootLabel.textContent).toBe("Order failed");
+    expect(map.querySelector('.stv-map-row[data-story-id="other"] .stv-map-label')!.textContent).toBe("Digest sent");
     expect(map.querySelector(".stv-map-tick")!.textContent).toBe("+0 ms");
   });
 
