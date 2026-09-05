@@ -10,38 +10,37 @@ describe("liveStoryboard", () => {
   it("opens a running story on the first beat, grows it on the next, and closes it on the story", () => {
     const host = document.createElement("div");
     const live = liveStoryboard(host);
-    expect(host.querySelector(".stv-board-summary")!.textContent).toBe("0 stories");
+    expect(host.querySelector(".stv-board-count")!.textContent).toBe("0");
 
     live.hear(beat("s1", 0, "Fetched 1,200 rows", { origin: { who: "sync-agent" } }));
     live.flush();
-    const panel = host.querySelector(".stv-panel")!;
-    expect(panel.getAttribute("data-running")).toBe("true");
-    expect(panel.querySelector(".stv-panel-title")!.textContent).toBe("Fetched 1,200 rows");
-    expect(panel.querySelector(".stv-panel-level")!.textContent).toBe("running");
-    expect(panel.querySelector(".stv-panel-outcome")!.textContent).toBe("still running");
-    expect(host.querySelector(".stv-board-summary")!.textContent).toBe("1 story · 1 running");
-    expect(panel.querySelector(".stv-panel-meta")!.textContent).toBe("sync-agent");
+    const row = host.querySelector(".stv-row:not(.stv-row-header)")!;
+    expect(row.getAttribute("data-running")).toBe("true");
+    expect(row.querySelector(".stv-row-title")!.textContent).toBe("Fetched 1,200 rows");
+    expect(row.querySelector(".stv-cell-when")!.textContent).toBe("now");
+    expect([...host.querySelectorAll(".stv-pill")].map((p) => p.textContent)).toEqual(["live · 1 running"]);
+    expect(row.querySelector(".stv-cell-origin")!.textContent).toBe("sync-agent");
 
     live.hear(beat("s1", 4000, "Batch 1 upserted"));
     live.hear(beat("s1", 21000, "Retrying batch 3", { level: "Warning" }));
     live.flush();
-    expect(host.querySelectorAll(".stv-panel-beat").length).toBe(3);
-    expect(host.querySelector(".stv-panel")!.getAttribute("data-level")).toBe("Warning");
+    expect(host.querySelector(".stv-row:not(.stv-row-header) .stv-cell-beats")!.textContent).toBe("3");
+    expect(host.querySelector(".stv-row:not(.stv-row-header)")!.getAttribute("data-level")).toBe("Warning");
     expect(live.stories()[0]!.running).toBe(true);
 
     live.hear(closed("s1", 31000, "Nightly sync failed", { level: "Error", error: { message: "deadlock" }, notes: [{ timestamp: at(0), note: "Fetched 1,200 rows" }, { timestamp: at(4000), note: "Batch 1 upserted" }, { timestamp: at(21000), note: "Retrying batch 3", level: "Warning" }, { timestamp: at(31000), note: "Upsert failed", level: "Error" }] }));
     live.flush();
-    const done = host.querySelector(".stv-panel")!;
+    const done = host.querySelector(".stv-row:not(.stv-row-header)")!;
     expect(done.getAttribute("data-running")).toBeNull();
-    expect(done.querySelector(".stv-panel-title")!.textContent).toBe("Nightly sync failed");
-    expect(done.querySelector(".stv-panel-level")!.textContent).toBe("failed");
-    expect(host.querySelector(".stv-board-summary")!.textContent).toBe("1 story · 1 failed");
-    expect(host.querySelectorAll(".stv-panel-beat").length).toBe(4);
+    expect(done.querySelector(".stv-row-title")!.textContent).toBe("Nightly sync failed");
+    expect(done.querySelector(".stv-status")!.textContent).toBe("✕");
+    expect([...host.querySelectorAll(".stv-pill")].map((p) => p.textContent)).toEqual(["1 failed"]);
+    expect(done.querySelector(".stv-cell-beats")!.textContent).toBe("4");
 
     // A straggler after the close changes nothing: the record already has its beats
     live.hear(beat("s1", 32000, "late"));
     live.flush();
-    expect(host.querySelectorAll(".stv-panel-beat").length).toBe(4);
+    expect(host.querySelector(".stv-row:not(.stv-row-header) .stv-cell-beats")!.textContent).toBe("4");
   });
 
   it("draws once after a burst of beats, not on every beat", async () => {
@@ -75,9 +74,10 @@ describe("liveStoryboard", () => {
     live.hear({ hello: "world" });
     live.hear(null);
     live.flush();
-    expect(host.querySelectorAll(".stv-board-item").length).toBe(1);
-    expect(host.querySelector(".stv-panel-chapter .stv-panel")!.getAttribute("data-story-id")).toBe("ch");
-    expect(host.querySelector(".stv-board-summary")!.textContent).toBe("2 stories · 2 running");
+    expect(host.querySelectorAll(".stv-row:not(.stv-row-header)").length).toBe(1);
+    (host.querySelector(".stv-row:not(.stv-row-header)") as HTMLElement).click();
+    expect(host.querySelector('.stv-row-steps .stv-step[data-kind="chapter"] .stv-step-text')!.textContent).toBe("Chapter begins");
+    expect([...host.querySelectorAll(".stv-pill")].map((p) => p.textContent)).toEqual(["live · 2 running"]);
   });
 
   it("is an audience, can be cleared, and stops drawing when destroyed", () => {
@@ -87,10 +87,10 @@ describe("liveStoryboard", () => {
     expect(live.audience.hears).toEqual(["note", "story"]);
     live.audience.hear(closed("a", 1, "A"));
     live.flush();
-    expect(host.querySelectorAll(".stv-panel").length).toBe(1);
+    expect(host.querySelectorAll(".stv-row:not(.stv-row-header)").length).toBe(1);
     live.clear();
     live.flush();
-    expect(host.querySelectorAll(".stv-panel").length).toBe(0);
+    expect(host.querySelectorAll(".stv-row:not(.stv-row-header)").length).toBe(0);
     live.hear(closed("b", 2, "B"));
     live.destroy();
     live.hear(closed("c", 3, "C"));

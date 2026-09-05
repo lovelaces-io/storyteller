@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { StoryEvent } from "@lovelaces-io/storyteller";
-import { renderError, renderNote, renderStory, renderValue } from "../src/index";
+import { formatDuration, renderError, renderNote, renderStory, renderValue } from "../src/index";
 import type { StoryRecord } from "../src/types";
 import { buildFixtures, type Fixtures } from "./fixtures/stories";
 import loreErrorJson from "./fixtures/lore-error.json";
@@ -202,5 +202,17 @@ describe("renderNote, renderError, renderValue", () => {
     expect(renderValue({ "@truncated": { kind: "depth", depth: 6 } }).textContent).toBe(
       "nested deeper than 6 levels, not kept"
     );
+  });
+});
+
+describe("formatDuration", () => {
+  it("reads at every scale", () => {
+    expect(formatDuration(12)).toBe("12 ms");
+    expect(formatDuration(1900)).toBe("1.90 s");
+    expect(formatDuration(31_400)).toBe("31.4 s");
+    expect(formatDuration(125_000)).toBe("2m 05s");
+    expect(formatDuration(3_700_000)).toBe("1h 02m");
+    expect(formatDuration(90_000_000)).toBe("1d 1h");
+    expect(formatDuration(-1)).toBe("");
   });
 });

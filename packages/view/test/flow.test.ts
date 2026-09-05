@@ -56,6 +56,8 @@ describe("renderStoryFlow", () => {
     expect(inner.dataset["depth"]).toBe("1");
     expect(inner.dataset["storyId"]).toBe("retry");
     expect([...inner.querySelectorAll(":scope > .stv-flow-steps > .stv-step")].map((s) => s.querySelector(".stv-step-title")!.textContent)).toEqual(["Attempt 1 timed outstart", "Attempt 2 timed out+6.00 s", "finished with warnings"]);
+    const quiet = steps[1]!.querySelector(":scope > .stv-step-body > .stv-flow") as HTMLElement;
+    expect([...quiet.querySelectorAll(":scope > .stv-flow-steps > .stv-step")].map((s) => s.querySelector(".stv-step-title")!.textContent)).toEqual(["42 columns matchstart"]);
   });
 
   it("unfolds a step to its logs and data, and the end to the error, closed unless asked", () => {

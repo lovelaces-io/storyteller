@@ -2,7 +2,7 @@
 
 Render [Storyteller](https://storyteller.lovelaces.io) stories, notes, and reports for humans. A story becomes a timeline of its notes, levels become badges, errors show their cause chain, nested values fold into a tree, and every marker the normalizer leaves (`@type`, `@truncated`, circular references, redaction) is shown as what it means instead of as a string.
 
-A visual language for stories. At a glance: the **storyboard**, a panel per story, a failure that looks like one. Click in: the **flow**, the story as numbered steps with arrows, green until it turns, every step unfolding to its logs, data and error. Plus a story view, a text renderer for consoles, a timeline map and a Mermaid export. Zero dependencies. Works on a `StoryEvent` straight from an audience, on a story read back from NDJSON or a database, and on a live `NoteEmission`.
+A visual language for stories. At a glance: the **storyboard**, a run inspector where every story is a row and a failure looks like one. Click in: the story as numbered steps with arrows, green until it turns, every step unfolding to its logs, data and error. Plus a story view, a text renderer for consoles, a timeline map and a Mermaid export. Zero dependencies. Works on a `StoryEvent` straight from an audience, on a story read back from NDJSON or a database, and on a live `NoteEmission`.
 
 ```ts
 import { renderStory } from "@lovelaces-io/storyteller-view";
@@ -40,22 +40,23 @@ storyteller.audience.add({
 
 Options: `colors` (ANSI, default `false`), `stacks` (include stack traces, default `true`), `maxDepth` (nested values printed before folding to their shape, default `4`), `indent`, `locale`, `timeZone`, `showIds`.
 
-### The storyboard, and the flow
+### The storyboard: a run inspector
 
 ```ts
-import { renderStoryboard, renderStoryFlow, renderStory } from "@lovelaces-io/storyteller-view";
+import { createStoryboard, renderStoryboard, renderStoryFlow, renderStory } from "@lovelaces-io/storyteller-view";
 
-// At a glance: one panel per story, chapters as sub-scenes, the gap between panels labelled
-panel.append(renderStoryboard(run, {
-  onSelect: (story) => detail.replaceChildren(
-    renderStoryFlow(story, { chapters: run, unfold: "failed" }),   // click in: steps 1 → 2 → 3, arrows, where it turned
-    renderStory(story),                                            // and the full record beneath
-  ),
-}));
+// Once
+panel.append(renderStoryboard(run, { title: "production" }));
+
+// Or updatable in place, keeping the reader's tab, search and unfolded rows
+const board = createStoryboard(run, { onSelect: (story) => detail.replaceChildren(renderStory(story)) });
+panel.append(board.element);
+board.update(moreStories);
 ```
 
-- `renderStoryboard(stories, options?)` → `HTMLElement`. Summary line (`5 stories · 1 failed`), then panels in the order things happened: title, beats as sentences with a small "+21 s", chapters indented under the beat that started them, how it ended. A beat with data or an error unfolds in place to the raw payload. Options: `onSelect` (adds an *open* button per panel), `maxBeats` (default 8), `title`.
-- `renderStoryFlow(story, options?)` → `HTMLElement`. Numbered steps with arrows coloured by how each went; the first failed step is marked as the turn; chapters (`chapters: [...]`, matched by `parentStoryId`) are steps with their own steps inside; the end says how it came out. `unfold: "none" | "failed" | "all"` controls which details start open.
+Rows are stories, newest first: status, title with a one-line subtitle (*deadlock detected · turned at step 7 of 7*; *Waiting for health check · 12 s so far*), origin, beats, took, when. A row unfolds to its numbered steps with timings, green until the one that turned; a step unfolds to its logs, data and error. Tabs (All / Failing / Warnings / Running) and a search narrow the list. Options: `title`, `toolbar`, `tab`, `expanded`, `unfold`, `now`, `onSelect` (adds an *open* control per row).
+
+`renderStoryFlow(story, { chapters })` is the steps view on its own; `renderStorySteps(node)` is just the list.
 
 ### Live: a board that grows as beats arrive
 
@@ -94,6 +95,7 @@ Story content is user input, URLs, and stack traces. Everything is inserted as t
 
 ## Changelog
 
+- **0.4.0** — the storyboard is a run inspector: rows with status, subtitle, origin, beats, took, when; tabs and search; rows unfold to steps, steps to detail; `createStoryboard` updates in place and keeps the reader's state, which `liveStoryboard` now uses. Card panels are gone. Durations read in hours and days.
 - **0.3.0** — `liveStoryboard`: the board grows as beats arrive; running stories look running. Summary counts running stories.
 - **0.2.0** — the visual language: `renderStoryboard` (a panel per story, at a glance) and `renderStoryFlow` (numbered steps with arrows, click in), raw detail unfolding in place. Also `renderStoryMap` (a timeline), `toMermaid` (flowchart or gantt), and `buildStoryMap` for the model.
 - **0.1.1** — theme knobs set on an ancestor now apply: the stylesheet only reads `--stv-*`, it no longer defines them on the element itself.

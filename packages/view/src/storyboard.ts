@@ -1,39 +1,54 @@
 /**
- * The storyboard: a run as panels you read.
+ * The storyboard: a run inspector.
  *
  * Logs are hard to read because everything is a line and every line looks the
- * same. A storyboard gives each story a panel — title, what happened as plain
- * sentences, how it ended — in the order things happened, with chapters as
- * sub-scenes indented under the beat that started them and the gap between
- * panels labelled with how much later the next one began. Uniform widths, no
- * axis to decode: the shape of a run at a glance. Any beat that carries data
- * or an error unfolds in place to the raw payload, stack and cause chain, so
- * digging in never means leaving the board.
+ * same. The storyboard gives each story a row — how it went, what it was,
+ * where from, how many beats, how long, when — in a list that reads the way a
+ * list of runs reads anywhere else. A row unfolds to its numbered steps with
+ * timings, green until the one that turned; a step unfolds to its logs, data
+ * and error. Tabs narrow it to what failed, warned, or is still running; a
+ * search narrows it by what it mentions. It keeps that state across updates,
+ * so a live board can redraw under a reader without losing their place.
  *
- * HTML rather than SVG, so text wraps, it reflows on a phone, and everything
- * is a text node like the rest of the package.
+ * HTML, text nodes only, themed by the same knobs as everything else.
  */
+import { renderStorySteps } from "./flow";
 import { buildStoryMap, type MapNode } from "./map";
-import { renderError, renderValue, type RenderOptions } from "./render";
+import type { RenderOptions } from "./render";
 import { formatDuration, formatTime, parseTime } from "./time";
-import type { Level, NoteRecord, StoryRecord } from "./types";
+import type { Level, StoryRecord } from "./types";
+
+export type StoryboardTab = "all" | "failing" | "warnings" | "running";
 
 export type StoryboardOptions = RenderOptions & {
-  /** Called when a panel is activated — for opening the full story view elsewhere */
+  /** Called when a row's "open" control is used — for showing the full story elsewhere */
   onSelect?: (story: StoryRecord, node: MapNode) => void;
-  /** Beats shown per panel before the rest fold behind "n more". Default 8. */
-  maxBeats?: number;
-  /** A heading for the board. Default: a one-line summary ("5 stories · 1 failed"). */
+  /** Show the tabs and the search. Default true. */
+  toolbar?: boolean;
+  /** Which tab starts selected. Default "all". */
+  tab?: StoryboardTab;
+  /** A name for the board, shown in the header */
   title?: string;
+  /** The clock "2 min ago" counts from. Default: now. */
+  now?: () => Date;
+  /** Rows that start unfolded, by story id */
+  expanded?: string[];
+  /** Steps whose detail starts unfolded inside a row: "none" (default), "failed", or "all" */
+  unfold?: "none" | "failed" | "all";
 };
 
-const LEVEL_WORD: Record<Level, string> = { Information: "ok", Warning: "warn", Error: "failed" };
-
-type Ctx = {
-  doc: Document;
-  options: StoryboardOptions;
-  maxBeats: number;
+/** A board that can be updated in place, keeping its tab, search and unfolded rows */
+export type Storyboard = {
+  readonly element: HTMLElement;
+  update(stories: StoryRecord[]): void;
+  /** The stories currently shown, after the tab and the search */
+  shown(): StoryRecord[];
 };
+
+type Ctx = { doc: Document; options: StoryboardOptions };
+
+const STATUS_WORD: Record<Level, string> = { Information: "ok", Warning: "warning", Error: "failed" };
+const STATUS_GLYPH: Record<Level, string> = { Information: "✓", Warning: "!", Error: "✕" };
 
 function el<K extends keyof HTMLElementTagNameMap>(ctx: Ctx, tag: K, className?: string, text?: string): HTMLElementTagNameMap[K] {
   const element = ctx.doc.createElement(tag);
@@ -48,195 +63,232 @@ function resolveDocument(options: RenderOptions): Document {
   return doc;
 }
 
-/** "+2.4 s" from the story's first beat; "start" for the first */
-function offset(from: number, iso: string): string {
+/** "2 min ago", "just now", "yesterday" — or the clock when it is far away */
+export function formatAgo(from: Date, iso: string, locale?: string, timeZone?: string): string {
   const at = parseTime(iso);
-  if (!at) return "";
-  const delta = at.getTime() - from;
-  return delta <= 0 ? "start" : `+${formatDuration(delta)}`;
+  if (!at) return iso;
+  const delta = from.getTime() - at.getTime();
+  if (delta < 0) return "now";
+  if (delta < 5_000) return "just now";
+  if (delta < 60_000) return `${Math.round(delta / 1000)} s ago`;
+  if (delta < 3_600_000) return `${Math.round(delta / 60_000)} min ago`;
+  if (delta < 86_400_000) return `${Math.round(delta / 3_600_000)} h ago`;
+  if (delta < 2 * 86_400_000) return "yesterday";
+  if (delta < 14 * 86_400_000) return `${Math.round(delta / 86_400_000)} d ago`;
+  return formatTime(locale, timeZone, iso);
 }
 
-/** How a story ended, in one line */
-function outcome(story: StoryRecord): { text: string; level: Level } {
-  if (story.running) return { text: "still running", level: story.level === "Error" ? "Error" : "Information" };
-  if (story.error?.message) return { text: story.error.message, level: "Error" };
-  if (story.level === "Error") return { text: "failed", level: "Error" };
-  if (story.level === "Warning") return { text: "finished with warnings", level: "Warning" };
-  return { text: "finished", level: "Information" };
+function status(node: MapNode): { level: Level; word: string; glyph: string; running: boolean } {
+  if (node.story.running) return { level: node.story.level, word: "running", glyph: "", running: true };
+  const level: Level = node.failed ? "Error" : node.story.level;
+  return { level, word: STATUS_WORD[level], glyph: STATUS_GLYPH[level], running: false };
 }
 
-function hasDetail(note: NoteRecord): boolean {
-  return note.who !== undefined || note.what !== undefined || note.where !== undefined || note.error !== undefined;
+/** The one line under the title: what happened, or where it turned, or what it is doing now */
+function subtitle(node: MapNode): string | undefined {
+  const { story } = node;
+  if (story.running) {
+    const last = story.notes[story.notes.length - 1];
+    const started = parseTime(story.notes[0]?.timestamp ?? story.timestamp);
+    const soFar = started ? formatDuration(Math.max(0, parseTime(story.timestamp)!.getTime() - started.getTime())) : undefined;
+    return [last?.note, soFar ? `${soFar} so far` : undefined].filter(Boolean).join(" · ") || undefined;
+  }
+  if (node.failed) {
+    const beats = story.notes;
+    const turnedAt = beats.findIndex((note) => note.level === "Error" || note.error !== undefined);
+    const reason = story.error?.message ?? beats[turnedAt]?.error?.message ?? beats[turnedAt]?.note;
+    const where = turnedAt >= 0 ? `turned at step ${turnedAt + 1} of ${beats.length}` : undefined;
+    return [reason, where].filter(Boolean).join(" · ") || undefined;
+  }
+  if (story.level === "Warning") {
+    const warned = story.notes.filter((note) => note.level === "Warning").length;
+    return warned ? `${warned} ${warned === 1 ? "warning" : "warnings"}` : "finished with warnings";
+  }
+  if (story.droppedEmissions) return `${story.droppedEmissions} beats dropped`;
+  return undefined;
 }
 
-/** Render a run as a storyboard: one panel per story, chapters as sub-scenes, raw detail one click down */
-export function renderStoryboard(stories: StoryRecord[], options: StoryboardOptions = {}): HTMLElement {
-  const ctx: Ctx = { doc: resolveDocument(options), options, maxBeats: options.maxBeats ?? 8 };
-  const map = buildStoryMap(stories);
+function matches(node: MapNode, tab: StoryboardTab, query: string): boolean {
+  const { story } = node;
+  if (tab === "failing" && !(node.failed && !story.running)) return false;
+  if (tab === "warnings" && !(story.level === "Warning" && !node.failed && !story.running)) return false;
+  if (tab === "running" && !story.running) return false;
+  if (query) {
+    const haystack = [story.title, ...story.notes.map((note) => note.note), story.error?.message ?? "", node.lane].join("\n").toLowerCase();
+    if (!haystack.includes(query)) return false;
+  }
+  return true;
+}
+
+/** Create a board that can be updated in place. `renderStoryboard` is this, drawn once. */
+export function createStoryboard(initial: StoryRecord[], options: StoryboardOptions = {}): Storyboard {
+  const ctx: Ctx = { doc: resolveDocument(options), options };
+  const state = {
+    tab: options.tab ?? "all",
+    query: "",
+    expanded: new Set<string>(options.expanded ?? []),
+    stories: initial,
+    shown: [] as StoryRecord[],
+  };
+  const now = options.now ?? (() => new Date());
+
   const board = el(ctx, "section", "stv-board");
   board.setAttribute("aria-label", "Storyboard");
-
-  const running = map.rows.filter((node) => node.story.running).length;
-  const failed = map.rows.filter((node) => node.failed && !node.story.running).length;
-  const warned = map.rows.filter((node) => !node.failed && node.story.level === "Warning" && !node.story.running).length;
-  const summaryParts = [`${map.count} ${map.count === 1 ? "story" : "stories"}`];
-  if (running) summaryParts.push(`${running} running`);
-  if (failed) summaryParts.push(`${failed} failed`);
-  if (warned) summaryParts.push(`${warned} with warnings`);
-  if (map.count && !failed && !warned && !running) summaryParts.push("all fine");
   const head = el(ctx, "header", "stv-board-head");
-  head.dataset["state"] = failed ? "failed" : warned ? "warned" : "fine";
-  head.append(el(ctx, "span", "stv-board-summary", options.title ?? summaryParts.join(" · ")));
-  if (map.count) {
-    head.append(el(ctx, "span", "stv-board-span", `${formatTime(options.locale, options.timeZone, new Date(map.start).toISOString())} · ${formatDuration(Math.max(0, map.end - map.start))}`));
-  }
-  board.append(head);
+  const toolbar = el(ctx, "div", "stv-board-toolbar");
+  const table = el(ctx, "div", "stv-board-rows");
+  table.setAttribute("role", "list");
+  board.append(head, toolbar, table);
 
-  if (!map.count) {
-    board.append(el(ctx, "p", "stv-board-empty", "Nothing to show yet."));
-    return board;
-  }
-
-  const strip = el(ctx, "ol", "stv-board-strip");
-  let previousEnd: number | undefined;
-  for (const root of map.roots) {
-    if (previousEnd !== undefined) {
-      const gap = root.start - previousEnd;
-      const between = el(ctx, "li", "stv-board-gap");
-      between.setAttribute("aria-hidden", "true");
-      between.append(el(ctx, "span", "stv-board-gap-label", gap > 0 ? `${formatDuration(gap)} later` : "meanwhile"));
-      strip.append(between);
-    }
-    const item = el(ctx, "li", "stv-board-item");
-    item.append(renderPanel(ctx, root));
-    strip.append(item);
-    previousEnd = Math.max(previousEnd ?? 0, root.end);
-  }
-  board.append(strip);
-  return board;
-}
-
-function renderPanel(ctx: Ctx, node: MapNode): HTMLElement {
-  const { story } = node;
-  const panel = el(ctx, "article", "stv-panel");
-  panel.dataset["level"] = story.level;
-  panel.dataset["depth"] = String(node.depth);
-  panel.dataset["storyId"] = node.id;
-  if (node.orphan) panel.dataset["orphan"] = "true";
-  if (node.failed) panel.dataset["failed"] = "true";
-  if (story.running) panel.dataset["running"] = "true";
-
-  // Header: the title, and one word for how it went (or that it is still going)
-  const head = el(ctx, "header", "stv-panel-head");
-  const level = el(ctx, "span", "stv-panel-level", story.running ? "running" : LEVEL_WORD[story.level]);
-  level.dataset["level"] = story.level;
-  head.append(el(ctx, "h4", "stv-panel-title", story.title), level);
-  panel.append(head);
-
-  // Beats as sentences with a small "when"; chapters indented under the beat that started them
-  const notes = [...story.notes]
-    .map((note, index) => ({ note, index, key: note.sequence ?? index }))
-    .sort((a, b) => a.key - b.key || a.index - b.index)
-    .map((entry) => entry.note);
-  const chaptersByBeat = new Map<number, MapNode[]>();
-  for (const child of node.children) {
-    let at = -1;
-    notes.forEach((note, index) => {
-      const time = parseTime(note.timestamp)?.getTime() ?? Infinity;
-      if (time <= child.start) at = index;
-    });
-    const bucket = chaptersByBeat.get(at) ?? [];
-    bucket.push(child);
-    chaptersByBeat.set(at, bucket);
-  }
-  const list = el(ctx, "ol", "stv-panel-beats");
-  for (const child of chaptersByBeat.get(-1) ?? []) list.append(renderChapter(ctx, child));
-  const shown = notes.slice(0, ctx.maxBeats);
-  shown.forEach((note, index) => {
-    list.append(renderBeat(ctx, note, node.start));
-    for (const child of chaptersByBeat.get(index) ?? []) list.append(renderChapter(ctx, child));
-  });
-  if (notes.length > shown.length) {
-    const rest = notes.length - shown.length;
-    list.append(el(ctx, "li", "stv-panel-more", `${rest} more ${rest === 1 ? "beat" : "beats"}`));
-    for (let index = shown.length; index < notes.length; index++) {
-      for (const child of chaptersByBeat.get(index) ?? []) list.append(renderChapter(ctx, child));
+  function drawHead(map: ReturnType<typeof buildStoryMap>): void {
+    head.replaceChildren();
+    const running = map.rows.filter((node) => node.story.running).length;
+    const failed = map.rows.filter((node) => node.failed && !node.story.running).length;
+    const warned = map.rows.filter((node) => !node.failed && !node.story.running && node.story.level === "Warning").length;
+    head.dataset["state"] = failed ? "failed" : warned ? "warned" : running ? "running" : "fine";
+    head.append(el(ctx, "span", "stv-board-title", options.title ?? "Stories"));
+    const count = el(ctx, "span", "stv-board-count", `${map.count}`);
+    head.append(count);
+    const pills = el(ctx, "span", "stv-board-pills");
+    if (running) { const pill = el(ctx, "span", "stv-pill stv-pill-running", `live · ${running} running`); pills.append(pill); }
+    if (failed) { const pill = el(ctx, "span", "stv-pill stv-pill-failed", `${failed} failed`); pills.append(pill); }
+    if (warned) { const pill = el(ctx, "span", "stv-pill stv-pill-warned", `${warned} ${warned === 1 ? "warning" : "warnings"}`); pills.append(pill); }
+    if (map.count && !running && !failed && !warned) pills.append(el(ctx, "span", "stv-pill stv-pill-fine", "all fine"));
+    head.append(pills);
+    if (map.count) {
+      head.append(el(ctx, "span", "stv-board-span", `${formatTime(options.locale, options.timeZone, new Date(map.start).toISOString())} · ${formatDuration(Math.max(0, map.end - map.start))}`));
     }
   }
-  panel.append(list);
 
-  // Footer: how it ended, and where it came from
-  const end = outcome(story);
-  const foot = el(ctx, "footer", "stv-panel-foot");
-  const ended = el(ctx, "span", "stv-panel-outcome", end.text);
-  ended.dataset["level"] = end.level;
-  foot.append(ended);
-  const meta: string[] = [];
-  if (node.lane !== "stories") meta.push(node.lane);
-  if (story.durationMs !== undefined) meta.push(formatDuration(story.durationMs));
-  if (story.droppedEmissions) meta.push(`${story.droppedEmissions} beats dropped`);
-  if (node.orphan) meta.push("parent not shown");
-  if (meta.length) foot.append(el(ctx, "span", "stv-panel-meta", meta.join(" · ")));
-  if (story.error && (story.error.stack || story.error.cause !== undefined || story.error.errors)) {
-    const raw = el(ctx, "details", "stv-panel-raw");
-    raw.append(el(ctx, "summary", "stv-panel-raw-summary", "the error"));
-    raw.append(renderError(story.error, ctx.options));
-    foot.append(raw);
+  function drawToolbar(map: ReturnType<typeof buildStoryMap>): void {
+    toolbar.replaceChildren();
+    if (options.toolbar === false) { toolbar.hidden = true; return; }
+    toolbar.hidden = false;
+    const tabs = el(ctx, "div", "stv-board-tabs");
+    tabs.setAttribute("role", "tablist");
+    const counts: Record<StoryboardTab, number> = {
+      all: map.rows.length,
+      failing: map.rows.filter((node) => node.failed && !node.story.running).length,
+      warnings: map.rows.filter((node) => node.story.level === "Warning" && !node.failed && !node.story.running).length,
+      running: map.rows.filter((node) => node.story.running).length,
+    };
+    for (const [tab, label] of [["all", "All"], ["failing", "Failing"], ["warnings", "Warnings"], ["running", "Running"]] as [StoryboardTab, string][]) {
+      const button = el(ctx, "button", "stv-board-tab");
+      button.type = "button";
+      button.setAttribute("role", "tab");
+      button.dataset["tab"] = tab;
+      button.setAttribute("aria-selected", String(state.tab === tab));
+      button.append(el(ctx, "span", undefined, label), el(ctx, "span", "stv-board-tab-count", String(counts[tab])));
+      button.addEventListener("click", () => { state.tab = tab; draw(); });
+      tabs.append(button);
+    }
+    toolbar.append(tabs);
+    const search = el(ctx, "input", "stv-board-search");
+    search.type = "search";
+    search.placeholder = "mentions…";
+    search.setAttribute("aria-label", "Only stories that mention");
+    search.value = state.query;
+    search.addEventListener("input", () => { state.query = search.value.trim().toLowerCase(); drawRows(); });
+    toolbar.append(search);
   }
-  panel.append(foot);
 
-  if (ctx.options.onSelect) {
-    const select = () => ctx.options.onSelect!(story, node);
-    const open = el(ctx, "button", "stv-panel-open", "open");
-    open.type = "button";
-    open.setAttribute("aria-label", `Open ${story.title}`);
-    open.addEventListener("click", (event) => {
-      event.stopPropagation();
-      select();
+  function drawRows(): void {
+    const map = buildStoryMap(state.stories);
+    const nodes = map.roots.filter((node) => matches(node, state.tab, state.query));
+    // Newest first: a monitor reads from the top
+    nodes.sort((a, b) => b.start - a.start);
+    state.shown = nodes.map((node) => node.story);
+    table.replaceChildren();
+    if (!nodes.length) {
+      table.append(el(ctx, "p", "stv-board-empty", map.count ? "Nothing matches." : "Nothing to show yet."));
+      return;
+    }
+    const header = el(ctx, "div", "stv-row stv-row-header");
+    header.setAttribute("aria-hidden", "true");
+    for (const [cls, text] of [["stv-cell-status", ""], ["stv-cell-story", "story"], ["stv-cell-origin", "origin"], ["stv-cell-beats", "beats"], ["stv-cell-took", "took"], ["stv-cell-when", "when"], ["stv-cell-chevron", ""]]) header.append(el(ctx, "span", cls, text));
+    table.append(header);
+    for (const node of nodes) table.append(...renderRow(node));
+  }
+
+  function renderRow(node: MapNode): HTMLElement[] {
+    const { story } = node;
+    const id = node.id;
+    const open = state.expanded.has(id);
+    const row = el(ctx, "div", "stv-row");
+    row.setAttribute("role", "listitem");
+    row.dataset["storyId"] = id;
+    const st = status(node);
+    row.dataset["level"] = st.level;
+    if (st.running) row.dataset["running"] = "true";
+    if (node.failed) row.dataset["failed"] = "true";
+    if (open) row.dataset["open"] = "true";
+    row.tabIndex = 0;
+    row.setAttribute("aria-expanded", String(open));
+
+    const dot = el(ctx, "span", "stv-cell-status");
+    const glyph = el(ctx, "span", "stv-status", st.glyph);
+    glyph.dataset["level"] = st.level;
+    if (st.running) glyph.dataset["running"] = "true";
+    glyph.setAttribute("aria-label", st.word);
+    dot.append(glyph);
+
+    const cell = el(ctx, "span", "stv-cell-story");
+    cell.append(el(ctx, "span", "stv-row-title", story.title));
+    const sub = subtitle(node);
+    if (sub) cell.append(el(ctx, "span", "stv-row-sub", sub));
+
+    const origin = el(ctx, "span", "stv-cell-origin", node.lane === "stories" ? "" : node.lane);
+    const beats = el(ctx, "span", "stv-cell-beats", String(story.notes.length + node.children.length));
+    const took = el(ctx, "span", "stv-cell-took", story.running ? `${formatDuration(Math.max(0, now().getTime() - node.start))}…` : story.durationMs !== undefined ? formatDuration(story.durationMs) : "");
+    const when = el(ctx, "span", "stv-cell-when", story.running ? "now" : formatAgo(now(), story.timestamp, options.locale, options.timeZone));
+    when.title = story.timestamp;
+    const chevron = el(ctx, "span", "stv-cell-chevron");
+    if (options.onSelect) {
+      const button = el(ctx, "button", "stv-row-open", "open");
+      button.type = "button";
+      button.setAttribute("aria-label", `Open ${story.title}`);
+      button.addEventListener("click", (event) => { event.stopPropagation(); options.onSelect!(story, node); });
+      chevron.append(button);
+    }
+    chevron.append(el(ctx, "span", "stv-chevron", open ? "⌄" : "›"));
+    row.append(dot, cell, origin, beats, took, when, chevron);
+
+    const toggle = () => {
+      if (state.expanded.has(id)) state.expanded.delete(id); else state.expanded.add(id);
+      drawRows();
+    };
+    row.addEventListener("click", toggle);
+    row.addEventListener("keydown", (event) => {
+      const key = (event as KeyboardEvent).key;
+      if (key === "Enter" || key === " ") { event.preventDefault(); toggle(); }
     });
-    head.append(open);
-    panel.dataset["selectable"] = "true";
+
+    if (!open) return [row];
+    const steps = el(ctx, "div", "stv-row-steps");
+    steps.dataset["storyId"] = id;
+    const unfold = options.unfold ?? (node.failed ? "failed" : "none");
+    steps.append(renderStorySteps(node, { ...options, unfold }));
+    // Clicks inside the steps are the steps' own business, not a row toggle
+    steps.addEventListener("click", (event) => event.stopPropagation());
+    return [row, steps];
   }
-  return panel;
+
+  function draw(): void {
+    const map = buildStoryMap(state.stories);
+    drawHead(map);
+    drawToolbar(map);
+    drawRows();
+  }
+
+  draw();
+  return {
+    element: board,
+    update(stories) { state.stories = stories; draw(); },
+    shown: () => [...state.shown],
+  };
 }
 
-/** One beat: a sentence with its "when". With data or an error attached, it unfolds to the raw detail. */
-function renderBeat(ctx: Ctx, note: NoteRecord, start: number): HTMLElement {
-  const failed = note.level === "Error" || note.error !== undefined;
-  const level: Level = failed ? "Error" : (note.level ?? "Information");
-  const line = el(ctx, "span", "stv-panel-line");
-  line.append(el(ctx, "span", "stv-panel-when", offset(start, note.timestamp)), el(ctx, "span", "stv-panel-text", note.note));
-  if (note.error?.message && note.error.message !== note.note) line.append(el(ctx, "span", "stv-panel-reason", note.error.message));
-
-  if (!hasDetail(note)) {
-    const beat = el(ctx, "li", "stv-panel-beat");
-    beat.dataset["level"] = level;
-    beat.append(line);
-    return beat;
-  }
-
-  const beat = el(ctx, "li", "stv-panel-beat stv-panel-beat-detailed");
-  beat.dataset["level"] = level;
-  const details = el(ctx, "details", "stv-panel-unfold");
-  const summary = el(ctx, "summary", "stv-panel-summary");
-  summary.append(line);
-  details.append(summary);
-  const raw = el(ctx, "div", "stv-panel-detail");
-  for (const key of ["who", "what", "where"] as const) {
-    const value = note[key];
-    if (value === undefined) continue;
-    const block = el(ctx, "div", "stv-panel-context");
-    block.append(el(ctx, "span", "stv-key", key), renderValue(value, { ...ctx.options, expandDepth: ctx.options.expandDepth ?? 2 }));
-    raw.append(block);
-  }
-  if (note.error) raw.append(renderError(note.error, ctx.options));
-  details.append(raw);
-  beat.append(details);
-  return beat;
-}
-
-function renderChapter(ctx: Ctx, child: MapNode): HTMLElement {
-  const holder = el(ctx, "li", "stv-panel-chapter");
-  holder.append(renderPanel(ctx, child));
-  return holder;
+/** Render a run as a storyboard, once */
+export function renderStoryboard(stories: StoryRecord[], options: StoryboardOptions = {}): HTMLElement {
+  return createStoryboard(stories, options).element;
 }
