@@ -20,7 +20,7 @@ const PACKAGES = [
     dir: "packages/core",
     copies: ["README.md", "LICENSE"],
     allowed: /^(dist\/|snippets\/agents-section\.md$|llms\.txt$|AGENTS\.md$|README\.md$|LICENSE$|package\.json$)/,
-    required: ["README.md", "LICENSE", "package.json", "dist/cli.cjs", "llms.txt", "AGENTS.md"],
+    required: ["README.md", "LICENSE", "package.json", "dist/cli.cjs", "dist/store/file.js", "dist/store/file.cjs", "dist/store/file.d.ts", "llms.txt", "AGENTS.md"],
   },
   {
     name: "@lovelaces-io/storyteller-view",

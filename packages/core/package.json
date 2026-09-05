@@ -51,6 +51,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./store/file": {
+      "types": "./dist/store/file.d.ts",
+      "import": "./dist/store/file.js",
+      "require": "./dist/store/file.cjs"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -76,5 +81,12 @@
   },
   "bin": {
     "storyteller": "dist/cli.cjs"
+  },
+  "typesVersions": {
+    "*": {
+      "store/file": [
+        "./dist/store/file.d.ts"
+      ]
+    }
   }
 }

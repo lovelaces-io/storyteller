@@ -61,6 +61,10 @@ story.finish("Startup complete");
 - `consoleAudience(options?)` — compact line per beat, grouped block per story (default)
 - `ndjsonAudience(options?)` — one JSON object per line, for machine consumption
 - `dbAudience(insert)` — persists warn/oops stories via a provided insert function
+- `storeAudience(store, options?)` — keeps every story in a `StoryStore`
+- `memoryStore(options?)` — the reference store: bounded, in memory, browser-safe
+- `fileStore(path)` — JSON-lines file store, Node only, from `@lovelaces-io/storyteller/store/file`
+- `StoryStore` — `append` / `get(storyId)` / `query(criteria)` / `children(parentStoryId)` / `prune(before)`; criteria: `since`, `until`, `level`, `minimumLevel`, `about`, `from`, `parentStoryId`, `slowerThanMs`, `failed`, `limit`, `offset`, `order`
 - `storyteller init` — CLI that sets a project up in one command; safe to re-run
 - `ANSI` / `getLevelColor(level)` / `formatOrigin(origin?)` / `summarizeContext(note)` / `formatDuration(ms)`
 

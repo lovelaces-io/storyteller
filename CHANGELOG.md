@@ -2,6 +2,15 @@
 
 All notable changes to Storyteller will be documented in this file.
 
+## Unreleased
+
+### Added
+
+- **`StoryStore`.** A contract for where stories go and how they come back: `append`, `get`, `query`, `children`, `prune`. Structured `StoryQuery` criteria (`since`, `until`, `level`, `minimumLevel`, `about`, `from`, `parentStoryId`, `slowerThanMs`, `failed`, paging) so every adapter answers the same questions. `canonicalRow()` publishes the schema an adapter stores; `matchesQuery()` / `applyQuery()` are the reference matcher every adapter is measured against.
+- **`memoryStore()`.** The reference implementation: a bounded in-memory store, zero dependencies, browser-safe.
+- **`fileStore(path)`.** One JSON-lines file, append-only, with `prune` rewriting it. Node only, so it ships from its own entry point: `@lovelaces-io/storyteller/store/file`.
+- **`storeAudience(store, options?)`.** The one-line bridge from delivery to persistence. Keeps every level by default.
+
 ## 0.3.1 — 2026-09-04
 
 ### Fixed

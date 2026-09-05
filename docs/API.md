@@ -535,6 +535,83 @@ Error-shaped plain objects — the kind that arrive across a serialization bound
 
 ---
 
+## Stores
+
+Where stories go, and how they come back. A `StoryStore` is the contract every adapter implements; the questions you can ask are the same whichever one you use.
+
+### StoryStore
+
+```ts
+type StoryStore = {
+  append(event: StoryEvent | StoredStory): Promise<void>;
+  get(storyId: string): Promise<StoredStory | undefined>;
+  query(criteria?: StoryQuery): Promise<StoredStory[]>;
+  children(parentStoryId: string): Promise<StoredStory[]>;
+  prune(before: Date): Promise<number>;
+};
+```
+
+`StoredStory` is the story record without its `summarize` method, with a `storyId` it can be fetched by. `query` criteria are structured, never a string:
+
+| field | matches |
+|---|---|
+| `since` / `until` | stories whose timestamp is at or after / before the instant |
+| `level` | exactly this level, or any of an array |
+| `minimumLevel` | at least this level |
+| `about` | case-insensitive text over title, note text, scalar context and error messages |
+| `from` | case-insensitive text over the origin's who / what / where |
+| `parentStoryId` | the chapters of one story |
+| `slowerThanMs` | stories that took longer |
+| `failed` | carries an error or closed at `Error` |
+| `limit` / `offset` / `order` | paging; newest first unless `order: "oldest"` |
+
+### memoryStore(options?)
+
+The reference implementation: a bounded Map. Zero dependencies, browser-safe, right for tests and for a process that reads its own stories back.
+
+```ts
+import { memoryStore, storeAudience } from "@lovelaces-io/storyteller";
+
+const stories = memoryStore({ capacity: 10_000 });   // oldest forgotten past capacity
+story.audience.add(storeAudience(stories));
+
+const recentFailures = await stories.query({ failed: true, since: new Date(Date.now() - 3_600_000) });
+const chapters = await stories.children(recentFailures[0].storyId);
+await stories.prune(new Date(Date.now() - 7 * 86_400_000));
+```
+
+### fileStore(path)
+
+One JSON-lines file, append-only; `prune` rewrites it. Node only, so it ships from its own entry point and the root import stays browser-safe.
+
+```ts
+import { storeAudience } from "@lovelaces-io/storyteller";
+import { fileStore } from "@lovelaces-io/storyteller/store/file";
+
+const stories = fileStore("./stories.jsonl");
+story.audience.add(storeAudience(stories));
+```
+
+Writes are serialized; a torn line from a crash mid-write is skipped, never fatal.
+
+### storeAudience(store, options?)
+
+```ts
+storeAudience(store: StoryStore, options?: {
+  name?: string;                             // default "store"
+  level?: StoryLevel;                        // minimum to keep; default everything
+  accepts?: (event: StoryEvent) => boolean;  // a further filter
+}): AudienceMember
+```
+
+Unlike `dbAudience`, it keeps every level by default: a store that only keeps failures can answer "what broke" but not "what happened", and `prune` is there for the rest. A store that rejects is reported through `onAudienceError`.
+
+### Writing an adapter
+
+`canonicalRow(story)` derives the columns to store — `story_id`, `parent_story_id`, `timestamp`, `level`, `title`, `origin_who` / `origin_what` / `origin_where`, `duration_ms`, `error_message`, `notes` (JSON), `search_text` (what `about` searches), and `record` (the whole story as JSON, so `get` returns it unchanged). `matchesQuery(story, criteria)` and `applyQuery(stories, criteria)` are the reference matcher: an adapter's own query must return the same stories.
+
+---
+
 ## Custom Audiences
 
 Implement the `AudienceMember` interface to create your own audience.
