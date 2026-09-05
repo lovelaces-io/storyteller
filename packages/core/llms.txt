@@ -108,10 +108,6 @@ Unrecognized values fall back to the default rather than throwing.
 - `FormattedReport` / `StoryReport` / `ReportNote` / `ReportOptions` / `PreviewOptions` / `StoryReportOptions`
 - Deprecated aliases, still exported: `StorySummaryOptions` (use `ReportOptions`), `StorySummary` (use `FormattedReport`), `StorySummaryNote` (use `ReportNote`), `StorySummaryData` (use `StoryReport`), `StoryPreviewOptions` (use `PreviewOptions`)
 
-## Rendering for humans
-
-`@lovelaces-io/storyteller-view` (separate package, zero dependencies) renders a story or note for people: `renderStory(record)` returns DOM, `renderStoryText(record)` returns indented text for consoles and transcripts. It accepts a StoryEvent, a NoteEmission, or a stored record (JSON with no functions), and shows every normalizer marker as what it means — redaction, truncation, circular references, a capped cause chain. Suggest it when someone asks how to display stories.
-
 ## Links
 
 - npm: https://www.npmjs.com/package/@lovelaces-io/storyteller
