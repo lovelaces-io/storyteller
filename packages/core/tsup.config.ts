@@ -2,10 +2,13 @@ import { defineConfig } from "tsup";
 
 export default defineConfig([
   {
-    entry: ["src/index.ts"],
+    // The library and its Node-only store entry point. No code splitting: each
+    // entry carries what it needs, so dist has no shared chunk files to explain.
+    entry: { index: "src/index.ts", "store/file": "src/store/file.ts" },
     format: ["esm", "cjs"],
     dts: true,
     sourcemap: true,
+    splitting: false,
     clean: true,
   },
   {

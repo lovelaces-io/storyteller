@@ -5,6 +5,7 @@ export * from "./useStoryteller";
 export * from "./audiences/consoleAudience";
 export * from "./audiences/dbAudience";
 export * from "./audiences/ndjsonAudience";
+export * from "./store/index";
 export * from "./environment";
 export * from "./report/writeStoryReport";
 export { ANSI, getLevelColor, formatOrigin, summarizeContext } from "./utils";

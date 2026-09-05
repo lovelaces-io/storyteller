@@ -185,6 +185,24 @@ Built in: `consoleAudience()` (notes and stories, registered by default), `dbAud
 
 When an audience throws, the failure is reported through `onAudienceError` rather than swallowed, and never propagates into your code. When an audience is too slow, emissions past `maxInFlight` are dropped and counted in `droppedEmissions` on the closing story — so the loss shows up in the record instead of vanishing.
 
+## Keeping stories, and reading them back
+
+A story is the unit of retrieval: complete, ordered, small enough for a context window. A `StoryStore` keeps them and answers structured questions; `storeAudience` is the one-line bridge from delivery.
+
+```typescript
+import { memoryStore, storeAudience } from "@lovelaces-io/storyteller";
+import { fileStore } from "@lovelaces-io/storyteller/store/file";   // Node only
+
+const stories = fileStore("./stories.jsonl");      // or memoryStore() for a browser, a test, one run
+story.audience.add(storeAudience(stories));
+
+await stories.query({ about: "checkout", failed: true, since: new Date(Date.now() - 86_400_000) });
+await stories.children(storyId);                    // its chapters
+await stories.prune(new Date(Date.now() - 30 * 86_400_000));
+```
+
+Query criteria are an object, never a string. `about` searches title, note text, scalar context and error messages; `from` searches the origin. To write an adapter for a database, store `canonicalRow(story)` and make its query agree with `matchesQuery` — that agreement is the contract.
+
 ## Rendering stories for humans
 
 Stories are JSON so programs can read them. When a person needs to read one — an admin log screen, a terminal, a chat transcript — use `@lovelaces-io/storyteller-view`, a separate zero-dependency package from the same repo:
